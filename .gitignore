@@ -39,3 +39,8 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+#.md
+GEMINI.md
+README_AI.md
+error.md
