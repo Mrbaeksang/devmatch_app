@@ -23,12 +23,6 @@ interface ProjectMemberWithUser {
 }
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"; // Avatar 컴포넌트 import
 
-type ProjectDetailsPageProps = {
-  params: {
-    projectId: string;
-  };
-};
-
 async function getProjectDetails(projectId: string, userId: string) {
   const project = await db.project.findFirst({
     where: {
@@ -56,7 +50,7 @@ async function getProjectDetails(projectId: string, userId: string) {
   return project;
 }
 
-export default async function ProjectDetailsPage({ params }: ProjectDetailsPageProps) {
+export default async function ProjectDetailsPage({ params }: { params: { projectId: string } }) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) {
     return notFound();
