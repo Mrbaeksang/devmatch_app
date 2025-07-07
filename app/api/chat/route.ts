@@ -17,7 +17,7 @@ export async function POST(req: Request) {
 
     // ✅ 모델 이름 수정
     const result = streamText({
-      model: openrouter('deepseek/deepseek-r1-0528:free'),
+      model: openrouter('deepseek/deepseek-chat-v3-0324:free'),
       messages: convertToCoreMessages(messages),
     });
 

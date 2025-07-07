@@ -1,31 +1,3 @@
-# 작업 요청: 팀원 초대 링크 생성 API 구현
-
-안녕하세요, 사장님. 이제 다른 사용자를 프로젝트에 초대할 수 있도록, 고유한 초대 링크를 생성하는 API를 만들 차례입니다.
-
-`app/api/projects/[projectId]/invite/` 경로에 `route.ts` 파일을 생성하고, 아래 내용으로 채워주세요.
-
-**왜 필요한가요?**
-
-*   프로젝트 소유자가 팀원을 안전하고 쉽게 초대할 수 있는 기능을 제공합니다.
-*   각 초대 링크는 고유한 코드를 가지며, 보안을 위해 24시간의 유효 기간을 갖습니다.
-*   이 API를 통해 생성된 링크를 사용자가 복사하여 팀원에게 전달하면, 팀원은 해당 링크를 통해 프로젝트에 참여하게 됩니다.
-
----
-
-### 1. `app/api/projects/[projectId]/invite/route.ts` 파일 생성
-
-아래 디렉토리 구조에 맞게 새 파일을 생성하고, 제공된 코드를 붙여넣어 주세요.
-
-```
-app
-└── api
-    └── projects
-        └── [projectId]
-            └── invite
-                └── route.ts  <-- 이 파일 생성
-```
-
-```typescript
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
@@ -75,15 +47,3 @@ export async function POST(
     return NextResponse.json({ message: 'An internal error occurred.' }, { status: 500 });
   }
 }
-
-```
-
----
-
-### 2. 커밋 명령어
-
-작업 완료 후, 아래 명령어를 사용하여 커밋해 주세요.
-
-```bash
-git add . && git commit -m "feat: 팀원 초대 링크 생성 API 구현"
-```
