@@ -1,108 +1,87 @@
-# AI 에이전트 작업 요청서 (Phase 1.3 - 프로젝트 상세 페이지 UI 생성)
 
-사장님, `Phase 1.2: 프로젝트 등록` 기능 구현이 완료되었습니다. 이제 `Phase 1.3: 프로젝트 상세 페이지`를 구현하겠습니다.
+# `ProjectForm.tsx` 수정 요청 (AI 역할 분석 연동)
 
-이 단계에서는 특정 프로젝트의 상세 정보를 보여주는 페이지의 UI를 생성합니다.
+안녕하세요, 사장님.
 
----
+프로젝트의 문서와 실제 코드의 동기화를 완료했습니다. 이제 다시 개발 작업으로 돌아가, 프로젝트 생성 프로세스를 완성하고자 합니다.
 
-### 요청 작업 1: `app/projects/[projectId]/page.tsx` 파일 생성
+## 변경 목표
 
-이 페이지는 프로젝트의 이름, 목표, 참여 멤버 목록을 표시하고, `shadcn/ui Tabs`를 활용하여 '정보', '채팅', '설정' 등 탭 구조를 구현합니다.
+현재는 프로젝트 생성 후 바로 상세 페이지로 이동하지만, 앞으로는 **AI가 프로젝트 목표를 분석하여 추천 역할을 제안하는 중간 단계**를 추가하고자 합니다. `GEMINI.md`의 **Phase 1.2**에 계획된 내용입니다.
 
--   **작업의 역할 및 연관 관계:**
-    -   동적 라우팅을 사용하여 특정 `projectId`에 해당하는 프로젝트 정보를 표시합니다.
-    -   `shadcn/ui Tabs` 컴포넌트를 사용하여 페이지 내에서 정보를 구조화합니다.
+## 수정 요청 사항
 
--   **요청 사항:**
-    1.  `app/projects/[projectId]` 라는 디렉토리를 생성해주세요. (이미 있다면 넘어갑니다)
-    2.  `app/projects/[projectId]/page.tsx` 파일을 생성하고, 아래 코드를 붙여넣어 주세요.
+`app/components/project/ProjectForm.tsx` 파일의 `handleSubmit` 함수 내부 로직을 아래와 같이 변경해 주십시오.
 
-    ```tsx
-    "use client";
+기존에는 프로젝트 생성 API 호출 후 성공 시 `router.push`를 통해 바로 페이지를 이동했습니다.
+이제는 `createProject` 호출 성공 후, 반환된 `newProject` 정보를 사용하여 새로운 API(`/api/projects/ai/roles`)를 호출하는 로직을 추가해야 합니다.
 
-    import React from 'react';
-    import { useParams } from 'next/navigation';
-    import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-    import { Button } from '@/components/ui/button';
+### `handleSubmit` 함수 수정 (`ProjectForm.tsx`)
 
-    const ProjectDetailPage = () => {
-      const params = useParams();
-      const projectId = params.projectId; // URL에서 projectId 가져오기
+아래의 코드 블록을 `handleSubmit` 함수 전체에 붙여넣어 주세요.
 
-      // 임시 프로젝트 데이터 (나중에 API에서 받아올 예정)
-      const project = {
-        id: projectId,
-        name: `프로젝트 ${projectId}`,
-        goal: `이것은 프로젝트 ${projectId}의 목표입니다.`, 
-        members: [
-          { id: 'user1', name: '김초보' },
-          { id: 'user2', name: '이개발' },
-        ],
-      };
+```typescript
+  // 폼 제출 핸들러
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    // 폼 검증
+    const validationError = validateForm(formData);
+    if (validationError) {
+      toast.error(validationError);
+      return;
+    }
 
-      if (!project) {
-        return <div className="container mx-auto p-4">프로젝트를 찾을 수 없습니다.</div>;
+    setIsSubmitting(true);
+    const toastId = toast.loading("프로젝트를 생성 중입니다...");
+
+    try {
+      // 1. 프로젝트 생성 API 호출
+      const newProject = await createProject(formData);
+      toast.success("프로젝트가 성공적으로 생성되었습니다!", { id: toastId });
+      
+      // 2. AI 역할 추천 API 호출
+      toast.loading("AI가 프로젝트에 필요한 역할을 분석 중입니다...", { id: toastId });
+      
+      const rolesResponse = await fetch('/api/projects/ai/roles', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ projectGoal: newProject.goal })
+      });
+
+      if (!rolesResponse.ok) {
+        throw new Error("AI 역할 분석에 실패했습니다.");
       }
 
-      return (
-        <div className="container mx-auto p-4">
-          <h1 className="text-3xl font-bold mb-4">{project.name}</h1>
-          <p className="text-lg text-muted-foreground mb-6">{project.goal}</p>
+      const rolesData = await rolesResponse.json();
+      console.log("AI 추천 역할:", rolesData.roles);
 
-          <Tabs defaultValue="info" className="w-full">
-            <TabsList className="grid w-full grid-cols-3">
-              <TabsTrigger value="info">정보</TabsTrigger>
-              <TabsTrigger value="chat">채팅</TabsTrigger>
-              <TabsTrigger value="settings">설정</TabsTrigger>
-            </TabsList>
-            <TabsContent value="info" className="p-4 border rounded-md mt-4">
-              <h2 className="text-xl font-semibold mb-2">참여 멤버</h2>
-              <ul>
-                {project.members.map((member) => (
-                  <li key={member.id}>{member.name}</li>
-                ))}
-              </ul>
-              <div className="mt-4 flex space-x-2">
-                <Button variant="destructive">프로젝트 종료</Button>
-                <Button variant="outline">프로젝트 나가기</Button>
-              </div>
-            </TabsContent>
-            <TabsContent value="chat" className="p-4 border rounded-md mt-4">
-              <h2 className="text-xl font-semibold mb-2">팀 전용 채팅방</h2>
-              <p>채팅 기능이 여기에 구현될 예정입니다.</p>
-            </TabsContent>
-            <TabsContent value="settings" className="p-4 border rounded-md mt-4">
-              <h2 className="text-xl font-semibold mb-2">프로젝트 설정</h2>
-              <p>프로젝트 설정 기능이 여기에 구현될 예정입니다.</p>
-            </TabsContent>
-          </Tabs>
-        </div>
-      );
-    };
+      // 3. 역할 저장 API 호출 (이 부분은 다음 단계에서 구현 예정)
+      // await saveRoles(newProject.id, rolesData.roles);
 
-    export default ProjectDetailPage;
-    ```
+      toast.success("AI 역할 분석 및 저장이 완료되었습니다.", { id: toastId });
 
----
+      // 4. 모든 과정 완료 후 상세 페이지로 이동
+      router.push(`/projects/${newProject.id}`);
 
-### 요청 작업 2: 개발 서버 재실행 및 페이지 확인
+    } catch (error) {
+      console.error("프로젝트 생성 또는 AI 역할 분석 오류:", error);
+      const errorMessage = error instanceof Error 
+        ? error.message 
+        : "작업에 실패했습니다.";
+      toast.error(errorMessage, { id: toastId });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+```
 
-새로 생성된 페이지를 확인하기 위해 개발 서버를 재실행하고, 웹 브라우저에서 `/projects/[projectId]` 경로로 접속하여 페이지가 정상적으로 표시되는지 확인해주세요. `[projectId]` 부분은 아무 값이나 입력해도 됩니다 (예: `http://localhost:3000/projects/test-project-id`).
+### 주요 변경 사항
 
--   **작업의 역할 및 연관 관계:**
-    -   페이지가 정상적으로 렌더링되는지 확인하고, 탭 컴포넌트가 잘 작동하는지 확인합니다.
+1.  **상태 피드백 강화**: `toast` 라이브러리를 사용하여 각 단계(프로젝트 생성, AI 역할 분석)의 진행 상황을 사용자에게 명확하게 보여줍니다.
+2.  **AI 역할 분석 API 호출**: 프로젝트 생성 후 반환된 `newProject.goal`을 이용해 `/api/projects/ai/roles` API를 호출합니다.
+3.  **단계별 에러 처리**: 각 API 호출 단계에서 발생할 수 있는 오류를 `try...catch` 블록으로 감싸고, 사용자에게 적절한 에러 메시지를 표시합니다.
 
--   **요청 드릴 명령어:**
-    -   터미널에서 `devmatch-app` 디렉토리로 이동하여 아래 명령어를 실행해주세요.
+이 수정이 완료되면, 프로젝트 생성 시 사용자는 더 풍부한 피드백을 받게 되며, 백그라운드에서는 AI가 추천 역할을 생성하게 됩니다.
 
-    ```bash
-    pnpm dev
-    ```
-    -   서버가 시작되면 웹 브라우저에서 `http://localhost:3000/projects/test-project-id`와 같이 접속하여 페이지를 확인해주세요.
-    -   만약 오류가 발생하면, 터미널에 출력되는 모든 내용을 복사하여 `C:\Users\qortk\IdeaProjects\devmatch-app\error.md` 파일에 붙여넣어 주세요.
-    -   **주의**: `error.md` 파일의 기존 내용은 모두 지우고 새로운 오류 메시지만 붙여넣어 주세요.
-
----
-
-위 작업들을 모두 완료하신 후 저에게 알려주세요. 제가 결과를 확인하고 다음 단계를 안내해 드리겠습니다. 감사합니다!
+수정이 완료되면 알려주세요. 다음 단계로 넘어가겠습니다.

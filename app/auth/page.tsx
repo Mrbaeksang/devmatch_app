@@ -1,9 +1,12 @@
+// app/auth/page.tsx
+
 "use client";
 
+import React from "react";
 import { Button } from "@/components/ui/button";
 import { signIn } from "next-auth/react";
 import { useSearchParams } from "next/navigation";
-import React from "react";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
 const AuthPage = () => {
   const searchParams = useSearchParams();
@@ -14,34 +17,49 @@ const AuthPage = () => {
   };
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center bg-gray-50 py-12 sm:px-6 lg:px-8">
-      <div className="sm:mx-auto sm:w-full sm:max-w-md">
-        <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
-          AI 팀 빌딩 매니저
-        </h2>
-        <p className="mt-2 text-center text-sm text-gray-600">
-          로그인하고 최고의 팀을 만들어보세요
-        </p>
-      </div>
-
-      <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
-        <div className="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">
-          <div className="space-y-6">
+    // 전체 화면을 채우고 내용을 중앙에 배치 (배경색 적용)
+    <div className="flex w-screen h-screen items-center justify-center bg-gray-100">
+      <Card className="w-full max-w-sm p-6"> {/* 카드 컴포넌트로 감싸고 패딩 추가 */}
+        <CardHeader className="text-center mb-6">
+          <CardTitle className="text-2xl font-bold text-gray-900">AI 팀 빌딩 매니저</CardTitle>
+          <CardDescription className="text-sm text-gray-500">
+            로그인하고 최고의 팀을 만들어보세요
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {/* 버튼들을 가로로 배치하고 중앙 정렬하며 간격 조절 */}
+          <div className="flex justify-center space-x-8"> {/* 간격을 적절히 조절 */}
+            
+            {/* Google 로그인 버튼 */}
             <Button
-              className="w-full"
               onClick={() => handleLogin("google")}
+              // 크기를 64px (w-16 h-16)로 정상화, 원형, 호버 효과 적용
+              className="w-16 h-16 rounded-full flex items-center justify-center p-0 bg-white border border-gray-300 shadow-md transition-transform duration-200 hover:scale-110 hover:shadow-lg"
+              aria-label="Google 계정으로 로그인"
             >
-              Google 계정으로 로그인
+              <img
+                src="https://img.icons8.com/3d-fluency/1500/google-logo.png"
+                alt="Google"
+                className="w-10 h-10 object-contain" // 이미지 크기 조절
+              />
             </Button>
+            
+            {/* Kakao 계정으로 로그인 버튼 */}
             <Button
-              className="w-full bg-[#FEE500] text-black hover:bg-[#FEE500]/90"
               onClick={() => handleLogin("kakao")}
+              // 크기를 64px (w-16 h-16)로 정상화, 원형, 호버 효과 적용
+              className="w-16 h-16 rounded-full flex items-center justify-center p-0 bg-white border border-gray-300 shadow-md transition-transform duration-200 hover:scale-110 hover:shadow-lg"
+              aria-label="Kakao 계정으로 로그인"
             >
-              Kakao 계정으로 로그인
+              <img
+                src="https://img.icons8.com/color/480/kakaotalk.png"
+                alt="Kakao"
+                className="w-10 h-10 object-contain" // 이미지 크기 조절
+              />
             </Button>
           </div>
-        </div>
-      </div>
+        </CardContent>
+      </Card>
     </div>
   );
 };

@@ -31,10 +31,15 @@
 ### Phase 1: 프로젝트의 시작 - "우리 팀의 깃발을 꽂다"
 
 #### 1.1. 간편 로그인 (Google/Kakao OAuth)
--   [x] **DB**: `prisma/schema.prisma`에 `User`, `Account`, `Session` 모델 정의 완료.
+-   [x] **DB**: 
+    -   [x] `prisma/schema.prisma`에 `User`, `Account`, `Session` 모델 정의 완료.
+    -   [x] `Account` 모델에 `refresh_token_expires_in` 필드를 추가하여 Kakao 로그인 오류 해결.
 -   [x] **Backend**: `app/api/auth/[...nextauth]/route.ts` 파일 생성 및 NextAuth.js 기본 설정. Google, Kakao Provider 추가.
--   [x] **UI**: `app/auth/page.tsx` 생성. Google/Kakao 로그인 버튼(`shadcn/ui Button` 활용) UI 구현.
+-   [x] **UI**: 
+    -   [x] `app/auth/page.tsx` 생성 및 `Card` 컴포넌트 기반의 아이콘 버튼 UI로 개선 완료.
+    -   [x] `app/page.tsx`에 랜딩 페이지 및 로그인 상태에 따른 자동 리다이렉트 로직 구현.
 -   [x] **Flow**:
+    -   [x] 루트 페이지(`/`) 접속 시, 로그인 상태를 확인하여 `/projects`로 자동 이동시키는 로직 구현.
     -   [x] 로그인 버튼 클릭 시 `signIn` 함수 호출.
     -   [x] 로그인 성공 후 세션 생성 확인.
     -   [x] 로그인 사용자를 `/projects` 페이지로 리다이렉트하는 로직 구현.
@@ -58,14 +63,14 @@
     -   [x] 각 API 호출에 대한 로딩 및 에러 상태 처리.
 
 #### 1.3. 프로젝트 상세 페이지
--   [ ] **UI**: `app/projects/[projectId]/page.tsx` 페이지 생성.
-    -   [ ] 프로젝트 이름, 목표, 참여 멤버 목록 표시.
+-   [x] **UI**: `app/projects/[projectId]/page.tsx` 페이지 생성.
+    -   [x] 프로젝트 이름, 목표, 참여 멤버 목록 표시.
     -   [ ] `shadcn/ui Tabs`를 활용하여 '정보', '채팅', '설정' 등 탭 구조 구현.
 -   [ ] **Backend**: `app/api/projects/[projectId]/route.ts`에 특정 프로젝트 조회(GET), 수정(PUT), 삭제(DELETE) API 구현.
--   [ ] **Flow/Logic**:
-    -   [ ] 페이지 진입 시, `projectId`를 이용해 프로젝트 상세 정보 및 멤버 목록을 서버에서 Fetch.
-    -   [ ] 데이터를 받아와 UI에 렌더링. 데이터 로딩 중에는 스켈레톤 UI 또는 로딩 스피너 표시.
-
+-   [x] **Flow/Logic**:
+    -   [x] 페이지 진입 시, `projectId`를 이용해 프로젝트 상세 정보 및 멤버 목록을 서버에서 Fetch.
+    -   [x] `types/next-auth.d.ts` 파일을 생성하여 `session.user` 타입 에러 해결.
+    -   [x] 데이터를 받아와 UI에 렌더링. 데이터 로딩 중에는 스켈레톤 UI 또는 로딩 스피너 표시.
 ### Phase 2: 팀원 소집 - "흩어진 동료들을 한 곳으로"
 
 #### 2.1. 초대장 발송 (링크 생성 및 공유)

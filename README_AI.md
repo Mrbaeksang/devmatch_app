@@ -17,12 +17,13 @@
 
 #### 2.1. Phase 1: 프로젝트의 시작 - "우리 팀의 깃발을 꽂다"
 
-1.  **첫 만남 (간편 로그인)**:
-    *   김초보는 "AI 팀 빌딩 매니저" 웹사이트에 접속합니다.
-    *   복잡한 회원가입 절차 없이, Google 또는 Kakao 로그인 버튼을 클릭하여 간편하게 로그인합니다.
-    *   로그인 완료 후, "환영합니다, 김초보님!" 메시지와 함께 깔끔한 대시보드(`/projects`)로 자동 이동됩니다.
-    *   **참고**: 로그인 및 회원가입 페이지는 이메일/비밀번호 입력 없이 Google 및 Kakao OAuth 버튼만 제공합니다.
-    *   **예외**: 이미 회원이고 진행 중인 프로젝트가 있다면, `/projects` 페이지 대신 마지막으로 작업하던 프로젝트 상세 페이지(`/projects/[id]`)로 바로 이동합니다.
+1.  **첫 만남 (랜딩 페이지 및 간편 로그인)**:
+    *   김초보는 "AI 팀 빌딩 매니저" 웹사이트 (`/`)에 접속합니다.
+    *   로그인하지 않은 상태이므로, 서비스 소개와 함께 `[시작하기 (로그인)]` 버튼이 있는 랜딩 페이지를 보게 됩니다.
+    *   `[시작하기 (로그인)]` 버튼을 클릭하면, Google 또는 Kakao 아이콘 버튼이 있는 로그인 페이지(`/auth`)로 이동합니다.
+    *   복잡한 회원가입 절차 없이, 원하는 소셜 로그인을 클릭하여 간편하게 로그인합니다.
+    *   로그인 완료 후, 깔끔한 대시보드(`/projects`)로 자동 이동됩니다.
+    *   **참고**: 만약 이미 로그인한 상태에서 루트 페이지(`/`)에 접속하면, 랜딩 페이지를 건너뛰고 `/projects` 대시보드로 즉시 리다이렉트됩니다.
 
 2.  **프로젝트 등록 (생성)**:
     *   로그인 후, 김초보를 위한 대시보드(`/projects`)에서 `[+ 새 프로젝트 시작하기]` 버튼을 클릭합니다.
@@ -224,18 +225,19 @@ model User {
 }
 
 model Account {
-  id                String  @id @default(cuid())
-  userId            String
-  type              String
-  provider          String
-  providerAccountId String
-  refresh_token     String? @db.Text
-  access_token      String? @db.Text
-  expires_at        Int?
-  token_type        String?
-  scope             String?
-  id_token          String? @db.Text
-  session_state     String?
+  id                        String    @id @default(cuid())
+  userId                    String
+  type                      String
+  provider                  String
+  providerAccountId         String
+  refresh_token             String?   @db.Text
+  access_token              String?   @db.Text
+  expires_at                Int?
+  token_type                String?
+  scope                     String?
+  id_token                  String?   @db.Text
+  session_state             String?
+  refresh_token_expires_in  Int?
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
