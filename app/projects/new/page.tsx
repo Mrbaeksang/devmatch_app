@@ -51,12 +51,12 @@ export default function NewProjectPage() {
           // 다음 단계인 팀원 초대 페이지로 리다이렉트
           router.push(`/projects/${newProject.id}/invite`);
         }
-      } catch (error) {
+      } catch {
         // JSON 파싱에 실패하면 일반 텍스트로 처리 (아직 상담 진행 중)
         console.log("AI 응답이 JSON 형식이 아니므로 상담을 계속 진행합니다.");
       }
     },
-    onError: (error: Error) => { // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    onError: (error: Error) => {
       console.error("AI chat error:", error);
       toast.error("AI와 대화 중 오류가 발생했습니다. 다시 시도해주세요.");
     }
