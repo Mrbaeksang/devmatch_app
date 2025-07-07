@@ -10,6 +10,18 @@ import {
   TabsList,
   TabsTrigger,
 } from "@/components/ui/tabs"; // Tabs 컴포넌트 import
+
+// ProjectMemberWithUser 인터페이스 정의
+interface ProjectMemberWithUser {
+  userId: string;
+  joinedAt: Date;
+  project: any; // 또는 Project 타입 (필요시 정의)
+  user: {
+    id: string;
+    name: string | null;
+    image: string | null;
+  };
+}
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"; // Avatar 컴포넌트 import
 
 type ProjectDetailsPageProps = {
@@ -76,7 +88,7 @@ export default async function ProjectDetailsPage({ params }: ProjectDetailsPageP
               참여 멤버 ({project.members.length}명)
             </h2>
             <div className="flex flex-wrap gap-4">
-              {project.members.map((member) => (
+              {project.members.map((member: ProjectMemberWithUser) => (
                 <div key={member.userId} className="flex items-center gap-2 p-2 border rounded-md">
                   <Avatar>
                     <AvatarImage src={member.user.image || ''} alt={member.user.name || 'avatar'} />

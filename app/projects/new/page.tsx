@@ -7,12 +7,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Loader2 } from "lucide-react";
-import { useChat } from 'ai/react'; // Vercel AI SDK의 useChat 훅 임포트
+import { useChat } from '@ai-sdk/react'; // lims.txt 지침에 따라 임포트 경로 변경
 
 export default function NewProjectPage() {
   const router = useRouter();
   const { messages, input, handleInputChange, handleSubmit, isLoading, append } = useChat({
-    api: '/api/chat', // AI 모델과의 통신을 처리할 API 라우트 (다음 단계에서 구현 예정)
+    api: '/api/chat',
     initialMessages: [
       { id: '1', role: 'assistant', content: '안녕하세요! 새로운 프로젝트를 시작하시려는군요? 어떤 종류의 프로젝트를 만드시려고 하시나요? (예: 웹 서비스, 모바일 앱, 게임 등)' },
     ],

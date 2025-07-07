@@ -67,6 +67,18 @@ model Project {
   inviteLinks      InviteLink[]
   chatMessages     ChatMessage[]
   recommendedRoles RecommendedRole[]
+  status           ProjectStatus     @default(INITIAL_CONSULTATION) // 새로운 status 필드
+  consultationData Json?             // 새로운 consultationData 필드
+}
+
+enum ProjectStatus {
+  INITIAL_CONSULTATION // 초기 AI 상담 중
+  INVITING_MEMBERS     // 팀원 초대 중
+  MEMBER_INTERVIEWING  // 팀원 AI 인터뷰 중
+  FINAL_CONFIRMATION   // 최종 확정 대기 중
+  ACTIVE               // 프로젝트 활성화 (최종 생성 완료)
+  COMPLETED            // 프로젝트 완료
+  ARCHIVED             // 프로젝트 보관
 }
 
 model Role {
