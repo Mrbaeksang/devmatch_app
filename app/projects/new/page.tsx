@@ -29,13 +29,12 @@ export default function NewProjectPage() {
         if (lastResponseJson.isConsultationComplete) {
           toast.success("AI 상담이 성공적으로 완료되었습니다!");
 
-          const { projectName, projectGoal } = lastResponseJson;
-          const consultationData = messages.map(msg => ({ role: msg.role, content: msg.content }));
+          const { userName, projectName, projectGoal, consultationData } = lastResponseJson;
 
           const response = await fetch('/api/projects/initial-setup', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ projectName, projectGoal, consultationData }),
+            body: JSON.stringify({ userName, projectName, projectGoal, consultationData }),
           });
 
           if (!response.ok) {
@@ -47,8 +46,11 @@ export default function NewProjectPage() {
           toast.info("프로젝트 생성 중... 잠시만 기다려주세요.");
           router.push(`/projects/${newProject.id}/invite`);
         }
-      } catch {
-        console.log("AI 응답이 JSON 형식이 아니므로 상담을 계속 진행합니다.");
+      } catch (error) {
+        // AI 응답이 JSON 형식이 아니거나, isConsultationComplete가 false인 경우
+        // 또는 JSON 파싱 오류가 발생한 경우, 상담을 계속 진행합니다.
+        console.log("AI 응답이 JSON 형식이 아니거나 상담이 완료되지 않았습니다. 상담을 계속 진행합니다.", error);
+        // toast.error("AI 응답 처리 중 오류가 발생했습니다. 다시 시도해주세요."); // 사용자에게 불필요한 오류 메시지 방지
       }
     },
     onError: (error: Error) => {

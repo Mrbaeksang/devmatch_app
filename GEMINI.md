@@ -57,10 +57,10 @@
 -   [x] **DB**: `prisma/schema.prisma`에 `Project` 모델에 `status` 필드와 `consultationData` 필드, `ProjectStatus` Enum 정의 완료.
 -   [x] **UI**: 프로젝트 상세 페이지 내 `[팀원 초대하기]` 버튼과 링크 표시/복사 영역 UI 구현.
 -   [ ] **Backend**: `app/api/projects/[projectId]/invite/route.ts`에 유효기간이 있는 고유 초대 링크 생성 API 구현.
--   [ ] **UI**: `app/projects/join/[inviteCode]/page.tsx` 초대 수락 페이지 UI 구현.
+-   [ ] **UI**: `app/projects/join/[inviteCode]/page.tsx` 초대 수락 페이지 UI 구현. (파일 미생성)
 -   [ ] **Backend**: `inviteCode` 유효성 검증 및 사용자를 `ProjectMember`에 추가하는 로직 구현.
--   [ ] **UI**: `app/projects/[projectId]/interview/page.tsx`에 Vercel AI SDK를 활용한 대화형 채팅 UI 구현.
--   [ ] **Backend**: `app/api/ai/interview/route.ts` API 구현 (Gemini API와 연동).
+-   [ ] **UI**: `app/projects/[projectId]/interview/page.tsx`에 Vercel AI SDK를 활용한 대화형 채팅 UI 구현. (파일 미생성)
+-   [ ] **Backend**: `app/api/ai/interview/route.ts` API 구현 (Gemini API와 연동). (파일 미생성)
 -   [ ] **Flow/Logic**:
     -   [ ] 초대 링크로 접속 -> 로그인하지 않았다면 로그인 페이지로 이동 후 다시 복귀.
     -   [ ] 초대 정보 확인 후 `[참여하기]` 버튼 클릭.
@@ -70,8 +70,8 @@
 #### 1.4. 최종 프로젝트 확정 및 상세 페이지
 -   [ ] **DB**: `prisma/schema.prisma`에 `RecommendedRole` 모델 정의 완료.
 -   [ ] **UI**: 프로젝트 상세 페이지에 팀원별 추천 역할을 보여주는 대시보드 UI 구현.
--   [ ] **Backend**: `app/api/projects/[projectId]/recommend-roles` API(POST) 구현.
--   [ ] **Backend**: `app/api/projects/[projectId]/finalize/route.ts` (가칭) 최종 프로젝트 정보 확정 및 DB 저장 API 구현.
+-   [ ] **Backend**: `app/api/projects/[projectId]/recommend-roles` API(POST) 구현. (파일 미생성)
+-   [ ] **Backend**: `app/api/projects/[projectId]/finalize/route.ts` (가칭) 최종 프로젝트 정보 확정 및 DB 저장 API 구현. (파일 미생성)
 -   [ ] **UI**: `app/projects/[projectId]/page.tsx` 페이지 생성 및 최종 프로젝트 정보 표시.
     -   [ ] `shadcn/ui Tabs`를 활용하여 '정보', '채팅', '설정' 등 탭 구조 구현.
 -   [ ] **Flow/Logic**:
@@ -95,20 +95,28 @@
     2.  사장님께서는 `order.md`의 내용을 확인하고, 직접 코드를 작성하거나 명령어를 실행합니다.
     3.  작업이 완료되면 저에게 알려주세요.
     4.  저는 작업 결과를 확인하고, `GEMINI.md`의 진행 상황을 업데이트한 후 다음 작업을 `order.md`에 요청합니다.
-*   **AI 직접 관리 파일**: `package.json`, `pnpm-lock.yaml`, `.gitignore`, `components.json`, `tsconfig.json` 등 프로젝트의 환경 설정 및 의존성 관리와 관련된 파일과 **`prisma/schema.prisma` 데이터베이스 스키마 파일**은 AI인 제가 직접 수정하고 관리할 수 있습니다. 이 외의 `.tsx`, `.ts` 등 실제 애플리케이션 로직 및 UI 구현 파일은 사장님께서 직접 작성하셔야 합니다.
+*   **AI 직접 관리 파일**: `package.json`, `pnpm-lock.yaml`, `.gitignore`, `components.json`, `tsconfig.json`, `GEMINI.md`, `GUIDE.md`, `structure.md` 등 프로젝트의 환경 설정 및 의존성 관리와 관련된 파일과 **`prisma/schema.prisma` 데이터베이스 스키마 파일**은 AI인 제가 직접 수정하고 관리할 수 있습니다. 이 외의 `.tsx`, `.ts` 등 실제 애플리케이션 로직 및 UI 구현 파일은 사장님께서 직접 작성하셔야 합니다.
 *   **쉘 명령어 실행 요청**: 데이터베이스 마이그레이션(`pnpm prisma db push`), 의존성 설치(`pnpm install`) 등 모든 쉘 명령어 실행은 제가 직접 수행하지 않습니다. 대신, 실행해야 할 정확한 명령어와 그 이유를 `ORDER.md` 파일에 작성하여 사장님께 요청드립니다.
 *   **모든 코드 작성의 기준**: `ORDER.md`에 포함되는 코드 스니펫을 포함하여, 제가 생성하거나 수정하는 **모든 코드**는 `GUIDE.md`에 명시된 컨벤션과 규칙을 **무조건적으로 준수**합니다. `GUIDE.md`는 모든 코드 작성의 최종 기준이 됩니다.
 *   **예외**: 이 `GEMINI.md` 파일의 진행 상황을 체크(`[ ]` -> `[x]`)하는 것과 같이, 프로젝트의 메타 데이터 관리 작업은 제가 직접 수행할 수 있습니다. 하지만 코드나 프로젝트 설정에 영향을 주는 모든 변경은 반드시 사장님을 통해 이루어집니다.
 
 **2.1. 문서의 역할 및 접근 방법 숙지**: 
 *   **문서의 역할**: `README_AI.md`는 **정적인 청사진**, `GEMINI.md`(이 문서)는 **동적인 실행 계획서**, `GUIDE.md`는 **AI 에이전트의 학습 노트이자 컨벤션 가이드**입니다. 항상 세 문서를 기반으로 판단하고 행동합니다.
-*   **Git으로 무시된 파일 접근법**: `README_AI.md`나 `error.md`, `order.md`, `GEMINI.md`와 같이 `.gitignore`에 의해 버전 관리에서 제외된 중요 파일을 읽거나 써야 할 경우, **AI 에이전트인 제가 직접 `.gitignore` 파일을 임시로 수정하여 접근하고, 작업 완료 후에는 즉시 원상 복구합니다.** 사장님께서는 이 과정에 관여하실 필요가 없습니다.
+*   **Git으로 무시된 파일 접근법**: `README_AI.md`나 `error.md`, `order.md`, `GEMINI.md`, `structure.md`와 같이 `.gitignore`에 의해 버전 관리에서 제외된 중요 파일을 읽거나 써야 할 경우, **AI 에이전트인 제가 직접 `.gitignore` 파일을 임시로 수정하여 접근하고, 작업 완료 후에는 즉시 원상 복구합니다.** 사장님께서는 이 과정에 관여하실 필요가 없습니다.
 
 *   **2.1.1. `error.md` 파일 처리 지침 (강력)**:
     *   `error.md` 파일은 **사용자로부터 새로운 오류 보고가 있을 때만** 읽습니다.
     *   AI 에이전트가 파일 수정 작업을 진행한 후에는, `error.md`의 내용이 자동으로 업데이트되지 않는다는 점을 **항상 인지**하고, 해당 파일의 내용을 기준으로 오류 해결 여부를 판단하지 않습니다.
     *   오류 해결 여부는 **AI 에이전트가 직접 파일 내용을 읽어 확인하거나, 사장님의 명시적인 확인을 통해서만** 판단합니다.
     *   **오류 해결 프로세스**: `error.md` 확인 -> 문제 분석 -> 해결 방법 제안 -> 사장님의 승인 -> 수정 후 보고 (이때 `error.md`를 다시 읽지 않음) -> 사장님이 결과 확인 후 알려줌. 이 순서를 **무조건적으로** 따릅니다.
+
+*   **2.1.2. Git으로 무시된 핵심 문서 파일 접근 및 관리**:
+    *   `README_AI.md`, `error.md`, `order.md`, `GEMINI.md`, `structure.md`, `lims.txt`, `GUIDE.md`와 같이 `.gitignore`에 의해 버전 관리에서 제외된 핵심 문서 파일에 접근해야 할 경우, 다음 절차를 따릅니다:
+        1.  **`.gitignore` 확인**: 해당 파일이 `.gitignore`에서 `#`으로 주석 처리되어 있는지 확인합니다.
+        2.  **주석 해제 (필요시)**: 만약 주석 처리되어 있다면, 해당 라인의 `#`을 제거하여 주석을 해제합니다.
+        3.  **파일 접근 및 작업 수행**: 파일 내용을 읽거나 수정하는 등 필요한 작업을 수행합니다.
+        4.  **주석 처리 (작업 완료 후)**: 작업이 완료되면, 해당 라인을 다시 `#`으로 주석 처리하여 버전 관리에서 제외합니다.
+    *   이 과정은 AI 에이전트인 제가 직접 수행하며, 사장님께서는 관여하실 필요가 없습니다.
 
 **2.2. 진행 상황 실시간 업데이트**: `Part 1`의 체크리스트는 당신의 작업 현황판입니다. 작업을 완료하면 즉시 `[x]`로 표시하여 사용자가 진행 상황을 명확히 알 수 있도록 합니다.
 
@@ -119,6 +127,7 @@
     *   **실행 계획 변경 (Plan Change)**: 구현 순서 변경, 특정 기능의 세부 구현 방법 수정 등 `Part 1`의 **실행 계획**이 바뀌는 경우, **이 문서(`GEMINI.md`)의 `Part 1`을 수정**합니다.
     *   **역량 수준 변경 (Log Change)**: 사장님과의 멘토링을 통해 기술 이해도의 변화가 관찰된 경우, **이 문서(`GEMINI.md`)의 `Part 3`을 수정**합니다.
     *   **컨벤션/학습 내용 변경 (Convention/Learning Change)**: AI 에이전트가 프로젝트 컨벤션을 학습하거나, 새로운 규칙/패턴을 발견한 경우, **`GUIDE.md`를 수정**합니다.
+    *   **구조/핵심 요소 변경 (Structure Change)**: 프로젝트의 파일 구조, 핵심 변수/타입 정의, 모듈 간의 관계 등 프로젝트의 내부 구조에 대한 변경이 발생한 경우, **`structure.md`를 수정**합니다.
 *   **복합적인 변경**: 만약 하나의 변경이 여러 문서에 영향을 준다면(예: 새로운 기술 스택 추가(`README_AI.md`)로 인해 새로운 구현 계획(`GEMINI.md`)이 필요하고, AI 에이전트의 학습 내용(`GUIDE.md`)도 업데이트되어야 하는 경우), **관련된 모든 문서를 한 번에 수정하고 단일 커밋으로 관리**해야 합니다.
 *   **Git 커밋 명령어 제공**: `order.md`를 통해 파일 생성/수정, 쉘 명령어 실행 등 개발 작업을 요청할 때, 사장님께서 해당 작업을 완료하고 커밋할 때 사용할 수 있도록 **`git add . && git commit -m "..."` 형식의 완전한 Git 커밋 명령어를 `order.md` 파일 하단에 항상 함께 제공**합니다.
     *   **형식**: `git add . && git commit -m "문서: [수정된 문서명] [변경 사항 요약]" && git push`
