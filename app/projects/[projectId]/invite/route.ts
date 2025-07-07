@@ -4,10 +4,7 @@ import { authOptions } from '@/lib/auth';
 import { db } from '@/lib/db';
 import { nanoid } from 'nanoid';
 
-export async function POST(
-  req: Request,
-  { params }: { params: { projectId: string } }
-) {
+export async function POST(req: Request, { params }: { params: { projectId: string } }) {
   try {
     const session = await getServerSession(authOptions);
 
