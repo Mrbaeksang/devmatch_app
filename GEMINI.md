@@ -49,9 +49,9 @@
 -   [x] **UI (페이지)**: `app/projects/new/page.tsx` 생성 및 Vercel AI SDK를 활용한 AI 대화형 상담 UI 구현.
 -   [x] **Backend**: `app/api/projects/initial-setup/route.ts` AI 상담 결과 처리 및 임시 프로젝트 정보 저장 API 구현.
 -   [x] `[+ 새 프로젝트 시작하기]` 버튼 클릭 시 `/projects/new` 페이지로 이동.
--   [x] AI와 대화형으로 프로젝트 초기 정보(종류, 팀원 수, 기술 스택, 역할 분배) 상담.
+-   [ ] **AI 상담 로직 고도화**: 정해진 양식(프로젝트 명, 목표, 기술 스택 등)에 따라 정보를 수집하고, 모든 정보 수집 후 사용자에게 요약 및 최종 확인을 요청하는 기능 구현.
 -   [x] 상담 완료 후, 임시 프로젝트 정보 저장 및 프로젝트 '생성 중' 상태로 전환.
--   [ ] 팀원 초대 페이지로 리다이렉트.
+-   [x] 팀원 초대 페이지로 리다이렉트.
 
 #### 1.3. 팀원 초대 및 개별 AI 인터뷰
 -   [x] **DB**: `prisma/schema.prisma`에 `Project` 모델에 `status` 필드와 `consultationData` 필드, `ProjectStatus` Enum 정의 완료.
