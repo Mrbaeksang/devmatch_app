@@ -1,118 +1,88 @@
-# `app/projects/new/page.tsx` 생성 요청 (Vercel AI SDK 기반 AI 상담 UI 초기 구현)
+# `app/api/chat/route.ts` 구현 요청 (Vercel AI SDK + OpenRouter 연동)
 
 안녕하세요, 사장님.
 
-Vercel AI SDK 도입 결정에 따라, 새로운 프로젝트 생성 플로우의 첫 번째 단계인 **AI 상담 기반 프로젝트 초기 설정**을 구현하겠습니다. 이 단계에서는 사용자가 AI와 대화하며 프로젝트의 기본 정보를 설정하게 됩니다.
+새로운 프로젝트 생성 플로우의 AI 상담 기능을 위해, Vercel AI SDK와 OpenRouter를 연동하는 API 라우트를 구현하겠습니다. 이 API는 `app/projects/new/page.tsx`에서 AI 모델과의 통신을 담당하게 됩니다.
 
 ## 변경 목표
 
-`app/projects/new/page.tsx` 파일을 생성하고, Vercel AI SDK의 `useChat` 훅을 활용하여 AI와의 대화형 상담을 위한 기본적인 UI 구조를 구현합니다. 이 페이지는 `GEMINI.md`의 **Phase 1.2**에 해당합니다.
+`app/api/chat/route.ts` 파일을 생성하고, Vercel AI SDK의 `streamText` 함수와 `@openrouter/ai-sdk-provider`를 사용하여 AI 모델과의 대화 및 스트리밍 응답을 처리하는 백엔드 로직을 구현합니다.
 
 ## 구현 요청 사항
 
-`app/projects/new/page.tsx` 파일을 생성하고, 아래의 코드 블록을 파일 전체에 붙여넣어 주십시오.
+### 1. OpenRouter AI SDK Provider 설치
 
-### `app/projects/new/page.tsx` 파일 전체 코드
+먼저, OpenRouter를 Vercel AI SDK와 함께 사용하기 위한 패키지를 설치해야 합니다. 다음 명령어를 실행해 주십시오.
+
+```bash
+pnpm add @openrouter/ai-sdk-provider
+```
+
+### 2. 환경 변수 설정
+
+OpenRouter API 키를 `.env.local` 파일에 추가해야 합니다. OpenRouter 웹사이트에서 API 키를 발급받아 아래와 같이 추가해 주십시오.
+
+```
+OPENROUTER_API_KEY="YOUR_OPENROUTER_API_KEY"
+```
+
+### 3. `app/api/chat/route.ts` 파일 생성 및 코드 추가
+
+`app/api/chat/route.ts` 파일을 생성하고, 아래의 코드 블록을 파일 전체에 붙여넣어 주십시오.
 
 ```typescript
-"use client";
+import { createOpenRouter } from '@openrouter/ai-sdk-provider';
+import { streamText, convertToCoreMessages } from 'ai';
 
-import React from "react";
-import { useRouter } from "next/navigation";
-import { toast } from "sonner";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Loader2 } from "lucide-react";
-import { useChat } from 'ai/react'; // Vercel AI SDK의 useChat 훅 임포트
+// Allow streaming responses up to 30 seconds
+export const maxDuration = 30;
 
-export default function NewProjectPage() {
-  const router = useRouter();
-  const { messages, input, handleInputChange, handleSubmit, isLoading, append } = useChat({
-    api: '/api/chat', // AI 모델과의 통신을 처리할 API 라우트 (다음 단계에서 구현 예정)
-    initialMessages: [
-      { id: '1', role: 'assistant', content: '안녕하세요! 새로운 프로젝트를 시작하시려는군요? 어떤 종류의 프로젝트를 만드시려고 하시나요? (예: 웹 서비스, 모바일 앱, 게임 등)' },
-    ],
-    onFinish: (message) => {
-      // TODO: AI 상담 완료 조건 및 최종 프로젝트 생성 로직 구현 (다음 단계에서)
-      // 예시: 특정 키워드(예: "상담 완료")가 포함되면 다음 단계로 이동
-      // if (message.content.includes("상담 완료")) {
-      //   toast.success("프로젝트 초기 설정이 완료되었습니다!");
-      //   router.push("/projects");
-      // }
-    },
-    onError: (error) => {
-      console.error("AI 상담 중 오류 발생:", error);
-      toast.error("AI 상담 중 오류가 발생했습니다.");
+export async function POST(req: Request) {
+  try {
+    const { messages } = await req.json();
+
+    // 1. Create an OpenRouter provider instance
+    const openrouter = createOpenRouter({
+      apiKey: process.env.OPENROUTER_API_KEY,
+      // Optional: Add headers for site identification
+      headers: {
+        "HTTP-Referer": "http://localhost:3000", // Replace with your site URL
+        "X-Title": "AI Team Building Manager", // Replace with your site name
+      },
+    });
+
+    // 2. Call the model
+    const result = await streamText({
+      // Find model names on openrouter.ai/models
+      model: openrouter('mistralai/mistral-7b-instruct'), // 초기 모델 설정, 필요에 따라 변경 가능
+      messages: convertToCoreMessages(messages),
+    });
+
+    // 3. Respond with the stream
+    return result.toAIStreamResponse();
+
+  } catch (error) {
+    console.error("API 오류 발생:", error);
+    if (error instanceof Error) {
+      return new Response(error.message, { status: 500 });
     }
-  });
-
-  return (
-    <div className="flex flex-col h-screen bg-gray-50">
-      <Card className="flex flex-col flex-grow m-4">
-        <CardHeader>
-          <CardTitle className="text-2xl font-bold">새 프로젝트 시작하기 (AI 상담)</CardTitle>
-        </CardHeader>
-        <CardContent className="flex flex-col flex-grow p-4 overflow-hidden">
-          <div className="flex-grow overflow-y-auto p-4 space-y-4 bg-gray-100 rounded-lg shadow-inner">
-            {messages.map((msg) => (
-              <div
-                key={msg.id}
-                className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
-              >
-                <div
-                  className={`max-w-xs px-4 py-2 rounded-lg ${msg.role === "user"
-                      ? "bg-blue-500 text-white" : "bg-gray-300 text-gray-800"}
-                  `}
-                >
-                  {msg.content}
-                </div>
-              </div>
-            ))}
-            {isLoading && (
-              <div className="flex justify-start">
-                <div className="max-w-xs px-4 py-2 rounded-lg bg-gray-300 text-gray-800">
-                  <Loader2 className="h-5 w-5 animate-spin" />
-                </div>
-              </div>
-            )}
-          </div>
-          <form onSubmit={handleSubmit} className="flex p-4 border-t bg-white rounded-b-lg">
-            <Input
-              type="text"
-              value={input}
-              onChange={handleInputChange}
-              placeholder="AI에게 메시지를 입력하세요..."
-              className="flex-grow mr-2"
-              disabled={isLoading}
-            />
-            <Button type="submit" disabled={isLoading}>
-              {isLoading ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                "전송"
-              )}
-            </Button>
-          </form>
-        </CardContent>
-      </Card>
-    </div>
-  );
+    return new Response('An unknown error occurred', { status: 500 });
+  }
 }
 ```
 
 ### 주요 변경 사항
 
-1.  **새로운 페이지 생성**: `app/projects/new/page.tsx` 파일을 생성합니다.
-2.  **Vercel AI SDK `useChat` 훅 활용**: `useChat` 훅을 사용하여 메시지 상태 관리, 입력 처리, API 통신 로직을 간소화했습니다.
-3.  **기본 UI 구조**: `shadcn/ui`의 `Card`, `Input`, `Button` 컴포넌트를 활용하여 채팅 인터페이스의 기본 레이아웃을 구성했습니다.
-4.  **로딩 상태 표시**: 메시지 전송 중 로딩 스피너를 표시하여 사용자에게 피드백을 제공합니다.
-5.  **API 라우트 설정**: `useChat`의 `api` 옵션에 `/api/chat`을 설정했습니다. 이 API 라우트는 다음 단계에서 AI 모델과의 실제 통신을 처리하도록 구현될 예정입니다.
+1.  **`@openrouter/ai-sdk-provider` 임포트**: OpenRouter 모델을 사용하기 위한 프로바이더를 임포트합니다.
+2.  **`createOpenRouter` 인스턴스 생성**: 환경 변수에서 `OPENROUTER_API_KEY`를 가져와 OpenRouter 프로바이더 인스턴스를 생성합니다.
+3.  **`streamText` 함수 사용**: Vercel AI SDK의 `streamText` 함수를 사용하여 AI 모델(`mistralai/mistral-7b-instruct`로 초기 설정)과 통신하고, `convertToCoreMessages`를 사용하여 메시지 형식을 변환합니다.
+4.  **스트리밍 응답**: `result.toAIStreamResponse()`를 사용하여 클라이언트로 스트리밍 응답을 보냅니다.
+5.  **에러 처리**: API 호출 중 발생할 수 있는 오류를 처리하는 로직을 포함했습니다.
 
-이 수정이 완료되면, 사용자는 새로운 프로젝트를 시작할 때 AI와 대화하는 인터페이스를 보게 됩니다.
+이 수정이 완료되면, `app/projects/new/page.tsx`에서 AI 모델과 실제 통신을 시작할 수 있게 됩니다.
 
 수정이 완료되면 알려주세요. 다음 단계로 넘어가겠습니다.
 
 ---
 
-`git add . && git commit -m "feat(project): Vercel AI SDK 기반 AI 상담 UI 초기 구현"`
+`git add . && git commit -m "feat(api): Vercel AI SDK와 OpenRouter 연동 API 구현"`

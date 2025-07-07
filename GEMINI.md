@@ -46,7 +46,7 @@
     -   [x] 로딩 및 에러 상태에 대한 시각적 피드백(스피너, 토스트 메시지) 처리.
 
 #### 1.2. 프로젝트 초기 설정 (AI 상담 기반)
--   [ ] **UI (페이지)**: `app/projects/new/page.tsx` 생성 및 Vercel AI SDK를 활용한 AI 대화형 상담 UI 구현.
+-   [x] **UI (페이지)**: `app/projects/new/page.tsx` 생성 및 Vercel AI SDK를 활용한 AI 대화형 상담 UI 구현.
 -   [ ] **Backend**: `app/api/projects/initial-setup/route.ts` (가칭) AI 상담 결과 처리 및 임시 프로젝트 정보 저장 API 구현.
 -   [ ] **Flow/Logic**:
     -   [ ] `[+ 새 프로젝트 시작하기]` 버튼 클릭 시 `/projects/new` 페이지로 이동.
@@ -149,7 +149,7 @@
 ---
 
 ## 2.10. AI 기능 구현 지침
-*   **`lims.txt` 기반 구현**: AI 관련 기능(AI 상담, AI 인터뷰, AI 역할 추천 등)은 `lims.txt` 문서에 제시된 Vercel AI SDK 활용 방안 및 관련 예시를 최우선적으로 참고하여 구현합니다.
+*   **`lims.txt` 기반 구현 (절대적 규칙)**: AI 관련 기능(AI 상담, AI 인터뷰, AI 역할 추천 등)은 `lims.txt` 문서에 제시된 Vercel AI SDK 활용 방안 및 관련 예시를 **절대적인 최우선 기준으로 삼아 구현합니다.** `lims.txt`의 내용을 벗어나거나 임의로 변경하는 것은 허용되지 않습니다.
 
 ---
 
