@@ -54,31 +54,31 @@ model Session {
   user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
+enum ProjectStatus {
+  PENDING // 생성 중 (팀원 초대 및 인터뷰 단계)
+  ACTIVE // 활성 (모든 설정이 완료되고 프로젝트 진행 중)
+  COMPLETED // 완료
+  ARCHIVED // 보관
+}
+
 model Project {
-  id               String            @id @default(cuid())
-  name             String
-  goal             String            @db.Text
-  createdAt        DateTime          @default(now())
-  updatedAt        DateTime          @updatedAt
-  ownerId          String
-  owner            User              @relation("ProjectOwner", fields: [ownerId], references: [id])
+  id        String   @id @default(cuid())
+  name      String
+  goal      String   @db.Text
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  ownerId   String
+  owner     User     @relation("ProjectOwner", fields: [ownerId], references: [id])
+
+  // 추가된 필드
+  status            ProjectStatus @default(PENDING)
+  consultationData  Json?
+
   members          ProjectMember[]
   roles            Role[]
   inviteLinks      InviteLink[]
   chatMessages     ChatMessage[]
   recommendedRoles RecommendedRole[]
-  status           ProjectStatus     @default(INITIAL_CONSULTATION) // 새로운 status 필드
-  consultationData Json?             // 새로운 consultationData 필드
-}
-
-enum ProjectStatus {
-  INITIAL_CONSULTATION // 초기 AI 상담 중
-  INVITING_MEMBERS     // 팀원 초대 중
-  MEMBER_INTERVIEWING  // 팀원 AI 인터뷰 중
-  FINAL_CONFIRMATION   // 최종 확정 대기 중
-  ACTIVE               // 프로젝트 활성화 (최종 생성 완료)
-  COMPLETED            // 프로젝트 완료
-  ARCHIVED             // 프로젝트 보관
 }
 
 model Role {

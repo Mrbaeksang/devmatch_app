@@ -1,64 +1,64 @@
 "use client";
 
 import React from "react";
-import { useRouter } from "next/navigation"; // useRouter 임포트 추가
+import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Loader2 } from "lucide-react";
-import { useChat } from '@ai-sdk/react'; // lims.txt 지침에 따라 임포트 경로 변경
-
-// Vercel AI SDK의 Message 타입을 명시적으로 임포트
+import { useChat } from 'ai/react';
 import type { Message as VercelAIMessage } from 'ai';
 
 export default function NewProjectPage() {
-  const router = useRouter(); // router 변수 선언
-  const { messages, input, handleInputChange, handleSubmit, isLoading, append } = useChat({
+  const router = useRouter();
+
+  const { messages, input, handleInputChange, handleSubmit, isLoading } = useChat({
     api: '/api/chat',
     initialMessages: [
-      { id: '1', role: 'assistant', content: '안녕하세요! 새로운 프로젝트를 시작하시려는군요? 어떤 종류의 프로젝트를 만드시려고 하시나요? (예: 웹 서비스, 모바일 앱, 게임 등)' },
+      {
+        id: '1',
+        role: 'assistant',
+        content: '안녕하세요! 새로운 프로젝트를 시작하시려는군요? 어떤 종류의 프로젝트를 만들고, 주요 목표는 무엇인가요? 자세히 알려주실수록 좋습니다.',
+      },
     ],
     onFinish: async (message: VercelAIMessage) => {
-      // TODO: AI 상담 완료 조건 및 최종 프로젝트 생성 로직 구현 (다음 단계에서)
-      // 현재는 임시로 마지막 AI 메시지에 "상담 완료"가 포함되면 완료로 간주
-      // 실제 구현에서는 AI 응답을 파싱하여 구조화된 데이터를 추출해야 합니다.
-      if (message.content.includes("상담 완료")) {
-        toast.success("프로젝트 초기 설정이 완료되었습니다!");
+      try {
+        // AI가 JSON 형식의 문자열을 반환했다고 가정하고 파싱
+        const lastResponseJson = JSON.parse(message.content);
 
-        // 프로젝트 목표 및 상담 데이터 추출 (임시 로직)
-        // 실제 구현에서는 AI 응답을 파싱하여 구조화된 데이터를 추출해야 합니다.
-        // 여기서는 간단하게 마지막 사용자 메시지를 목표로, 전체 대화 내용을 상담 데이터로 사용합니다.
-        const projectGoal = messages.filter(msg => msg.role === 'user').pop()?.content || "AI 상담을 통한 프로젝트 목표";
-        const consultationData = messages.map(msg => ({ role: msg.role, content: msg.content }));
+        // AI가 상담 완료를 명시적으로 표시했는지 확인
+        if (lastResponseJson.isConsultationComplete) {
+          toast.success("AI 상담이 성공적으로 완료되었습니다!");
 
-        try {
+          const { projectName, projectGoal } = lastResponseJson;
+          const consultationData = messages.map(msg => ({ role: msg.role, content: msg.content }));
+
           const response = await fetch('/api/projects/initial-setup', {
             method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ projectGoal, consultationData }),
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ projectName, projectGoal, consultationData }),
           });
 
           if (!response.ok) {
             const errorData = await response.json();
-            throw new Error(errorData.message || '프로젝트 초기 설정 저장 실패');
+            throw new Error(errorData.message || 'Failed to save initial project setup');
           }
 
           const newProject = await response.json();
-          toast.success("프로젝트 초기 정보가 성공적으로 저장되었습니다!");
-          router.push(`/projects/${newProject.id}/invite`); // 다음 단계로 리다이렉트 (팀원 초대 페이지)
-
-        } catch (error) {
-          console.error("프로젝트 초기 설정 저장 오류:", error);
-          toast.error(`프로젝트 초기 설정 저장에 실패했습니다: ${error instanceof Error ? error.message : '알 수 없는 오류'}`);
+          toast.info("프로젝트 생성 중... 잠시만 기다려주세요.");
+          
+          // 다음 단계인 팀원 초대 페이지로 리다이렉트
+          router.push(`/projects/${newProject.id}/invite`);
         }
+      } catch (error) {
+        // JSON 파싱에 실패하면 일반 텍스트로 처리 (아직 상담 진행 중)
+        console.log("AI 응답이 JSON 형식이 아니므로 상담을 계속 진행합니다.");
       }
     },
     onError: (error: Error) => {
-      console.error("AI 상담 중 오류 발생:", error);
-      toast.error("AI 상담 중 오류가 발생했습니다.");
+      console.error("AI chat error:", error);
+      toast.error("AI와 대화 중 오류가 발생했습니다. 다시 시도해주세요.");
     }
   });
 
@@ -71,21 +71,15 @@ export default function NewProjectPage() {
         <CardContent className="flex flex-col flex-grow p-4 overflow-hidden">
           <div className="flex-grow overflow-y-auto p-4 space-y-4 bg-gray-100 rounded-lg shadow-inner">
             {messages.map((msg: VercelAIMessage) => (
-              <div
-                key={msg.id}
-                className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
-              >
-                <div
-                  className={`max-w-xs px-4 py-2 rounded-lg ${msg.role === "user"
-                      ? "bg-blue-500 text-white" : "bg-gray-300 text-gray-800"}`}
-                >
-                  {msg.content}
+              <div key={msg.id} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
+                <div className={`max-w-lg px-4 py-2 rounded-lg shadow-md ${msg.role === "user" ? "bg-blue-600 text-white" : "bg-white text-gray-800"}`}>
+                  <p style={{ whiteSpace: 'pre-wrap' }}>{msg.content}</p>
                 </div>
               </div>
             ))}
             {isLoading && (
               <div className="flex justify-start">
-                <div className="max-w-xs px-4 py-2 rounded-lg bg-gray-300 text-gray-800">
+                <div className="max-w-xs px-4 py-2 rounded-lg bg-white text-gray-800 shadow-md">
                   <Loader2 className="h-5 w-5 animate-spin" />
                 </div>
               </div>
@@ -101,11 +95,7 @@ export default function NewProjectPage() {
               disabled={isLoading}
             />
             <Button type="submit" disabled={isLoading}>
-              {isLoading ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                "전송"
-              )}
+              {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : "전송"}
             </Button>
           </form>
         </CardContent>

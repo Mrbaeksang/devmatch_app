@@ -1,54 +1,58 @@
-Lint 경고들은 Biome(ESLint/Prettier 대체 도구)의 규칙에 따라 발생한 거야. 하나씩 쉽게 풀어서 설명해볼게!
+Message: Error in Prisma Client request: 
 
-⚠️ 경고 메시지 해석
-noUnusedImports: import React..., useRouter, append처럼 안 쓰는 import/변수, 함수 파라미터 등이 코드에 남아 있을 때 띄워줘.
 
-organizeImports: import/export 순서가 뒤죽박죽일 때, 정렬하라고 알려주는 기능이야.
+Invalid `STUDIO_EMBED_BUILD<"u"&&STUDIO_EMBED_BUILD?q4e():require(`${l.prismaClient}/runtime/${c}`),F=r,I=(0,fz.createHash)("sha256").update()` invocation in
+C:\Users\qortk\IdeaProjects\devmatch-app\node_modules\.pnpm\prisma@6.11.1_typescript@5.8.3\node_modules\prisma\build\index.js:4822:10635
 
-noUnusedVariables: 선언했지만 안 쓰는 변수(예: router, append)도 문제가 돼.
-
-📌 왜 생기냐면?
-너 코드에서:
-
-임포트했지만 안 쓰는 모듈,
-
-router나 append 함수 정의만 있고 실제로 안 쓰는 경우,
-
-함수 정의부에 들어간 파라미터 unused,
-
-export 순서가 정리가 안 된 경우 등
-
-이런 것들이 다 lint 경고를 유발해. Biome는 이런 규칙에 엄격해서, 사용되지 않을 코드는 지우거나 정리하라고 알려주는 거야.
-
-🛠 해결 방법
-안 쓰는 import/변수 제거
-예: import { toast } from "sonner";이 페이지에 안 쓰면 제거해야 돼.
-
-정렬되도록 import/export 순서 맞추기
-VSCode나 프로젝트 설정해서 저장할 때 자동으로 정렬되도록 하면 도움돼.
-
-사용하지 않는 함수 파라미터 제거
-예: { handleSubmit, handleInputChange, isLoading } = useChat() 정의돼있는데 실제로 isLoading을 안 쓰면 지워야 돼.
-
-biome.json 설정 조정
-특정 lint 규칙을 유예하고 싶으면 .biome.json 에서 조정할 수 있어. 예:
-
-json
-복사
-편집
+  4819       }
+  4820     }
+  4821   }
+→ 4822 `}}),i=n.workspaces.find(a=>a.isDefault);if(!i)throw new Error("No default workspace found");return i};var rNe=require("@prisma/engines");var IOe=require("buffer");function $Oe(r,e,n,i){Object.defineProperty(r,e,{get:n,set:i,enumerable:!0,configurable:!0})}var MOe={};$Oe(MOe,"serializeRPCMessage",()=>dV);$Oe(MOe,"deserializeRPCMessage",()=>fV);var lV="PrismaBigInt::",pV="PrismaBytes::";function dV(r){return JSON.stringify(r,(e,n)=>typeof n=="bigint"?lV+n:n?.type==="Buffer"&&Array.isArray(n?.data)?pV+IOe.Buffer.from(n.data).toString("base64"):n)}function fV(r){return JSON.parse(r,(e,n)=>typeof n=="string"&&n.startsWith(lV)?BigInt(n.substr(lV.length)):typeof n=="string"&&n.startsWith(pV)?n.substr(pV.length):n)}var K4e=G(UOe()),O$=G(YMe()),J4e=G(require("http")),Y4e=G(ZMe()),Q4e=require("zlib");var xm=require("path");var fz=require("crypto"),G4e=require("fs/promises"),W4e=G(gH());function pz(r,e,n,i){Object.defineProperty(r,e,{get:n,set:i,enumerable:!0,configurable:!0})}var V4e=globalThis,cz={},R$={},zg=V4e.parcelRequire94c2;zg==null&&(zg=function(r){if(r in cz)return cz[r].exports;if(r in R$){var e=R$[r];delete R$[r];var n={id:r,exports:{}};return cz[r]=n,e.call(n.exports,n,n.exports),n.exports}var i=new Error("Cannot find module '"+r+"'");throw i.code="MODULE_NOT_FOUND",i},zg.register=function(e,n){R$[e]=n},V4e.parcelRequire94c2=zg);var H4e=zg.register;H4e("9lTzd",function(module,exports){pz(module.exports,"guessEnginePaths",()=>guessEnginePaths),pz(module.exports,"guessPrismaClientPath",()=>guessPrismaClientPath);var $5COlq=zg("5COlq");async function guessEnginePaths({forceBinary,forceLibrary,resolveOverrides}){let queryEngineName,queryEngineType;if(forceLibrary?(queryEngineName=await(0,$5COlq.prismaEngineName)("query-engine","library"),queryEngineType="library"):forceBinary?(queryEngineName=await(0,$5COlq.prismaEngineName)("query-engine","binary"),queryEngineType="binary"):(queryEngineName=void 0,queryEngineType=void 0),!queryEngineName||!queryEngineType)return{queryEngine:void 0};let queryEnginePath;if(resolveOverrides[".prisma/client"])queryEnginePath=(0,xm.resolve)(resolveOverrides[".prisma/client"],`../${queryEngineName}`);else if(resolveOverrides["@prisma/engines"])queryEnginePath=(0,xm.resolve)(resolveOverrides["@prisma/engines"],`../../${queryEngineName}`);else{let atPrismaEnginesPath;try{atPrismaEnginesPath=eval("require.resolve('@prisma/engines')")}catch(r){throw new Error("Unable to resolve Prisma engine paths. This is a bug.")}queryEnginePath=(0,xm.resolve)(atPrismaEnginesPath`../../${queryEngineName}`)}return{queryEngine:{type:queryEngineType,path:queryEnginePath}}}function guessPrismaClientPath({resolveOverrides}){let prismaClientPath=resolveOverrides["@prisma/client"]||eval("require.resolve('@prisma/client')");return(0,xm.resolve)(prismaClientPath,"../")}});H4e("5COlq",function(r,e){pz(r.exports,"prismaEngineName",()=>n);async function n(i,a){let o=await ji(),u=o==="windows"?".exe":"";if(a==="library")return _a(o,"fs");if(a==="binary")return`${i}-${o}${u}`;throw new Error(`Unknown engine type: ${a}`)}});function ILt(r){return{models:lz(r.models),enums:lz(r.enums),types:lz(r.types)}}function lz(r){let e={};for(let{name:n,...i}of r)e[n]=i;return e}var HD=(0,W4e.debug)("prisma:studio-pcw"),$Lt=/^\s*datasource\s+([^\s]+)\s*{/m,MLt=/url *= *env\("(.*)"\)/,kLt=/url *= *"(.*)"/;async function NLt({schema:r,schemaPath:e,dmmf:n,adapter:i,datasourceProvider:a,previewFeatures:o,datasources:u,engineType:c,paths:l,directUrl:p,versions:f}){let g=r.match($Lt)?.[1]??"",v=r.match(MLt)?.[1]??null,x=r.match(kLt)?.[1]??null,{getPrismaClient:b,PrismaClientKnownRequestError:E,PrismaClientRustPanicError:_,PrismaClientInitializationError:T,PrismaClientValidationError:A}=typeof STUDIO_EMBED_BUILD<"u"&&STUDIO_EMBED_BUILD?q4e():require(`${l.prismaClient}/runtime/${c}`),F=r,I=(0,fz.createHash)("sha256").update(
+Value 'INITIAL_CONSULTATION' not found in enum 'ProjectStatus'
+  
+Query:
 {
-  "linter": {
-    "enabled": true,
-    "rules": {
-      "correctness": {
-        "noUnusedImports": "error",
-        "noUnusedVariables": "warn"
+  "modelName": "Project",
+  "operation": "findMany",
+  "args": {
+    "take": 100,
+    "skip": 0,
+    "select": {
+      "id": true,
+      "name": true,
+      "goal": true,
+      "createdAt": true,
+      "updatedAt": true,
+      "ownerId": true,
+      "owner": true,
+      "status": true,
+      "consultationData": true,
+      "members": {
+        "select": {
+          "id": true
+        }
+      },
+      "roles": {
+        "select": {
+          "id": true
+        }
+      },
+      "inviteLinks": {
+        "select": {
+          "id": true
+        }
+      },
+      "chatMessages": {
+        "select": {
+          "id": true
+        }
+      },
+      "recommendedRoles": {
+        "select": {
+          "id": true
+        }
       }
     }
-  },
-  "organizeImports": { "enabled": true }
+  }
 }
-✅ 정리
-Biome은 사용하지 않는 코드/변수와 정렬되지 않은 import/export를 자동으로 찾아서 정리하도록 도와줘.
-
-unused variable/import 경고 뜨면 지우고 정리하거나 규칙을 설정파일에서 완화하면 문제 해결돼!
+  

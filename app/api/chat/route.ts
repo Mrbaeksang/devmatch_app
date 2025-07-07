@@ -15,17 +15,19 @@ export async function POST(req: Request) {
       },
     });
 
+    // ✅ 모델 이름 수정
     const result = streamText({
-      model: openrouter('mistralai/mistral-7b-instruct'),
+      model: openrouter('deepseek/deepseek-r1-0528:free'),
       messages: convertToCoreMessages(messages),
     });
 
     return result.toDataStreamResponse();
-    // 또는 클라이언트 훅과 연동하려면:
-    // return result.toUIMessageStreamResponse();
 
   } catch (error) {
     console.error("API 오류 발생:", error);
-    return new Response(error instanceof Error ? error.message : 'Unknown error', { status: 500 });
+    return new Response(
+      error instanceof Error ? error.message : 'Unknown error',
+      { status: 500 }
+    );
   }
 }

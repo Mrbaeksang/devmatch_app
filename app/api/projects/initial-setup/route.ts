@@ -2,42 +2,53 @@ import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { db } from '@/lib/db';
-import { ProjectStatus } from '@prisma/client';
+import { z } from 'zod';
+
+// 요청 본문의 유효성 검사를 위한 Zod 스키마
+const projectSetupSchema = z.object({
+  projectName: z.string().min(1, "Project name is required."),
+  projectGoal: z.string().min(1, "Project goal is required."),
+  consultationData: z.any(), // AI 상담 내용은 유연하게 받음
+});
 
 export async function POST(req: Request) {
   try {
     const session = await getServerSession(authOptions);
 
-    if (!session || !session.user?.id) {
+    if (!session?.user?.id) {
       return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
     }
 
-    const { projectGoal, consultationData } = await req.json();
+    const body = await req.json();
+    const validation = projectSetupSchema.safeParse(body);
 
-    if (!projectGoal || !consultationData) {
-      return NextResponse.json({ message: 'Project goal and consultation data are required' }, { status: 400 });
+    if (!validation.success) {
+      return NextResponse.json({ message: validation.error.errors }, { status: 400 });
     }
 
-    // 프로젝트 초기 정보 저장 (status는 INITIAL_CONSULTATION으로 설정)
-    const project = await db.project.create({
+    const { projectName, projectGoal, consultationData } = validation.data;
+
+    const newProject = await db.project.create({
       data: {
-        name: "새로운 프로젝트 (임시)", // 초기에는 임시 이름 사용
+        name: projectName,
         goal: projectGoal,
         ownerId: session.user.id,
-        status: ProjectStatus.INITIAL_CONSULTATION,
+        status: 'PENDING', // 새로운 Enum 값 사용
         consultationData: consultationData,
         members: {
-          create: {
-            userId: session.user.id,
-          },
+          create: [
+            {
+              userId: session.user.id, // 프로젝트 생성자를 멤버로 자동 추가
+            },
+          ],
         },
       },
     });
 
-    return NextResponse.json(project, { status: 201 });
+    return NextResponse.json(newProject, { status: 201 });
 
   } catch (error) {
-    console.error('프로젝트 초기 설정 API 오류:', error);
-    return NextResponse.json({ message: 'Something went wrong' }, { status: 500 });
+    console.error('Error creating initial project:', error);
+    return NextResponse.json({ message: 'An internal error occurred.' }, { status: 500 });
   }
 }

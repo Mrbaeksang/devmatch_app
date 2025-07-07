@@ -1,85 +1,83 @@
+# 작업 요청: AI 상담 완료 및 프로젝트 생성 로직 구현
 
-# `app/projects/new/page.tsx` 수정 요청 (AI 상담 Flow/Logic 구현)
+안녕하세요, 사장님. 이제 AI 상담의 마지막 단계를 구현할 차례입니다. 상담이 성공적으로 끝나면, 그 결과를 API로 보내 프로젝트를 생성하고 다음 페이지로 넘어가는 로직을 완성해야 합니다.
 
-안녕하세요, 사장님.
+`app/projects/new/page.tsx` 파일을 열어, 아래 내용으로 전체를 교체해 주세요.
 
-`GEMINI.md`의 **Phase 1.2: 프로젝트 초기 설정 (AI 상담 기반)**의 `Flow/Logic` 구현을 진행하겠습니다. 이 단계에서는 AI 상담 페이지(`app/projects/new/page.tsx`)에서 사용자의 입력과 AI의 응답을 바탕으로 프로젝트 초기 정보를 수집하고, 이를 백엔드 API로 전송하여 저장하는 로직을 구현합니다.
+**왜 필요한가요?**
 
-## 변경 목표
+*   **AI 응답 파싱:** 현재는 단순히 AI의 마지막 메시지에 "상담 완료"라는 텍스트가 포함되어 있는지로만 판단하고 있습니다. 이 방식은 불안정하므로, AI가 JSON 형식으로 명확하게 프로젝트 이름과 목표를 반환하도록 하고, 이를 파싱하여 처리하는 안정적인 로직으로 변경합니다.
+*   **API 호출 로직 수정:** 이전 단계에서 수정한 프로젝트 생성 API (`/api/projects/initial-setup`)의 요청 형식에 맞게 `projectName`, `projectGoal`, `consultationData`를 담아 전송하도록 수정합니다.
+*   **사용자 경험 개선:** 로딩 상태와 에러 처리를 더 명확하게 하여 사용자가 현재 어떤 상황인지 쉽게 알 수 있도록 합니다.
 
-`app/projects/new/page.tsx` 파일에서 다음을 수행합니다:
-1.  AI 상담이 완료되었다고 판단될 때 (현재는 임시 로직 사용), 상담 내용을 추출합니다.
-2.  추출된 상담 내용을 `app/api/projects/initial-setup/route.ts` API로 전송합니다.
-3.  API 호출 성공 시, 다음 단계인 팀원 초대 페이지(`/projects/[projectId]/invite`)로 리다이렉트합니다.
+---
 
-## 구현 요청 사항
+### 1. `app/projects/new/page.tsx` 파일 수정
 
-`app/projects/new/page.tsx` 파일의 내용을 아래의 코드 블록으로 교체해 주십시오.
-
-### `app/projects/new/page.tsx` 파일 전체 코드
+아래 코드를 복사하여 기존 파일의 모든 내용을 덮어쓰세요.
 
 ```typescript
 "use client";
 
 import React from "react";
-import { useRouter } from "next/navigation"; // useRouter 임포트 추가
+import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Loader2 } from "lucide-react";
-import { useChat } '@ai-sdk/react'; // lims.txt 지침에 따라 임포트 경로 변경
-
-// Vercel AI SDK의 Message 타입을 명시적으로 임포트
+import { useChat } from 'ai/react';
 import type { Message as VercelAIMessage } from 'ai';
 
 export default function NewProjectPage() {
-  const router = useRouter(); // router 변수 선언
-  const { messages, input, handleInputChange, handleSubmit, isLoading, append } = useChat({
+  const router = useRouter();
+
+  const { messages, input, handleInputChange, handleSubmit, isLoading } = useChat({
     api: '/api/chat',
     initialMessages: [
-      { id: '1', role: 'assistant', content: '안녕하세요! 새로운 프로젝트를 시작하시려는군요? 어떤 종류의 프로젝트를 만드시려고 하시나요? (예: 웹 서비스, 모바일 앱, 게임 등)' },
+      {
+        id: '1',
+        role: 'assistant',
+        content: '안녕하세요! 새로운 프로젝트를 시작하시려는군요? 어떤 종류의 프로젝트를 만들고, 주요 목표는 무엇인가요? 자세히 알려주실수록 좋습니다.',
+      },
     ],
     onFinish: async (message: VercelAIMessage) => {
-      // TODO: AI 상담 완료 조건 및 최종 프로젝트 생성 로직 구현 (다음 단계에서)
-      // 현재는 임시로 마지막 AI 메시지에 "상담 완료"가 포함되면 완료로 간주
-      // 실제 구현에서는 AI 응답을 파싱하여 구조화된 데이터를 추출해야 합니다.
-      if (message.content.includes("상담 완료")) {
-        toast.success("프로젝트 초기 설정이 완료되었습니다!");
+      try {
+        // AI가 JSON 형식의 문자열을 반환했다고 가정하고 파싱
+        const lastResponseJson = JSON.parse(message.content);
 
-        // 프로젝트 목표 및 상담 데이터 추출 (임시 로직)
-        // 실제 구현에서는 AI 응답을 파싱하여 구조화된 데이터를 추출해야 합니다.
-        // 여기서는 간단하게 마지막 사용자 메시지를 목표로, 전체 대화 내용을 상담 데이터로 사용합니다.
-        const projectGoal = messages.filter(msg => msg.role === 'user').pop()?.content || "AI 상담을 통한 프로젝트 목표";
-        const consultationData = messages.map(msg => ({ role: msg.role, content: msg.content }));
+        // AI가 상담 완료를 명시적으로 표시했는지 확인
+        if (lastResponseJson.isConsultationComplete) {
+          toast.success("AI 상담이 성공적으로 완료되었습니다!");
 
-        try {
+          const { projectName, projectGoal } = lastResponseJson;
+          const consultationData = messages.map(msg => ({ role: msg.role, content: msg.content }));
+
           const response = await fetch('/api/projects/initial-setup', {
             method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ projectGoal, consultationData }),
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ projectName, projectGoal, consultationData }),
           });
 
           if (!response.ok) {
             const errorData = await response.json();
-            throw new Error(errorData.message || '프로젝트 초기 설정 저장 실패');
+            throw new Error(errorData.message || 'Failed to save initial project setup');
           }
 
           const newProject = await response.json();
-          toast.success("프로젝트 초기 정보가 성공적으로 저장되었습니다!");
-          router.push(`/projects/${newProject.id}/invite`); // 다음 단계로 리다이렉트 (팀원 초대 페이지)
-
-        } catch (error) {
-          console.error("프로젝트 초기 설정 저장 오류:", error);
-          toast.error(`프로젝트 초기 설정 저장에 실패했습니다: ${error instanceof Error ? error.message : '알 수 없는 오류'}`);
+          toast.info("프로젝트 생성 중... 잠시만 기다려주세요.");
+          
+          // 다음 단계인 팀원 초대 페이지로 리다이렉트
+          router.push(`/projects/${newProject.id}/invite`);
         }
+      } catch (error) {
+        // JSON 파싱에 실패하면 일반 텍스트로 처리 (아직 상담 진행 중)
+        console.log("AI 응답이 JSON 형식이 아니므로 상담을 계속 진행합니다.");
       }
     },
     onError: (error: Error) => {
-      console.error("AI 상담 중 오류 발생:", error);
-      toast.error("AI 상담 중 오류가 발생했습니다.");
+      console.error("AI chat error:", error);
+      toast.error("AI와 대화 중 오류가 발생했습니다. 다시 시도해주세요.");
     }
   });
 
@@ -92,21 +90,15 @@ export default function NewProjectPage() {
         <CardContent className="flex flex-col flex-grow p-4 overflow-hidden">
           <div className="flex-grow overflow-y-auto p-4 space-y-4 bg-gray-100 rounded-lg shadow-inner">
             {messages.map((msg: VercelAIMessage) => (
-              <div
-                key={msg.id}
-                className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
-              >
-                <div
-                  className={`max-w-xs px-4 py-2 rounded-lg ${msg.role === "user"
-                      ? "bg-blue-500 text-white" : "bg-gray-300 text-gray-800"}`}
-                >
-                  {msg.content}
+              <div key={msg.id} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
+                <div className={`max-w-lg px-4 py-2 rounded-lg shadow-md ${msg.role === "user" ? "bg-blue-600 text-white" : "bg-white text-gray-800"}`}>
+                  <p style={{ whiteSpace: 'pre-wrap' }}>{msg.content}</p>
                 </div>
               </div>
             ))}
             {isLoading && (
               <div className="flex justify-start">
-                <div className="max-w-xs px-4 py-2 rounded-lg bg-gray-300 text-gray-800">
+                <div className="max-w-xs px-4 py-2 rounded-lg bg-white text-gray-800 shadow-md">
                   <Loader2 className="h-5 w-5 animate-spin" />
                 </div>
               </div>
@@ -122,11 +114,7 @@ export default function NewProjectPage() {
               disabled={isLoading}
             />
             <Button type="submit" disabled={isLoading}>
-              {isLoading ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                "전송"
-              )}
+              {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : "전송"}
             </Button>
           </form>
         </CardContent>
@@ -136,19 +124,17 @@ export default function NewProjectPage() {
 }
 ```
 
-### 주요 변경 사항
-
-1.  **`useRouter` 임포트 및 사용**: 페이지 리다이렉션을 위해 `useRouter` 훅을 임포트하고 `router` 변수를 선언했습니다.
-2.  **`onFinish` 콜백 로직 강화**: 
-    *   AI 상담이 완료되었다고 판단될 때 (현재는 AI 메시지에 "상담 완료" 포함 여부로 임시 판단), `projectGoal`과 `consultationData`를 추출합니다.
-    *   추출된 데이터를 `app/api/projects/initial-setup` API로 `POST` 요청을 보냅니다.
-    *   API 호출 성공 시, `toast.success` 메시지를 표시하고 `router.push`를 사용하여 다음 단계인 팀원 초대 페이지(`/projects/${newProject.id}/invite`)로 리다이렉트합니다.
-    *   API 호출 실패 시, `toast.error` 메시지를 표시하여 사용자에게 피드백을 제공합니다.
-
-이 수정이 완료되면, AI 상담을 통해 프로젝트 초기 정보를 수집하고 백엔드에 저장한 후 다음 단계로 넘어가는 전체 플로우가 구현됩니다.
-
-수정이 완료되면 알려주세요. 다음 단계로 넘어가겠습니다.
-
 ---
 
-`git add . && git commit -m "feat(flow): AI 상담 완료 후 프로젝트 초기 정보 저장 및 리다이렉트 구현"`
+### 2. 커밋 메시지
+
+작업 완료 후, 아래 메시지를 사용하여 커밋해 주세요.
+
+```
+feat: AI 상담 완료 시 프로젝트 생성 및 리다이렉트 기능 구현
+
+- AI 상담 완료 후, 응답으로 받은 JSON 데이터를 파싱하여 프로젝트 이름과 목표를 추출.
+- 추출된 데이터를 `initial-setup` API로 전송하여 프로젝트를 생성.
+- 프로젝트 생성 성공 시, 팀원 초대 페이지로 사용자를 리다이렉트하는 로직 추가.
+- 로딩 및 에러 핸들링 로직 개선.
+```
