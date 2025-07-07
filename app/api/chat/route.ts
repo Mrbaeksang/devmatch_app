@@ -1,9 +1,8 @@
 import { createOpenRouter } from '@openrouter/ai-sdk-provider';
-import { streamText, convertToCoreMessages } from 'ai';
+import { convertToCoreMessages, streamText } from 'ai';
 
 export const maxDuration = 30;
 
-// systemPrompt 한글 + 절차적 지시
 const systemPrompt = `
 당신은 사용자가 새로운 소프트웨어 프로젝트를 기획하도록 돕는, 매우 유능하고 친절한 AI 프로젝트 매니저입니다.
 
@@ -72,13 +71,18 @@ const systemPrompt = `
 - 실제 팀 배분은 면담/최종 협의 후 다시 확정됨을 반드시 안내.
 `;
 
-
 export async function POST(req: Request) {
   try {
     const { messages } = await req.json();
 
+    // forbidden non-null assertion 제거!
+    const apiKey = process.env.OPENROUTER_API_KEY;
+    if (!apiKey) {
+      throw new Error("OPENROUTER_API_KEY is not set in environment variables");
+    }
+
     const openrouter = createOpenRouter({
-      apiKey: process.env.OPENROUTER_API_KEY!,
+      apiKey, // string으로 안전하게
       headers: {
         "HTTP-Referer": "http://localhost:3000",
         "X-Title": "AI Team Building Manager",

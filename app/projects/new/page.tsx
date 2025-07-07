@@ -1,14 +1,14 @@
 "use client";
 
-import React from "react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import type { Message as VercelAIMessage } from "ai";
+import { useChat } from "ai/react";
+import { Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Loader2 } from "lucide-react";
-import { useChat } from 'ai/react';
-import type { Message as VercelAIMessage } from 'ai';
+
 
 export default function NewProjectPage() {
   const router = useRouter();
@@ -24,10 +24,8 @@ export default function NewProjectPage() {
     ],
     onFinish: async (message: VercelAIMessage) => {
       try {
-        // AI가 JSON 형식의 문자열을 반환했다고 가정하고 파싱
         const lastResponseJson = JSON.parse(message.content);
 
-        // AI가 상담 완료를 명시적으로 표시했는지 확인
         if (lastResponseJson.isConsultationComplete) {
           toast.success("AI 상담이 성공적으로 완료되었습니다!");
 
@@ -47,12 +45,9 @@ export default function NewProjectPage() {
 
           const newProject = await response.json();
           toast.info("프로젝트 생성 중... 잠시만 기다려주세요.");
-          
-          // 다음 단계인 팀원 초대 페이지로 리다이렉트
           router.push(`/projects/${newProject.id}/invite`);
         }
       } catch {
-        // JSON 파싱에 실패하면 일반 텍스트로 처리 (아직 상담 진행 중)
         console.log("AI 응답이 JSON 형식이 아니므로 상담을 계속 진행합니다.");
       }
     },
