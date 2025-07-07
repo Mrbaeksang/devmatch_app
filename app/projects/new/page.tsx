@@ -1,20 +1,3 @@
-# `app/projects/new/page.tsx` 생성 요청 (Vercel AI SDK 기반 AI 상담 UI 초기 구현)
-
-안녕하세요, 사장님.
-
-Vercel AI SDK 도입 결정에 따라, 새로운 프로젝트 생성 플로우의 첫 번째 단계인 **AI 상담 기반 프로젝트 초기 설정**을 구현하겠습니다. 이 단계에서는 사용자가 AI와 대화하며 프로젝트의 기본 정보를 설정하게 됩니다.
-
-## 변경 목표
-
-`app/projects/new/page.tsx` 파일을 생성하고, Vercel AI SDK의 `useChat` 훅을 활용하여 AI와의 대화형 상담을 위한 기본적인 UI 구조를 구현합니다. 이 페이지는 `GEMINI.md`의 **Phase 1.2**에 해당합니다.
-
-## 구현 요청 사항
-
-`app/projects/new/page.tsx` 파일을 생성하고, 아래의 코드 블록을 파일 전체에 붙여넣어 주십시오.
-
-### `app/projects/new/page.tsx` 파일 전체 코드
-
-```typescript
 "use client";
 
 import React from "react";
@@ -99,20 +82,3 @@ export default function NewProjectPage() {
     </div>
   );
 }
-```
-
-### 주요 변경 사항
-
-1.  **새로운 페이지 생성**: `app/projects/new/page.tsx` 파일을 생성합니다.
-2.  **Vercel AI SDK `useChat` 훅 활용**: `useChat` 훅을 사용하여 메시지 상태 관리, 입력 처리, API 통신 로직을 간소화했습니다.
-3.  **기본 UI 구조**: `shadcn/ui`의 `Card`, `Input`, `Button` 컴포넌트를 활용하여 채팅 인터페이스의 기본 레이아웃을 구성했습니다.
-4.  **로딩 상태 표시**: 메시지 전송 중 로딩 스피너를 표시하여 사용자에게 피드백을 제공합니다.
-5.  **API 라우트 설정**: `useChat`의 `api` 옵션에 `/api/chat`을 설정했습니다. 이 API 라우트는 다음 단계에서 AI 모델과의 실제 통신을 처리하도록 구현될 예정입니다.
-
-이 수정이 완료되면, 사용자는 새로운 프로젝트를 시작할 때 AI와 대화하는 인터페이스를 보게 됩니다.
-
-수정이 완료되면 알려주세요. 다음 단계로 넘어가겠습니다.
-
----
-
-`git add . && git commit -m "feat(project): Vercel AI SDK 기반 AI 상담 UI 초기 구현"`

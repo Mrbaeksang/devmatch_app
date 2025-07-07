@@ -45,71 +45,42 @@
     -   [x] 로그인 사용자를 `/projects` 페이지로 리다이렉트하는 로직 구현.
     -   [x] 로딩 및 에러 상태에 대한 시각적 피드백(스피너, 토스트 메시지) 처리.
 
-#### 1.2. 프로젝트 등록 (생성)
--   [x] **DB**: `prisma/schema.prisma`에 `Project`, `Role`, `ProjectMember` 모델 정의 완료.
--   [x] **UI (컴포넌트)**:
-    -   [x] `components/project/ProjectCard.tsx`: 프로젝트 목록에 표시될 카드 컴포넌트.
-    -   [x] `components/project/ProjectForm.tsx`: `shadcn/ui Dialog` 내부에 들어갈 프로젝트 생성 폼 컴포넌트 (이름, 목표 입력).
--   [x] **UI (페이지)**: `app/projects/page.tsx` 페이지 생성.
-    -   [x] 사용자가 참여한 프로젝트 목록을 `ProjectCard`를 이용해 표시.
-    -   [x] `[+ 새 프로젝트 시작하기]` 버튼 및 클릭 시 `ProjectForm`이 담긴 모달 표시.
--   [x] **Backend**:
-    -   [x] `app/api/projects/route.ts`: 프로젝트 생성(POST) 및 조회(GET) API 구현.
-    -   [x] `app/api/projects/ai/roles/route.ts`: 프로젝트 목표를 받아 AI에게 필요한 역할을 질문/확정하는 API 구현.
--   [x] **Flow/Logic**:
-    -   [x] `ProjectForm` 제출 시, 먼저 프로젝트 생성 API 호출.
-    -   [ ] 성공 시, AI 역할 확정 API를 대화형으로 호출.
-    -   [x] 모든 과정 완료 후, 생성된 프로젝트의 상세 페이지(`/projects/[id]`)로 이동.
-    -   [x] 각 API 호출에 대한 로딩 및 에러 상태 처리.
+#### 1.2. 프로젝트 초기 설정 (AI 상담 기반)
+-   [ ] **UI (페이지)**: `app/projects/new/page.tsx` 생성 및 Vercel AI SDK를 활용한 AI 대화형 상담 UI 구현.
+-   [ ] **Backend**: `app/api/projects/initial-setup/route.ts` (가칭) AI 상담 결과 처리 및 임시 프로젝트 정보 저장 API 구현.
+-   [ ] **Flow/Logic**:
+    -   [ ] `[+ 새 프로젝트 시작하기]` 버튼 클릭 시 `/projects/new` 페이지로 이동.
+    -   [ ] AI와 대화형으로 프로젝트 초기 정보(종류, 팀원 수, 기술 스택, 역할 분배) 상담.
+    -   [ ] 상담 완료 후, 임시 프로젝트 정보 저장 및 프로젝트 '생성 중' 상태로 전환.
+    -   [ ] 팀원 초대 페이지로 리다이렉트.
 
-#### 1.3. 프로젝트 상세 페이지
--   [x] **UI**: `app/projects/[projectId]/page.tsx` 페이지 생성.
-    -   [x] 프로젝트 이름, 목표, 참여 멤버 목록 표시.
-    -   [ ] `shadcn/ui Tabs`를 활용하여 '정보', '채팅', '설정' 등 탭 구조 구현.
--   [ ] **Backend**: `app/api/projects/[projectId]/route.ts`에 특정 프로젝트 조회(GET), 수정(PUT), 삭제(DELETE) API 구현.
--   [x] **Flow/Logic**:
-    -   [x] 페이지 진입 시, `projectId`를 이용해 프로젝트 상세 정보 및 멤버 목록을 서버에서 Fetch.
-    -   [x] `types/next-auth.d.ts` 파일을 생성하여 `session.user` 타입 에러 해결.
-    -   [x] 데이터를 받아와 UI에 렌더링. 데이터 로딩 중에는 스켈레톤 UI 또는 로딩 스피너 표시.
-### Phase 2: 팀원 소집 - "흩어진 동료들을 한 곳으로"
-
-#### 2.1. 초대장 발송 (링크 생성 및 공유)
+#### 1.3. 팀원 초대 및 개별 AI 인터뷰
 -   [ ] **DB**: `prisma/schema.prisma`에 `InviteLink` 모델 정의 완료.
--   [ ] **UI**: 프로젝트 상세 페이지 내에 `[팀원 초대하기]` 버튼과 링크 표시/복사 영역 UI 구현.
--   [ ] **Backend**: `app/api/projects/[projectId]/invite/route.ts`에 유효기간이 있는 고유 초대 링크를 생성하는 API(POST) 구현.
--   [ ] **Flow/Logic**: 버튼 클릭 시 API 호출 -> 반환된 링크를 화면에 표시 -> 복사 버튼 기능 구현.
-
-#### 2.2. 팀원들의 합류
+-   [ ] **UI**: 프로젝트 상세 페이지 내 `[팀원 초대하기]` 버튼과 링크 표시/복사 영역 UI 구현.
+-   [ ] **Backend**: `app/api/projects/[projectId]/invite/route.ts`에 유효기간이 있는 고유 초대 링크 생성 API 구현.
 -   [ ] **UI**: `app/projects/join/[inviteCode]/page.tsx` 초대 수락 페이지 UI 구현.
 -   [ ] **Backend**: `inviteCode` 유효성 검증 및 사용자를 `ProjectMember`에 추가하는 로직 구현.
+-   [ ] **UI**: `app/projects/[projectId]/interview/page.tsx`에 Vercel AI SDK를 활용한 대화형 채팅 UI 구현.
+-   [ ] **Backend**: `app/api/ai/interview/route.ts` API 구현 (Gemini API와 연동).
 -   [ ] **Flow/Logic**:
     -   [ ] 초대 링크로 접속 -> 로그인하지 않았다면 로그인 페이지로 이동 후 다시 복귀.
     -   [ ] 초대 정보 확인 후 `[참여하기]` 버튼 클릭.
-    -   [ ] 참여 API 호출 성공 시, 해당 프로젝트 상세 페이지로 이동.
+    -   [ ] 참여 API 호출 성공 시, 해당 프로젝트의 AI 인터뷰 페이지로 이동.
+    -   [ ] AI와 1:1 심층 인터뷰 진행 및 대화 내용 DB에 저장.
 
-#### 2.3. 실시간 현황판 (Live Update)
--   [ ] **Backend**: WebSocket (e.g., `socket.io`) 서버 설정. 팀원 참여/이탈 시 특정 방(room)에 이벤트 브로드캐스팅.
--   [ ] **Frontend**: 프로젝트 상세 페이지에서 WebSocket 클라이언트 연결. 새 팀원 참여 이벤트 수신 시, 멤버 목록 상태를 실시간으로 업데이트.
-
-### Phase 3 & 4: AI와의 만남 그리고 한 팀으로
-
-#### 3.1. AI 1:1 인터뷰
--   [ ] **DB**: `prisma/schema.prisma`에 `InterviewQuestion`, `InterviewAnswer` 모델 정의.
--   [ ] **UI**: `app/projects/[projectId]/interview/page.tsx`에 대화형 채팅 UI 구현.
--   [ ] **Backend**: `app/api/ai/interview/route.ts` API 구현 (Gemini API와 연동).
--   [ ] **Flow/Logic**: 사용자 메시지 전송 -> API 호출 -> AI 응답 수신 후 화면에 표시 -> 대화 내용 DB에 저장.
-
-#### 3.2. AI 역할 추천
--   [ ] **DB**: `prisma/schema.prisma`에 `RecommendedRole` 모델 정의.
+#### 1.4. 최종 프로젝트 확정 및 상세 페이지
+-   [ ] **DB**: `prisma/schema.prisma`에 `RecommendedRole` 모델 정의 완료.
 -   [ ] **UI**: 프로젝트 상세 페이지에 팀원별 추천 역할을 보여주는 대시보드 UI 구현.
 -   [ ] **Backend**: `app/api/projects/[projectId]/recommend-roles` API(POST) 구현.
--   [ ] **Flow/Logic**: 모든 팀원 인터뷰 완료 시, 추천 생성 버튼 활성화 -> 클릭 시 API 호출 -> 추천 결과 받아와 DB에 저장 및 UI 업데이트.
-
-#### 3.3. 팀 전용 채팅방
--   [ ] **DB**: `prisma/schema.prisma`에 `ChatMessage` 모델 정의.
--   [ ] **UI**: 프로젝트 상세 페이지 내 `ChatWindow` 컴포넌트 구현 (메시지 목록, 입력창).
--   [ ] **Backend/Real-time**: WebSocket을 통해 실시간 메시지 전송/수신 처리.
--   [ ] **Flow/Logic**: 메시지 전송 -> WebSocket으로 서버에 전송 -> 서버는 해당 프로젝트 룸에 메시지 브로드캐스팅 -> DB에 메시지 저장. 페이지 첫 로딩 시 이전 대화 기록 불러오기.
+-   [ ] **Backend**: `app/api/projects/[projectId]/finalize/route.ts` (가칭) 최종 프로젝트 정보 확정 및 DB 저장 API 구현.
+-   [ ] **UI**: `app/projects/[projectId]/page.tsx` 페이지 생성 및 최종 프로젝트 정보 표시.
+    -   [ ] `shadcn/ui Tabs`를 활용하여 '정보', '채팅', '설정' 등 탭 구조 구현.
+-   [ ] **Flow/Logic**:
+    -   [ ] 모든 팀원 인터뷰 완료 시, 최종 프로젝트 확정 버튼 활성화.
+    -   [ ] 최종 확정 API 호출 -> DB에 프로젝트 최종 생성.
+    -   [ ] 생성된 프로젝트의 상세 페이지(`/projects/[id]`)로 이동.
+    -   [ ] 페이지 진입 시, `projectId`를 이용해 프로젝트 상세 정보 및 멤버 목록을 서버에서 Fetch.
+    -   [ ] 데이터를 받아와 UI에 렌더링. 데이터 로딩 중에는 스켈레톤 UI 또는 로딩 스피너 표시.
 
 ---
 
@@ -174,6 +145,11 @@
 
 **2.9. 사장님께 작업 요청하기 (order.md 활용)**:
 *   **요청 방법**: AI 에이전트인 제가 사장님의 도움이 필요한 작업(예: 환경 변수 설정, 계정 생성, API 키 발급)이 있을 경우, 그 내용을 `order.md` 파일에 명확하게 작성하여 요청합니다.
+
+---
+
+## 2.10. AI 기능 구현 지침
+*   **`lims.txt` 기반 구현**: AI 관련 기능(AI 상담, AI 인터뷰, AI 역할 추천 등)은 `lims.txt` 문서에 제시된 Vercel AI SDK 활용 방안 및 관련 예시를 최우선적으로 참고하여 구현합니다.
 
 ---
 
