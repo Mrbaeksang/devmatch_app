@@ -41,8 +41,9 @@ yarn-error.log*
 next-env.d.ts
 
 #.md
-GEMINI.md
-README_AI.md
-error.md
-order.md
-ORDER.md
+#GEMINI.md
+#README_AI.md
+#error.md
+#ORDER.md
+.vercel
+.env*.local

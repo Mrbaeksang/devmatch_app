@@ -10,19 +10,20 @@ datasource db {
 }
 
 model User {
-  id            String    @id @default(cuid())
-  name          String?
-  email         String?   @unique
-  emailVerified DateTime?
-  image         String?
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
-  accounts      Account[]
-  sessions      Session[]
-  projects      ProjectMember[]
+  id               String            @id @default(cuid())
+  name             String?
+  email            String?           @unique
+  emailVerified    DateTime?
+  image            String?
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+  accounts         Account[]
+  sessions         Session[]
+  projects         ProjectMember[]
   interviewAnswers InterviewAnswer[]
-  chatMessages  ChatMessage[]
-  ownedProjects Project[] @relation("ProjectOwner")
+  chatMessages     ChatMessage[]
+  ownedProjects    Project[]         @relation("ProjectOwner")
+  recommendedRoles RecommendedRole[]
 }
 
 model Account {
@@ -53,26 +54,26 @@ model Session {
 }
 
 model Project {
-  id            String          @id @default(cuid())
-  name          String
-  goal          String          @db.Text
-  createdAt     DateTime        @default(now())
-  updatedAt     DateTime        @updatedAt
-  ownerId       String
-  owner         User            @relation("ProjectOwner", fields: [ownerId], references: [id])
-  members       ProjectMember[]
-  roles         Role[]
-  inviteLinks   InviteLink[]
-  chatMessages  ChatMessage[]
+  id               String            @id @default(cuid())
+  name             String
+  goal             String            @db.Text
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+  ownerId          String
+  owner            User              @relation("ProjectOwner", fields: [ownerId], references: [id])
+  members          ProjectMember[]
+  roles            Role[]
+  inviteLinks      InviteLink[]
+  chatMessages     ChatMessage[]
   recommendedRoles RecommendedRole[]
 }
 
 model Role {
-  id          String    @id @default(cuid())
-  projectId   String
-  name        String
-  description String?   @db.Text
-  project     Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  id               String            @id @default(cuid())
+  projectId        String
+  name             String
+  description      String?           @db.Text
+  project          Project           @relation(fields: [projectId], references: [id], onDelete: Cascade)
   recommendedRoles RecommendedRole[]
 }
 
@@ -88,53 +89,53 @@ model ProjectMember {
 }
 
 model InviteLink {
-  id        String    @id @default(cuid())
+  id        String   @id @default(cuid())
   projectId String
-  code      String    @unique
+  code      String   @unique
   expiresAt DateTime
-  createdAt DateTime  @default(now())
-  project   Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
 }
 
 model InterviewQuestion {
-  id        String    @id @default(cuid())
-  question  String    @db.Text
-  order     Int
-  answers   InterviewAnswer[]
+  id       String            @id @default(cuid())
+  question String            @db.Text
+  order    Int
+  answers  InterviewAnswer[]
 }
 
 model InterviewAnswer {
-  id          String    @id @default(cuid())
-  userId      String
-  questionId  String
-  answer      String    @db.Text
-  createdAt   DateTime  @default(now())
-  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  question    InterviewQuestion @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  id         String            @id @default(cuid())
+  userId     String
+  questionId String
+  answer     String            @db.Text
+  createdAt  DateTime          @default(now())
+  user       User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  question   InterviewQuestion @relation(fields: [questionId], references: [id], onDelete: Cascade)
 
   @@unique([userId, questionId])
 }
 
 model RecommendedRole {
-  id          String    @id @default(cuid())
-  projectId   String
-  userId      String
-  roleId      String
-  reason      String?   @db.Text
-  createdAt   DateTime  @default(now())
-  project     Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  role        Role      @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  id        String   @id @default(cuid())
+  projectId String
+  userId    String
+  roleId    String
+  reason    String?  @db.Text
+  createdAt DateTime @default(now())
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role      Role     @relation(fields: [roleId], references: [id], onDelete: Cascade)
 
   @@unique([projectId, userId])
 }
 
 model ChatMessage {
-  id        String    @id @default(cuid())
+  id        String   @id @default(cuid())
   projectId String
   userId    String
-  content   String    @db.Text
-  createdAt DateTime  @default(now())
-  project   Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  content   String   @db.Text
+  createdAt DateTime @default(now())
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
