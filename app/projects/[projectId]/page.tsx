@@ -15,7 +15,6 @@ import {
 interface ProjectMemberWithUser {
   userId: string;
   joinedAt: Date;
-  project: any; // 또는 Project 타입 (필요시 정의)
   user: {
     id: string;
     name: string | null;

@@ -56,7 +56,7 @@ export default function NewProjectPage() {
         console.log("AI 응답이 JSON 형식이 아니므로 상담을 계속 진행합니다.");
       }
     },
-    onError: (error: Error) => {
+    onError: (error: Error) => { // eslint-disable-next-line @typescript-eslint/no-unused-vars
       console.error("AI chat error:", error);
       toast.error("AI와 대화 중 오류가 발생했습니다. 다시 시도해주세요.");
     }

@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { signIn } from "next-auth/react";
 import { useSearchParams } from "next/navigation";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import Image from "next/image";
 
 const AuthPage = () => {
   const searchParams = useSearchParams();
@@ -37,9 +38,11 @@ const AuthPage = () => {
               className="w-16 h-16 rounded-full flex items-center justify-center p-0 bg-white border border-gray-300 shadow-md transition-transform duration-200 hover:scale-110 hover:shadow-lg"
               aria-label="Google 계정으로 로그인"
             >
-              <img
-                src="https://img.icons8.com/3d-fluency/1500/google-logo.png"
+              <Image
+                src="/images/google-icon.svg" // 구글 아이콘 이미지 경로
                 alt="Google"
+                width={40} // 이미지 크기 조절
+                height={40}
                 className="w-10 h-10 object-contain" // 이미지 크기 조절
               />
             </Button>
@@ -51,9 +54,11 @@ const AuthPage = () => {
               className="w-16 h-16 rounded-full flex items-center justify-center p-0 bg-white border border-gray-300 shadow-md transition-transform duration-200 hover:scale-110 hover:shadow-lg"
               aria-label="Kakao 계정으로 로그인"
             >
-              <img
-                src="https://img.icons8.com/color/480/kakaotalk.png"
+              <Image
+                src="/images/kakao-icon.svg" // 카카오 아이콘 이미지 경로
                 alt="Kakao"
+                width={40} // 이미지 크기 조절
+                height={40}
                 className="w-10 h-10 object-contain" // 이미지 크기 조절
               />
             </Button>
