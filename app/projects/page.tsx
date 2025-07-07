@@ -2,13 +2,14 @@
 
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import Link from "next/link"; // Link 컴포넌트 임포트
+
 // import 경로 수정 및 방식 변경
 import ProjectCard from "@/app/components/project/ProjectCard"; // default import 유지
-import { ProjectForm } from "@/app/components/project/ProjectForm"; // named import로 변경
+// ProjectForm은 더 이상 여기서 사용하지 않으므로 임포트 제거
 
 const ProjectsPage = () => {
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  // isModalOpen 상태는 더 이상 필요하지 않으므로 제거
 
   // 임시 프로젝트 데이터 (나중에 API에서 받아올 예정)
   const projects = [
@@ -30,26 +31,16 @@ const ProjectsPage = () => {
           />
         ))}
 
-        <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-          <DialogTrigger asChild>
-            <Button
-              variant="outline"
-              className="h-auto min-h-[150px] flex flex-col items-center justify-center border-2 border-dashed"
-            >
-              <span className="text-5xl mb-2">+</span>
-              <span className="text-lg">새 프로젝트 시작하기</span>
-            </Button>
-          </DialogTrigger>
-          {/* DialogContent를 조건부 렌더링하여 폼 상태 초기화 보장 */}
-          {isModalOpen && (
-            <DialogContent className="sm:max-w-[425px]">
-              <DialogHeader>
-                <DialogTitle>새 프로젝트 시작하기</DialogTitle>
-              </DialogHeader>
-              <ProjectForm />
-            </DialogContent>
-          )}
-        </Dialog>
+        {/* 새 프로젝트 시작하기 버튼을 Link 컴포넌트로 변경 */}
+        <Link href="/projects/new" passHref>
+          <Button
+            variant="outline"
+            className="h-auto min-h-[150px] flex flex-col items-center justify-center border-2 border-dashed"
+          >
+            <span className="text-5xl mb-2">+</span>
+            <span className="text-lg">새 프로젝트 시작하기</span>
+          </Button>
+        </Link>
       </div>
     </div>
   );

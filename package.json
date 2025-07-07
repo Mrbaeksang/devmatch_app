@@ -31,6 +31,7 @@
     "tailwind-merge": "^2.4.0"
   },
   "devDependencies": {
+    "@biomejs/biome": "2.0.6",
     "@eslint/eslintrc": "^3",
     "@prisma/client": "^6.11.1",
     "@tailwindcss/postcss": "^4",
