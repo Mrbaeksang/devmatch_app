@@ -1,9 +1,8 @@
 import { createOpenRouter } from '@openrouter/ai-sdk-provider';
-import { convertToCoreMessages, streamText } from 'ai';
+import { generateText } from 'ai';
+import { NextResponse } from 'next/server';
 
-export const maxDuration = 30;
-
-// 클라이언트와 동일한 상담 단계 Enum
+// 상담 단계 Enum
 enum ConsultationStep {
   NAME_COLLECTION = 'NAME_COLLECTION',
   PROJECT_INFO_COLLECTION = 'PROJECT_INFO_COLLECTION',
@@ -12,7 +11,7 @@ enum ConsultationStep {
   COMPLETED = 'COMPLETED',
 }
 
-// 클라이언트와 동일한 상담 데이터 인터페이스
+// 상담 데이터 인터페이스
 interface ConsultationData {
   userName?: string;
   projectName?: string;
@@ -24,94 +23,253 @@ interface ConsultationData {
   aiSuggestedRoles?: Array<{ role: string; count: number; note?: string }>;
 }
 
+// AI 응답 인터페이스
+interface AIResponse {
+  displayMessage?: string;
+  nextStep?: ConsultationStep;
+  consultationData?: ConsultationData;
+  isConsultationComplete?: boolean;
+}
+
 /**
  * 현재 상담 단계와 데이터에 따라 AI에게 전달할 시스템 프롬프트를 동적으로 생성합니다.
  */
 const getSystemPrompt = (currentStep: ConsultationStep, consultationData: ConsultationData): string => {
-  const basePrompt = `당신은 사용자의 프로젝트 기획을 돕는 AI 프로젝트 매니저입니다. 당신의 유일한 임무는 다음 지시에 따라 엄격한 JSON 형식으로만 응답하는 것입니다. 절대로, 어떤 상황에서도 JSON 객체 외의 설명, 인사, 사과, 줄바꿈, 코드 블록 마크다운(\`\`\`json) 등을 포함해서는 안 됩니다. 오직 순수한 JSON 객체만 출력해야 합니다.`;
+  const basePrompt = `당신은 친근하고 전문적인 AI 프로젝트 매니저입니다. 사용자와 자연스러운 대화를 통해 프로젝트 정보를 수집하고 있습니다.
+
+중요: 반드시 JSON 형식으로만 응답하세요. 다음 형식을 엄격히 따르세요:
+{
+  "displayMessage": "사용자에게 보여질 메시지",
+  "nextStep": "다음 단계",
+  "consultationData": { 수집된 데이터 },
+  "isConsultationComplete": false
+}
+
+절대로 JSON 외의 다른 텍스트를 포함하지 마세요. 코드 블록 마크다운도 사용하지 마세요.`;
 
   switch (currentStep) {
-    case ConsultationStep.NAME_COLLECTION: {
+    case ConsultationStep.NAME_COLLECTION:
       return `${basePrompt}
-      사용자의 이름이나 호칭을 물어보는 질문을 'displayMessage'에 담고, 다음 단계를 'PROJECT_INFO_COLLECTION'으로 설정하여 JSON으로 응답하세요. 사용자가 이름을 알려주면, 그 이름을 'userName'으로 저장하고 다음 질문(프로젝트 이름)을 던지세요.
-      - 예시: {"displayMessage": "반갑습니다, [사용자 이름]님! 이제 프로젝트에 대해 이야기해볼까요? 구상 중인 프로젝트 이름이 무엇인가요?", "nextStep": "PROJECT_INFO_COLLECTION", "consultationData": {"userName": "[사용자 이름]"}}`;
-    }
+
+현재 단계: 사용자 이름 수집
+
+사용자가 이름을 말하면:
+1. 친근하게 인사하고 프로젝트 이름을 물어보세요
+2. consultationData에 userName을 저장하세요
+3. nextStep을 "PROJECT_INFO_COLLECTION"으로 설정하세요
+
+예시 응답:
+{
+  "displayMessage": "반갑습니다, [이름]님! 이제 프로젝트에 대해 이야기해볼까요? 😊 구상 중인 프로젝트의 이름은 무엇인가요?",
+  "nextStep": "PROJECT_INFO_COLLECTION",
+  "consultationData": {"userName": "[사용자가 입력한 이름]"}
+}`;
 
     case ConsultationStep.PROJECT_INFO_COLLECTION: {
-      let nextQuestion = '';
-      if (!consultationData.projectName) {
-        nextQuestion = '구상 중인 프로젝트 이름이 무엇인가요?';
-      } else if (!consultationData.projectGoal) {
-        nextQuestion = `좋은 이름이네요! '${consultationData.projectName}' 프로젝트의 핵심 목표는 무엇인가요?`;
-      } else if (!consultationData.techStack || consultationData.techStack.length === 0) {
-        nextQuestion = '프로젝트에 사용할 주요 기술 스택은 무엇인가요? (예: React, Next.js, Python, Django)';
-      } else if (!consultationData.mainFeatures || consultationData.mainFeatures.length === 0) {
-        nextQuestion = '해당 프로젝트의 핵심 기능들은 무엇이 있을까요? 2~3가지 정도 알려주세요.';
-      } else if (!consultationData.teamMembersCount) {
-        nextQuestion = '예상되는 팀원 수는 몇 명인가요?';
-      } else {
-        // 모든 정보 수집 완료, 다음 단계로 전환
-        return `${basePrompt}
-        모든 프로젝트 정보 수집이 완료되었습니다. 수집된 정보를 바탕으로 현실적인 팀 역할 구조를 제안하는 메시지를 'displayMessage'에 담아주세요. 역할, 인원수, 겸직 여부 등을 구체적으로 제안하세요. 다음 단계를 'TEAM_STRUCTURE_PROPOSAL'로 설정하고, AI가 제안한 역할 구조('aiSuggestedRoles')를 'consultationData'에 추가하여 JSON으로 응답하세요.`;
-      }
+      const collectedInfo = [];
+      if (consultationData.userName) collectedInfo.push('사용자 이름');
+      if (consultationData.projectName) collectedInfo.push('프로젝트명');
+      if (consultationData.projectGoal) collectedInfo.push('프로젝트 목표');
+      if (consultationData.techStack?.length) collectedInfo.push('기술 스택');
+      if (consultationData.mainFeatures?.length) collectedInfo.push('핵심 기능');
+      if (consultationData.teamMembersCount) collectedInfo.push('팀원 수');
+
       return `${basePrompt}
-      현재 프로젝트 정보를 수집하는 중입니다. 사용자에게 다음 질문("${nextQuestion}")을 던지고, 사용자의 답변을 바탕으로 'consultationData'를 업데이트하여 JSON으로 응답하세요. 'nextStep'은 'PROJECT_INFO_COLLECTION'으로 유지하세요.`;
+
+현재 단계: 프로젝트 정보 수집
+이미 수집된 정보: ${collectedInfo.join(', ') || '없음'}
+사용자 이름: ${consultationData.userName || '미수집'}
+
+수집 순서:
+1. 프로젝트명 → 2. 프로젝트 목표 → 3. 기술 스택 → 4. 핵심 기능 → 5. 예상 팀원 수
+
+다음 질문을 결정하고 자연스럽게 대화하세요:
+- 이미 수집된 정보는 다시 묻지 마세요
+- 사용자 답변에 공감하며 다음 질문으로 이어가세요
+- 기술 스택이나 기능은 쉼표로 구분된 배열로 저장하세요
+
+모든 정보가 수집되면:
+- 수집된 정보를 바탕으로 현실적인 팀 구조를 제안하세요
+- aiSuggestedRoles에 역할별 인원을 제안하세요
+- nextStep을 "TEAM_STRUCTURE_PROPOSAL"로 설정하세요`;
     }
 
-    case ConsultationStep.TEAM_STRUCTURE_PROPOSAL: {
+    case ConsultationStep.TEAM_STRUCTURE_PROPOSAL:
       return `${basePrompt}
-      팀 구조 제안에 대한 사용자의 피드백을 반영하세요. 사용자가 동의하면, 지금까지 수집된 모든 정보를 자연스러운 문장으로 요약하여 최종 확인을 요청하는 메시지를 'displayMessage'에 담으세요. "이 설문은 초기 기획 청사진이며, 팀원 최종 선발 후 확정되니 걱정마세요!" 라는 문구를 반드시 포함하세요. 다음 단계를 'SUMMARY_CONFIRMATION'으로 설정하여 JSON으로 응답하세요.`;
+
+현재 단계: 팀 구조 제안 피드백 수집
+프로젝트명: ${consultationData.projectName}
+팀원 수: ${consultationData.teamMembersCount}명
+
+사용자가 팀 구조에 동의하면:
+1. 지금까지 수집된 모든 정보를 자연스럽게 요약하세요
+2. "이 설문은 초기 기획 청사진이며, 팀원 최종 선발 후 확정되니 걱정마세요!" 문구를 포함하세요
+3. 최종 확인을 요청하세요
+4. nextStep을 "SUMMARY_CONFIRMATION"으로 설정하세요
+
+사용자가 수정을 원하면:
+1. 피드백을 반영하여 팀 구조를 수정하세요
+2. aiSuggestedRoles를 업데이트하세요
+3. nextStep은 "TEAM_STRUCTURE_PROPOSAL"로 유지하세요`;
+
+    case ConsultationStep.SUMMARY_CONFIRMATION:
+      return `${basePrompt}
+
+현재 단계: 최종 확인
+
+사용자가 긍정적으로 응답하면 (네, 좋아요, 확인, 맞아요, ㅇㅇ, 시작하기 등):
+{
+  "displayMessage": "완벽합니다! 🎉 프로젝트 정보가 모두 준비되었습니다. 이제 프로젝트를 생성하실 수 있어요!",
+  "isConsultationComplete": true,
+  "consultationData": ${JSON.stringify(consultationData)}
+}
+
+사용자가 수정을 원하면:
+1. 수정하고 싶은 부분을 구체적으로 물어보세요
+2. 해당 정보만 업데이트하세요
+3. 수정된 요약을 다시 보여주세요
+4. nextStep은 "SUMMARY_CONFIRMATION"으로 유지하세요`;
+
+    default:
+      return `${basePrompt}
+
+초기 상담을 시작하세요. 친근하게 인사하고 사용자의 이름이나 호칭을 물어보세요.
+
+예시:
+{
+  "displayMessage": "👋 안녕하세요! AI 프로젝트 매니저입니다. 새로운 프로젝트를 함께 준비해봐요! 먼저 제가 뭐라고 불러드리면 될까요?",
+  "nextStep": "NAME_COLLECTION",
+  "consultationData": {}
+}`;
+  }
+};
+
+/**
+ * AI 응답에서 JSON을 안전하게 파싱하는 함수
+ */
+const parseAIResponse = (content: string): AIResponse => {
+  try {
+    // JSON 블록 추출 시도
+    const jsonMatch = content.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) {
+      throw new Error('JSON 형식을 찾을 수 없습니다');
     }
 
-    case ConsultationStep.SUMMARY_CONFIRMATION: {
-      return `${basePrompt}
-      사용자의 응답을 분석하세요.
-      - 만약 사용자가 "네", "좋아요", "확인", "맞아요", "ㅇㅇ", "시작하기" 등 긍정적인 답변을 하면, 'isConsultationComplete'를 true로 설정하고, 현재까지 수집된 모든 데이터를 포함하는 최종 JSON 객체를 생성하세요. 이 JSON에는 'displayMessage'를 포함하지 마세요.
-      - 만약 사용자가 수정/보완을 원하면, 해당 부분을 재질문하고 반영하여 수정된 요약본을 'displayMessage'에 담아 다시 확인을 요청하세요. 'nextStep'은 'SUMMARY_CONFIRMATION'으로 유지하세요.`;
+    const parsed = JSON.parse(jsonMatch[0]);
+    
+    // 필수 필드 검증
+    if (!parsed.displayMessage && !parsed.isConsultationComplete) {
+      throw new Error('유효하지 않은 응답 형식');
     }
 
-    default: {
-      return `${basePrompt}
-      상담을 시작하는 단계입니다. 사용자에게 이름이나 호칭을 물어보는 질문을 'displayMessage'에 담고, 다음 단계를 'NAME_COLLECTION'으로 설정하여 JSON으로 응답하세요.
-      - 예시: {"displayMessage": "안녕하세요! 새로운 프로젝트 기획을 도와드릴 AI 매니저입니다. 시작하기에 앞서, 제가 뭐라고 불러드리면 될까요?", "nextStep": "NAME_COLLECTION", "consultationData": {}}`;
-    }
+    return parsed;
+  } catch (error) {
+    console.error('AI 응답 파싱 오류:', error);
+    console.error('원본 응답:', content);
+    
+    // 파싱 실패 시 기본 응답 반환
+    return {
+      displayMessage: "죄송합니다. 잠시 문제가 발생했습니다. 다시 한 번 말씀해주시겠어요?",
+      nextStep: undefined,
+      consultationData: undefined,
+    };
   }
 };
 
 export async function POST(req: Request) {
   try {
-    // 클라이언트로부터 현재 단계와 데이터를 받음
     const { messages, currentStep, consultationData } = await req.json();
 
+    // API 키 확인
     const apiKey = process.env.OPENROUTER_API_KEY;
     if (!apiKey) {
-      throw new Error("OPENROUTER_API_KEY is not set in environment variables");
+      console.error("OPENROUTER_API_KEY is not set");
+      return NextResponse.json(
+        { error: "API 설정 오류가 발생했습니다." },
+        { status: 500 }
+      );
     }
 
+    // OpenRouter 클라이언트 생성
     const openrouter = createOpenRouter({
       apiKey,
       headers: {
-        "HTTP-Referer": process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000",
-        "X-Title": "AI Team Building Manager",
+        "HTTP-Referer": process.env.NEXTAUTH_URL || "http://localhost:3000",
+        "X-Title": "DevMatch AI Consultation",
       },
     });
 
-    // 동적으로 생성된 시스템 프롬프트를 사용
-    const dynamicSystemPrompt = getSystemPrompt(currentStep, consultationData);
+    // 동적 시스템 프롬프트 생성
+    const systemPrompt = getSystemPrompt(currentStep, consultationData);
 
-    const result = await streamText({
-      model: openrouter('deepseek/deepseek-chat-v3-0324:free'),
-      system: dynamicSystemPrompt,
-      messages: convertToCoreMessages(messages),
-    });
+    // AI 응답 생성 (fallback 모델 지원)
+    let text: string;
+    
+    try {
+      // 1차 시도: DeepSeek Chat (메인 모델)
+      const result = await generateText({
+        model: openrouter('deepseek/deepseek-chat-v3-0324:free'),
+        system: systemPrompt,
+        messages: messages,
+        temperature: 0.7,
+        maxTokens: 1000,
+      });
+      text = result.text;
+    } catch (error: any) {
+      if (error.message?.includes('rate limit') || error.message?.includes('Rate limit')) {
+        // 2차 시도: DeepSeek R1 (보조 모델)
+        try {
+          const fallbackResult = await generateText({
+            model: openrouter('deepseek/deepseek-r1-0528:free'),
+            system: systemPrompt,
+            messages: messages,
+            temperature: 0.7,
+            maxTokens: 1000,
+          });
+          text = fallbackResult.text;
+        } catch (fallbackError: any) {
+          // 3차 시도: 에러 메시지
+          throw new Error('AI 서비스가 일시적으로 이용할 수 없습니다. 잠시 후 다시 시도해주세요.');
+        }
+      } else {
+        throw error;
+      }
+    }
 
-    return result.toDataStreamResponse();
+    // AI 응답 파싱
+    const parsedResponse = parseAIResponse(text);
+
+    // 클라이언트에 전송할 응답 구성
+    const response = {
+      message: parsedResponse.displayMessage || "응답을 처리하는 중 문제가 발생했습니다.",
+      nextStep: parsedResponse.nextStep || currentStep,
+      consultationData: parsedResponse.consultationData,
+      isConsultationComplete: parsedResponse.isConsultationComplete || false,
+    };
+
+    return NextResponse.json(response);
+
   } catch (error) {
-    console.error("API Error:", error);
-    const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred';
-    return new Response(JSON.stringify({ error: errorMessage }), { 
-      status: 500, 
-      headers: { 'Content-Type': 'application/json' }
-    });
+    console.error("Chat API Error:", error);
+    
+    // 상세한 에러 메시지 반환
+    let errorMessage = "서버 오류가 발생했습니다.";
+    
+    if (error instanceof Error) {
+      if (error.message.includes('rate limit')) {
+        errorMessage = "요청이 너무 많습니다. 잠시 후 다시 시도해주세요.";
+      } else if (error.message.includes('API key')) {
+        errorMessage = "API 인증 오류가 발생했습니다.";
+      } else if (error.message.includes('network')) {
+        errorMessage = "네트워크 연결을 확인해주세요.";
+      } else {
+        errorMessage = `오류: ${error.message}`;
+      }
+    }
+
+    return NextResponse.json(
+      { error: errorMessage },
+      { status: 500 }
+    );
   }
 }

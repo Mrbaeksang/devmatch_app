@@ -1,36 +1,18 @@
-[{
-	"resource": "/c:/Users/qortk/IdeaProjects/devmatch-app/app/projects/new/page.tsx",
-	"owner": "typescript",
-	"code": "2322",
-	"severity": 8,
-	"message": "'unknown' 형식은 'ReactNode' 형식에 할당할 수 없습니다.",
-	"source": "ts",
-	"startLineNumber": 189,
-	"startColumn": 13,
-	"endLineNumber": 189,
-	"endColumn": 34
-}]
-[{
-	"resource": "/c:/Users/qortk/IdeaProjects/devmatch-app/app/projects/new/page.tsx",
-	"owner": "typescript",
-	"code": "2339",
-	"severity": 8,
-	"message": "'{}' 형식에 'consultationData' 속성이 없습니다.",
-	"source": "ts",
-	"startLineNumber": 202,
-	"startColumn": 78,
-	"endLineNumber": 202,
-	"endColumn": 94
-}]
-[{
-	"resource": "/c:/Users/qortk/IdeaProjects/devmatch-app/app/projects/new/page.tsx",
-	"owner": "typescript",
-	"code": "2339",
-	"severity": 8,
-	"message": "'{}' 형식에 'consultationData' 속성이 없습니다.",
-	"source": "ts",
-	"startLineNumber": 206,
-	"startColumn": 78,
-	"endLineNumber": 206,
-	"endColumn": 94
-}]
+AI가 추천하는 최적의 팀으로 프로젝트를 성공시켜보세요
+
+진행 중인 프로젝트
+팀 시너지 게시판
+참여 인원: 3명
+Spring Boot와 JPA, React를 사용하여 기본적인 CRUD 기능과 로그인 기능이 있는 게시판 웹사이트를 4주 안에 완성한다.
+
+프로젝트 상세 정보 보기
+
+AI 면접 도우미
+참여 인원: 2명
+AI를 활용하여 모의 면접을 진행하고 피드백을 제공하는 웹 서비스 개발
+
+프로젝트 상세 정보 보기
+
+프로젝트 관리 도구
+
+이 위에 적은 멘트 하드코딩 다필요없어 필요한건 내 프로젝트 대시보드 와 새 프로젝트 만들기 + 팀매칭 ai + 프로젝트 성과 카드야 카드 3개는 화면 중앙에 좀 크게 배치하고 팀 매칭 ai 설명은 최적의 역한분배 하는걸로 바꿔 그리고 그거 링크는 나중에 팀원 초대하면 기다리는 페이지 거기로 로드 프로젝트 성과는 내프로젝트들로 바꾸고 이동 하기로 바꾸고 그 페이지는 나중에 내 최종 역할 분담된 프로젝트들 생긴 페이지로 로드되도록

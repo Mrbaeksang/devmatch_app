@@ -1,192 +1,195 @@
-*** 아직도 원하는대로 작동하지않고 무한루프에 빠짐 + json 사용자에게 그대로 보임 + 디자인 너무 구림 내 프로젝트는 분명히 기존에 샤드CN을 적극활용해서 한다고 되있었는데 니가 맘대로 축약하고 지우면서 기존 디자인 지침이 다꺠짐 난 내가 직접 디자인 하기보단 이미 잘 짜여진 디자인이나 템플릿을 그대로 클론해오거나 따로 설치해서 하는걸 선호 너가 검색기능을 최대한 활용해서 추천하거나 설치 유도해도 좋고 그걸로 적용시키는게 좋음  CLAUDE.md 를 확실히 보강해주길바람 그리고 이런 원하는 기능 미 구현이 반복될거같다고 스스로 판단되면 외부 AI에게 맡겨보는것도 스스로 고려할수있게씀***
+import React, { useRef, useState } from "react";
+import { twMerge } from "tailwind-merge";
+import {
+  Github,
+  Video,
+  Youtube,
+} from "lucide-react";
 
 
+const HeroSection: React.FC = () => {
+  return (
+    <section className="w-full flex flex-col items-center text-center gap-6">
+      <div className="relative mb-2">
+        <span className="absolute inset-0 rounded-full bg-gradient-to-tr from-pink-500 via-red-500 to-orange-400 opacity-60 blur-lg animate-glow" />
+        <img
+          src="https://api.dicebear.com/8.x/lorelei-neutral/svg?seed=John"
+          alt="avatar"
+          className="relative size-32 rounded-full border-4 border-zinc-800 shadow-xl z-10"
+        />
+      </div>
+      <h1 className="text-5xl md:text-6xl font-extrabold leading-tight tracking-tight font-geist drop-shadow-lg">
+        Hi, I'm Ankit
+      </h1>
+      <p className="text-xl md:text-2xl text-zinc-300 max-w-lg mx-auto font-inter font-normal">
+        I craft beautiful, performant web experiences with React, TypeScript, and modern UI frameworks.
+      </p>
+    </section>
+  );
+};
 
-AI 팀 빌딩 매니저
-
-메뉴
-
-✨ AI 프로젝트 기획 어시스턴트
-안녕하세요! 새로운 프로젝트 기획을 도와드릴 AI 매니저입니다. 시작하기에 앞서, 제가 뭐라고 불러드리면 될까요?
-
-상현님
-
-반갑습니다, 상현님! 이제 프로젝트에 대해 이야기해볼까요? 구상 중인 프로젝트 이름이 무엇인가요?
-
-1차 프로젝트
-
-```json
-{"displayMessage": "1차 프로젝트라는 이름으로 시작해보는 건 어떨까요? 프로젝트에 대해 더 자세히 알려주세요.", "nextStep": "PROJECT_INFO_COLLECTION", "consultationData": {"userName": "상현", "projectName": "1차 프로젝트"}}
-```
-
-?
-
-```json
-{"displayMessage": "알 수 없는 응답이 감지되었습니다. 구상 중인 프로젝트 이름을 정확히 입력해주세요.", "nextStep": "PROJECT_INFO_COLLECTION", "consultationData": {"userName": "상현"}}
-```
-
-1차 프로젝트라고 이름이 
-
-```json
-{"displayMessage": "1차 프로젝트라는 이름으로 정하셨군요. 이제 프로젝트의 목적이나 주요 기능에 대해 알려주세요.", "nextStep": "PROJECT_INFO_COLLECTION", "consultationData": {"userName": "상현", "projectName": "1차 프로젝트"}}
-```
-
-그냥 CRUD 기초 게시판 정도 ?
-
-```json
-{"displayMessage": "CRUD 기능을 가진 기초 게시판 프로젝트로 정하셨군요. 어떤 기술 스택을 사용할 계획인가요?", "nextStep": "PROJECT_INFO_COLLECTION", "consultationData": {"userName": "상현", "projectName": "1차 프로젝트", "projectType": "CRUD 기초 게시판"}}
-```
-
-스프링부트 jpa 정도 자바
-
-```json
-{
-  "displayMessage": "스프링부트와 JPA를 사용한 자바 기반의 CRUD 게시판 프로젝트로 결정하셨군요. 이제 프로젝트의 주요 기능과 요구사항을 더 자세히 설명해주시겠어요? (예: 회원 시스템 유무, 게시판 종류, 검색 기능 등)",
-  "nextStep": "PROJECT_INFO_COLLECTION",
-  "consultationData": {
-    "userName": "상현",
-    "projectName": "1차 프로젝트",
-    "projectType": "CRUD 기초 게시판",
-    "techStack": ["Spring Boot", "JPA", "Java"],
-    "features": ["기본 CRUD 기능"]
-  }
+interface SocialLink {
+  href: string;
+  label: string;
+  icon: React.ReactNode;
+  bg: string;
+  text: string;
 }
 
-ㅇㅇ 다있어 
+const socialLinks: SocialLink[] = [
+  {
+    href: '#',
+    label: 'YouTube',
+    icon: <Youtube size={28} />,
+    bg: 'bg-red-500',
+    text: 'text-white',
+  },
+  {
+    href: '#',
+    label: 'GitHub',
+    icon: <Github size={28} />,
+    bg: 'bg-zinc-800',
+    text: 'text-white',
+  },
+  {
+    href: '#',
+    label: 'Self Intro',
+    icon: <Video size={28} />,
+    bg: 'bg-zinc-50',
+    text: 'text-zinc-900',
+  },
+];
 
-```json
-{
-  "displayMessage": "모든 기본 기능(회원 시스템, 게시판 종류, 검색 기능 등)을 포함한 프로젝트로 계획하셨군요. 이제 개발 일정이나 마감 기한 같은 프로젝트 타임라인에 대해 알려주세요.",
-  "nextStep": "PROJECT_TIMELINE",
-  "consultationData": {
-    "userName": "상현",
-    "projectName": "1차 프로젝트",
-    "projectType": "CRUD 기초 게시판",
-    "techStack": ["Spring Boot", "JPA", "Java"],
-    "features": ["회원 시스템", "다중 게시판", "검색 기능", "기본 CRUD 기능"],
-    "requirements": "모든 기본 기능 포함"
-  }
-}
-```
+const SocialsBlock: React.FC = () => (
+  <div className="flex flex-wrap justify-center gap-4 w-full font-inter">
+    {socialLinks.map((link) => (
+      <a
+        key={link.label}
+        href={link.href}
+        aria-label={link.label}
+        className={twMerge(
+          'flex items-center gap-2 rounded-full border border-zinc-800 px-7 py-3 text-base font-semibold shadow-lg transition-all duration-200 hover:scale-105 hover:shadow-xl hover:border-pink-400 focus:outline-none focus:ring-2 focus:ring-pink-300 bg-opacity-80',
+          link.bg,
+          link.text,
+        )}
+        style={{ minWidth: 140, minHeight: 56 }}
+        tabIndex={0}
+      >
+        {link.icon}
+        <span>{link.label}</span>
+      </a>
+    ))}
+  </div>
+);
 
-2주
+const AboutBlock = () => (
+  <div className="w-full rounded-2xl border border-zinc-800 bg-zinc-950/80 p-7 shadow-lg text-center font-inter">
+    <p className="text-lg md:text-xl text-zinc-200 font-normal">
+      Passionate about building elegant, accessible, and high-performance web apps.<br />Always learning, always sharing.
+    </p>
+  </div>
+);
 
-```json
-{
-  "displayMessage": "2주라는 짧은 기간 내에 프로젝트를 완료하려고 하시는군요. 개발 일정을 효율적으로 관리하기 위해 어떤 우선순위로 작업할 계획인가요? (예: 1주차 - 기본 기능 구현, 2주차 - 테스트 및 배포)",
-  "nextStep": "PROJECT_PLANNING",
-  "consultationData": {
-    "userName": "상현",
-    "projectName": "1차 프로젝트",
-    "projectType": "CRUD 기초 게시판",
-    "techStack": ["Spring Boot", "JPA", "Java"],
-    "features": ["회원 시스템", "다중 게시판", "검색 기능", "기본 CRUD 기능"],
-    "requirements": "모든 기본 기능 포함",
-    "timeline": "2주"
-  }
-}
-```
+const ConnectSection: React.FC = () => {
+  const [message, setMessage] = useState("");
+  const [showToast, setShowToast] = useState(false);
+  const [error, setError] = useState("");
+  const inputRef = useRef<HTMLInputElement>(null);
 
-그런거 없어 아직
+  const validateMessage = (msg: string) => {
+    if (!msg.trim()) return "Message cannot be empty.";
+    if (msg.trim().length < 3) return "Message must be at least 3 characters.";
+    if (msg.length > 200) return "Message cannot exceed 200 characters.";
+    return "";
+  };
 
-```json
-{
-  "displayMessage": "아직 구체적인 개발 일정을 세우지 않으셨군요. 프로젝트의 우선순위나 중점을 두고 싶은 부분이 있으신가요? (예: 기능 구현에 집중, 코드 퀄리티 향상, 사용자 경험 개선 등)",
-  "nextStep": "PROJECT_PRIORITIZATION",
-  "consultationData": {
-    "userName": "상현",
-    "projectName": "1차 프로젝트",
-    "projectType": "CRUD 기초 게시판",
-    "techStack": ["Spring Boot", "JPA", "Java"],
-    "features": ["회원 시스템", "다중 게시판", "검색 기능", "기본 CRUD 기능"],
-    "requirements": "모든 기본 기능 포함",
-    "timeline": "미정"
-  }
-}
-```
+  const handleSend = (e: React.FormEvent) => {
+    e.preventDefault();
+    const validationError = validateMessage(message);
+    if (validationError) {
+      setError(validationError);
+      return;
+    }
+    setShowToast(true);
+    setMessage("");
+    setError("");
+    if (inputRef.current) inputRef.current.blur();
+    setTimeout(() => setShowToast(false), 2000);
+  };
 
-그냥 부트캠프 1차프로젝트야 
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setMessage(e.target.value);
+    if (error) setError("");
+  };
 
-```json
-{
-  "displayMessage": "부트캠프 1차 프로젝트로 계획하신 것 확인했습니다. 부트캠프에서 제시한 필수 요구사항이나 평가 기준이 있으신가요? (예: 특정 기능 구현, 기술 사용 제한 등)",
-  "nextStep": "BOOTCAMP_REQUIREMENTS",
-  "consultationData": {
-    "userName": "상현",
-    "projectName": "부트캠프 1차 프로젝트",
-    "projectType": "CRUD 기초 게시판",
-    "techStack": ["Spring Boot", "JPA", "Java"],
-    "features": ["회원 시스템", "다중 게시판", "검색 기능", "기본 CRUD 기능"],
-    "requirements": "부트캠프 과제",
-    "timeline": "미정",
-    "projectCategory": "부트캠프"
-  }
-}
-```
+  return (
+    <section className="w-full flex flex-col items-center text-center gap-4 mt-8 font-inter relative">
+      {/* Toast Notification */}
+      {showToast && (
+        <div className="fixed top-6 right-6 z-50 bg-green-600 text-white px-6 py-3 rounded-xl shadow-lg font-semibold text-base animate-fade-in">
+          Message sent!
+        </div>
+      )}
+      <p className="text-lg text-zinc-400 mb-4 max-w-md mx-auto font-normal">
+        Interested in collaborating, chatting about tech, or just saying hi? Send me a message below!
+      </p>
+      <form onSubmit={handleSend} className="flex w-full max-w-md gap-2 items-center justify-center">
+        <input
+          ref={inputRef}
+          type="text"
+          value={message}
+          onChange={handleInputChange}
+          placeholder="Type your message..."
+          className={twMerge(
+            "flex-1 rounded-full border px-5 py-3 text-base text-zinc-100 placeholder-zinc-500 transition-colors focus:outline-none shadow font-inter",
+            error ? "border-red-500 focus:border-red-500" : "border-zinc-700 bg-zinc-900 focus:border-pink-400"
+          )}
+          maxLength={201}
+        />
+        <button
+          type="submit"
+          className={twMerge(
+            "inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-red-500 via-pink-500 to-orange-400 px-7 py-3 text-base font-semibold text-white shadow-lg focus:outline-none focus:ring-2 focus:ring-pink-300 transition-all",
+            message.trim() ? "hover:scale-105 hover:shadow-xl cursor-pointer opacity-100" : "opacity-50 cursor-not-allowed"
+          )}
+          disabled={!message.trim()}
+          aria-disabled={!message.trim()}
+        >
+          Send
+        </button>
+      </form>
+      {error && (
+        <div className="text-red-500 text-sm mt-1 font-medium">{error}</div>
+      )}
+      <style>{`
+        .animate-fade-in {
+          animation: fadeIn 0.3s ease;
+        }
+        @keyframes fadeIn {
+          from { opacity: 0; transform: translateY(-10px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+      `}</style>
+    </section>
+  );
+};
 
-ㅇㅇ 그냥 기능구현 기본기초에 충실하래
-
-```json
-{
-  "displayMessage": "기본 기능 구현에 충실한 프로젝트로 계획하신 것 확인했습니다. 이제 프로젝트의 핵심 기능 목록을 최종 확인해드릴게요. 추가하거나 수정할 사항이 있나요?",
-  "nextStep": "FINAL_CONFIRMATION",
-  "consultationData": {
-    "userName": "상현",
-    "projectName": "부트캠프 1차 프로젝트",
-    "projectType": "CRUD 기초 게시판",
-    "techStack": ["Spring Boot", "JPA", "Java"],
-    "features": ["회원 시스템", "다중 게시판", "검색 기능", "기본 CRUD 기능"],
-    "requirements": "기본 기능 구현에 집중",
-    "timeline": "미정",
-    "projectCategory": "부트캠프",
-    "developmentFocus": "기초 기능 구현"
-  }
-}
-```
-
-없어 
-
-```json
-{
-  "displayMessage": "모든 정보가 확인되었습니다. 이제 프로젝트 계획을 바탕으로 개발을 시작하시면 됩니다. 추가로 도움이 필요하시면 언제든지 말씀해주세요.",
-  "nextStep": "COMPLETED",
-  "consultationData": {
-    "userName": "상현",
-    "projectName": "부트캠프 1차 프로젝트",
-    "projectType": "CRUD 기초 게시판",
-    "techStack": ["Spring Boot", "JPA", "Java"],
-    "features": ["회원 시스템", "다중 게시판", "검색 기능", "기본 CRUD 기능"],
-    "requirements": "기본 기능 구현에 집중",
-    "timeline": "미정",
-    "projectCategory": "부트캠프",
-    "developmentFocus": "기초 기능 구현",
-    "status": "준비 완료"
-  }
-}
-```
-
-ㅇㅇ
-
-```json
-{
-  "displayMessage": "프로젝트 준비가 모두 완료되었습니다. 개발을 시작하시거나 추가 문의사항이 있으시면 언제든지 알려주세요.",
-  "nextStep": "COMPLETED",
-  "consultationData": {
-    "userName": "상현",
-    "projectName": "부트캠프 1차 프로젝트",
-    "projectType": "CRUD 기초 게시판",
-    "techStack": ["Spring Boot", "JPA", "Java"],
-    "features": ["회원 시스템", "다중 게시판", "검색 기능", "기본 CRUD 기능"],
-    "requirements": "기본 기능 구현에 집중",
-    "timeline": "미정",
-    "projectCategory": "부트캠프",
-    "developmentFocus": "기초 기능 구현",
-    "status": "시작 준비 완료"
-  }
-}
-```
-
-메시지를 입력하세요...
-전송
-© 2025 DevMatch. All rights reserved.
-
+export const PersonalLanding = () => {
+  return (
+    <div className="min-h-screen w-full flex items-center justify-center bg-gradient-to-br from-zinc-900 via-zinc-950 to-zinc-900 px-4 py-16 text-zinc-50 font-inter relative overflow-hidden">
+    {/* Animated background blob */}
+    <div className="absolute -top-32 -left-32 w-[500px] h-[500px] bg-gradient-to-tr from-pink-500 via-red-500 to-orange-400 opacity-20 rounded-full blur-3xl animate-pulse-slow z-0" />
+    <div className="w-full max-w-2xl flex flex-col items-center gap-12 z-10">
+      <HeroSection />
+      <AboutBlock />
+      <SocialsBlock />
+      <ConnectSection />
+    </div>
+    <style>{`
+      @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;900&display=swap');
+      .font-inter { font-family: 'Inter', 'Geist', system-ui, sans-serif; }
+      .font-geist { font-family: 'Geist', 'Inter', system-ui, sans-serif; }
+    `}</style>
+  </div>
+  );
+};

@@ -20,10 +20,16 @@ export async function POST(req: Request) {
     }
 
     const body = await req.json();
+    console.log('Received project setup request:', JSON.stringify(body, null, 2));
+    
     const validation = projectSetupSchema.safeParse(body);
 
     if (!validation.success) {
-      return NextResponse.json({ message: validation.error.errors }, { status: 400 });
+      console.error('Validation failed:', validation.error.errors);
+      return NextResponse.json({ 
+        message: 'Validation failed',
+        errors: validation.error.errors 
+      }, { status: 400 });
     }
 
     const { projectName, projectGoal, consultationData } = validation.data;
@@ -33,15 +39,16 @@ export async function POST(req: Request) {
         name: projectName,
         goal: projectGoal,
         ownerId: session.user.id,
-        status: 'PENDING', // 새로운 Enum 값 사용
+        status: 'PENDING',
         consultationData: consultationData,
-        members: {
-          create: [
-            {
-              userId: session.user.id, // 프로젝트 생성자를 멤버로 자동 추가
-            },
-          ],
-        },
+      },
+    });
+
+    // 프로젝트 생성 후 멤버로 추가
+    await db.projectMember.create({
+      data: {
+        projectId: newProject.id,
+        userId: session.user.id,
       },
     });
 
@@ -49,6 +56,20 @@ export async function POST(req: Request) {
 
   } catch (error) {
     console.error('Error creating initial project:', error);
-    return NextResponse.json({ message: 'An internal error occurred.' }, { status: 500 });
+    
+    // Prisma 에러 구분
+    if (error instanceof Error) {
+      if (error.message.includes('Unique constraint')) {
+        return NextResponse.json({ message: 'Project already exists with this name.' }, { status: 409 });
+      }
+      if (error.message.includes('Foreign key constraint')) {
+        return NextResponse.json({ message: 'Invalid user reference.' }, { status: 400 });
+      }
+    }
+    
+    return NextResponse.json({ 
+      message: 'An internal error occurred while creating the project.',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    }, { status: 500 });
   }
 }
