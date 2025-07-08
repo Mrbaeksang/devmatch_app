@@ -1,17 +1,25 @@
-## `nanoid` 패키지 설치 요청
+## 파일 수정 요청: `app/projects/join/[inviteCode]/page.tsx`
 
-### 작업 설명
-`app/api/projects/[projectId]/invite/route.ts` 파일에서 고유한 초대 코드를 생성하기 위해 `nanoid` 패키지를 사용하고 있습니다. 현재 프로젝트에 `nanoid`가 설치되어 있지 않으므로, 다음 명령어를 실행하여 설치를 진행해 주십시오.
+### 목적
+`app/projects/join/[inviteCode]/page.tsx` 파일에서 `LoadingSpinner` 컴포넌트의 임포트 경로가 잘못되어 빌드 오류가 발생하고 있습니다. 올바른 경로로 수정하여 빌드 오류를 해결해야 합니다.
 
-### 실행 명령어
-```bash
-pnpm install nanoid
+### 작업 내용
+`app/projects/join/[inviteCode]/page.tsx` 파일에서 `LoadingSpinner` 컴포넌트의 임포트 경로를 다음과 같이 수정해 주세요:
+
+**기존 코드:**
+```typescript
+import { LoadingSpinner } from '@/components/loading-spinner';
 ```
 
-### 작업 완료 후
-설치가 완료되면 저에게 알려주십시오. 다음 작업으로 진행하겠습니다.
+**수정할 코드:**
+```typescript
+import { LoadingSpinner } from '@/components/common/LoadingSpinner';
+```
+
+### 완료 후
+파일 수정을 완료하시면 저에게 알려주세요. 빌드 재시도를 통해 문제가 해결되었는지 확인하겠습니다.
 
 ### Git 커밋 명령어
 ```bash
-git add . && git commit -m "feat: Add nanoid package for invite link generation" && git push
+git add . && git commit -m "Fix: LoadingSpinner 임포트 경로 수정 in app/projects/join/[inviteCode]/page.tsx" && git push
 ```

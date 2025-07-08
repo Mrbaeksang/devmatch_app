@@ -56,8 +56,8 @@
 #### 1.3. 팀원 초대 및 개별 AI 인터뷰
 -   [x] **DB**: `prisma/schema.prisma`에 `Project` 모델에 `status` 필드와 `consultationData` 필드, `ProjectStatus` Enum 정의 완료.
 -   [x] **UI**: 프로젝트 상세 페이지 내 `[팀원 초대하기]` 버튼과 링크 표시/복사 영역 UI 구현.
--   [ ] **Backend**: `app/api/projects/[projectId]/invite/route.ts`에 유효기간이 있는 고유 초대 링크 생성 API 구현.
--   [ ] **UI**: `app/projects/join/[inviteCode]/page.tsx` 초대 수락 페이지 UI 구현. (파일 미생성)
+    -   [x] **Backend**: `app/api/projects/[projectId]/invite/route.ts`에 유효기간이 있는 고유 초대 링크 생성 API 구현.
+    -   [x] **UI**: `app/projects/join/[inviteCode]/page.tsx` 초대 수락 페이지 UI 구현.
 -   [ ] **Backend**: `inviteCode` 유효성 검증 및 사용자를 `ProjectMember`에 추가하는 로직 구현.
 -   [ ] **UI**: `app/projects/[projectId]/interview/page.tsx`에 Vercel AI SDK를 활용한 대화형 채팅 UI 구현. (파일 미생성)
 -   [ ] **Backend**: `app/api/ai/interview/route.ts` API 구현 (Gemini API와 연동). (파일 미생성)
