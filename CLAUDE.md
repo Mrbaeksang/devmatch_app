@@ -27,14 +27,34 @@ DevMatch - AI 팀 빌딩 매니저 (Next.js 15 + TypeScript + Prisma + OpenRoute
 5. **shadcn/ui 사용**: 일관된 UI 컴포넌트 활용
 
 ## UI/UX 디자인 표준 (배포 가능한 수준)
-- **모던 디자인**: 깔끔하고 직관적인 인터페이스
-- **일관된 컬러**: primary/secondary 색상 체계 유지
-- **적절한 간격**: padding/margin 일관성 
-- **반응형 디자인**: 모바일/데스크톱 대응
-- **로딩 상태**: 스피너, 스켈레톤 UI 적극 활용
-- **에러 처리**: 사용자 친화적 에러 메시지
-- **접근성**: 키보드 내비게이션, 적절한 contrast
-- **마이크로 인터랙션**: 버튼 hover, 부드러운 전환
+
+### 🎨 핵심 디자인 철학
+- **기존 템플릿/디자인 클론 활용**: 직접 디자인보다는 잘 짜여진 디자인 시스템 복제
+- **shadcn/ui 적극 활용**: 모든 컴포넌트에서 shadcn/ui 우선 사용
+- **일관된 디자인 시스템**: 컬러, 타이포그래피, 간격 체계 통일
+- **현대적 UI**: 그라데이션, 블러 효과, 부드러운 그림자 활용
+
+### 🛠️ 권장 디자인 리소스
+- **UI 템플릿**: shadcn/ui examples, Tailwind UI, Headless UI
+- **디자인 시스템**: Vercel Design System, GitHub Primer, Stripe
+- **컬러 팔레트**: Tailwind CSS 기본 색상 체계
+- **아이콘**: Lucide React (이미 설치됨)
+- **폰트**: Inter (Google Fonts)
+
+### 📋 필수 구현 요소
+- **Navigation**: 깔끔한 헤더 + 사이드바 (필요시)
+- **Cards**: 모든 콘텐츠를 카드 형태로 구성
+- **Buttons**: 다양한 variant (primary, secondary, outline, ghost)
+- **Forms**: 적절한 validation + 에러 메시지
+- **Loading States**: 스켈레톤 UI, 스피너, 프로그래스 바
+- **Modals/Dialogs**: shadcn/ui Dialog 컴포넌트 활용
+- **Toasts**: 성공/에러 알림 (sonner 라이브러리)
+
+### 🚫 피해야 할 것들
+- 직접 CSS 작성 (Tailwind CSS만 사용)
+- 일관성 없는 간격 (spacing scale 준수)
+- 촌스러운 색상 조합
+- 접근성 무시
 
 ## 학습 목표
 - 사용자가 학습하면서 프로젝트 완성을 원함
