@@ -26,7 +26,6 @@ interface ConsultationData {
 
 /**
  * 현재 상담 단계와 데이터에 따라 AI에게 전달할 시스템 프롬프트를 동적으로 생성합니다.
- * 이 프롬프트는 AI가 'JSON만 응답하는 API'처럼 행동하도록 강력하게 지시합니다.
  */
 const getSystemPrompt = (currentStep: ConsultationStep, consultationData: ConsultationData): string => {
   const basePrompt = `당신은 사용자의 프로젝트 기획을 돕는 AI 프로젝트 매니저입니다. 당신의 유일한 임무는 다음 지시에 따라 엄격한 JSON 형식으로만 응답하는 것입니다. 절대로, 어떤 상황에서도 JSON 객체 외의 설명, 인사, 사과, 줄바꿈, 코드 블록 마크다운(\`\`\`json) 등을 포함해서는 안 됩니다. 오직 순수한 JSON 객체만 출력해야 합니다.`;
@@ -53,7 +52,7 @@ const getSystemPrompt = (currentStep: ConsultationStep, consultationData: Consul
       } else {
         // 모든 정보 수집 완료, 다음 단계로 전환
         return `${basePrompt}
-        모든 프로젝트 정보 수집이 완료되었습니다. 수집된 정보(${JSON.stringify(consultationData)})를 바탕으로 현실적인 팀 역할 구조를 제안하는 메시지를 'displayMessage'에 담아주세요. 역할, 인원수, 겸직 여부 등을 구체적으로 제안하세요. 다음 단계를 'TEAM_STRUCTURE_PROPOSAL'로 설정하고, AI가 제안한 역할 구조('aiSuggestedRoles')를 'consultationData'에 추가하여 JSON으로 응답하세요.`;
+        모든 프로젝트 정보 수집이 완료되었습니다. 수집된 정보를 바탕으로 현실적인 팀 역할 구조를 제안하는 메시지를 'displayMessage'에 담아주세요. 역할, 인원수, 겸직 여부 등을 구체적으로 제안하세요. 다음 단계를 'TEAM_STRUCTURE_PROPOSAL'로 설정하고, AI가 제안한 역할 구조('aiSuggestedRoles')를 'consultationData'에 추가하여 JSON으로 응답하세요.`;
       }
       return `${basePrompt}
       현재 프로젝트 정보를 수집하는 중입니다. 사용자에게 다음 질문("${nextQuestion}")을 던지고, 사용자의 답변을 바탕으로 'consultationData'를 업데이트하여 JSON으로 응답하세요. 'nextStep'은 'PROJECT_INFO_COLLECTION'으로 유지하세요.`;
@@ -61,13 +60,13 @@ const getSystemPrompt = (currentStep: ConsultationStep, consultationData: Consul
 
     case ConsultationStep.TEAM_STRUCTURE_PROPOSAL: {
       return `${basePrompt}
-      팀 구조 제안에 대한 사용자의 피드백을 반영하세요. 사용자가 동의하면, 지금까지 수집된 모든 정보(${JSON.stringify(consultationData)})를 자연스러운 문장으로 요약하여 최종 확인을 요청하는 메시지를 'displayMessage'에 담으세요. "이 설문은 초기 기획 청사진이며, 팀원 최종 선발 후 확정되니 걱정마세요!" 라는 문구를 반드시 포함하세요. 다음 단계를 'SUMMARY_CONFIRMATION'으로 설정하여 JSON으로 응답하세요.`;
+      팀 구조 제안에 대한 사용자의 피드백을 반영하세요. 사용자가 동의하면, 지금까지 수집된 모든 정보를 자연스러운 문장으로 요약하여 최종 확인을 요청하는 메시지를 'displayMessage'에 담으세요. "이 설문은 초기 기획 청사진이며, 팀원 최종 선발 후 확정되니 걱정마세요!" 라는 문구를 반드시 포함하세요. 다음 단계를 'SUMMARY_CONFIRMATION'으로 설정하여 JSON으로 응답하세요.`;
     }
 
     case ConsultationStep.SUMMARY_CONFIRMATION: {
       return `${basePrompt}
       사용자의 응답을 분석하세요.
-      - 만약 사용자가 "네", "좋아요", "확인", "맞아요" 등 긍정적인 답변을 하면, 'isConsultationComplete'를 true로 설정하고, 현재까지 수집된 모든 데이터를 포함하는 최종 JSON 객체를 생성하세요. 이 JSON에는 'displayMessage'를 포함하지 마세요.
+      - 만약 사용자가 "네", "좋아요", "확인", "맞아요", "ㅇㅇ", "시작하기" 등 긍정적인 답변을 하면, 'isConsultationComplete'를 true로 설정하고, 현재까지 수집된 모든 데이터를 포함하는 최종 JSON 객체를 생성하세요. 이 JSON에는 'displayMessage'를 포함하지 마세요.
       - 만약 사용자가 수정/보완을 원하면, 해당 부분을 재질문하고 반영하여 수정된 요약본을 'displayMessage'에 담아 다시 확인을 요청하세요. 'nextStep'은 'SUMMARY_CONFIRMATION'으로 유지하세요.`;
     }
 
@@ -110,7 +109,9 @@ export async function POST(req: Request) {
   } catch (error) {
     console.error("API Error:", error);
     const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred';
-    // 에러 발생 시 JSON 형식으로 응답하여 클라이언트에서 파싱 가능하도록 함
-    return new Response(JSON.stringify({ error: errorMessage }), { status: 500, headers: { 'Content-Type': 'application/json' }});
+    return new Response(JSON.stringify({ error: errorMessage }), { 
+      status: 500, 
+      headers: { 'Content-Type': 'application/json' }
+    });
   }
 }

@@ -1,23 +1,16 @@
-# 🔧 AI 상담 JSON 노출 문제 수정
+# 🔧 AI 상담 백엔드 수정
 
-## 📁 수정할 파일: `app/projects/new/page.tsx`
+## 📁 수정할 파일: `app/api/chat/route.ts`
 
 아래 코드를 **전체 복사해서** 기존 파일에 **완전히 덮어쓰기** 하세요:
 
-```tsx
-"use client";
+```typescript
+import { createOpenRouter } from '@openrouter/ai-sdk-provider';
+import { convertToCoreMessages, streamText } from 'ai';
 
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import type { Message as VercelAIMessage } from "ai";
-import { useChat } from "ai/react";
-import { Loader2, CheckCircle2 } from "lucide-react";
-import { useRouter } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
-import { toast } from "sonner";
+export const maxDuration = 30;
 
-// 서버와 동일한 상담 단계 Enum
+// 클라이언트와 동일한 상담 단계 Enum
 enum ConsultationStep {
   NAME_COLLECTION = 'NAME_COLLECTION',
   PROJECT_INFO_COLLECTION = 'PROJECT_INFO_COLLECTION',
@@ -26,7 +19,7 @@ enum ConsultationStep {
   COMPLETED = 'COMPLETED',
 }
 
-// 서버와 동일한 상담 데이터 인터페이스
+// 클라이언트와 동일한 상담 데이터 인터페이스
 interface ConsultationData {
   userName?: string;
   projectName?: string;
@@ -38,211 +31,108 @@ interface ConsultationData {
   aiSuggestedRoles?: Array<{ role: string; count: number; note?: string }>;
 }
 
-export default function NewProjectPage() {
-  const router = useRouter();
-  // 상담 단계와 데이터를 클라이언트 상태로 관리
-  const [currentStep, setCurrentStep] = useState<ConsultationStep>(ConsultationStep.NAME_COLLECTION);
-  const [consultationData, setConsultationData] = useState<ConsultationData>({});
-  const [isConsultationComplete, setIsConsultationComplete] = useState(false);
-  const [finalProjectData, setFinalProjectData] = useState<any>(null);
+/**
+ * 현재 상담 단계와 데이터에 따라 AI에게 전달할 시스템 프롬프트를 동적으로 생성합니다.
+ */
+const getSystemPrompt = (currentStep: ConsultationStep, consultationData: ConsultationData): string => {
+  const basePrompt = `당신은 사용자의 프로젝트 기획을 돕는 AI 프로젝트 매니저입니다. 당신의 유일한 임무는 다음 지시에 따라 엄격한 JSON 형식으로만 응답하는 것입니다. 절대로, 어떤 상황에서도 JSON 객체 외의 설명, 인사, 사과, 줄바꿈, 코드 블록 마크다운(\`\`\`json) 등을 포함해서는 안 됩니다. 오직 순수한 JSON 객체만 출력해야 합니다.`;
 
-  const { messages, input, handleInputChange, handleSubmit, isLoading, setMessages } = useChat({
-    api: '/api/chat',
-    // 초기 메시지는 AI가 첫 질문을 하도록 비워둠
-    initialMessages: [
-        {
-            id: '1',
-            role: 'assistant',
-            content: '안녕하세요! 새로운 프로젝트 기획을 도와드릴 AI 매니저입니다. 시작하기에 앞서, 제가 뭐라고 불러드리면 될까요?',
-        }
-    ],
-    // 서버로 현재 상담 상태를 전송
-    body: {
-      currentStep,
-      consultationData,
-    },
-    // AI 응답 스트림이 완전히 끝나면 호출
-    onFinish: async (message: VercelAIMessage) => {
-      try {
-        const parsedResponse = JSON.parse(message.content);
-
-        // 1. 상담 완료 시 (최종 JSON 수신)
-        if (parsedResponse.isConsultationComplete) {
-          // 최종 데이터는 UI에 표시하지 않고 저장만
-          setMessages(prev => prev.filter(m => m.id !== message.id));
-          setIsConsultationComplete(true);
-          setFinalProjectData(parsedResponse);
-          
-          // 상담 완료 메시지와 확정 버튼 표시
-          setMessages(prev => [...prev, {
-            id: `completion-${Date.now()}`,
-            role: 'assistant',
-            content: '🎉 상담이 완료되었습니다! 아래 내용으로 프로젝트를 생성하시겠습니까?'
-          }]);
-          
-          return;
-        }
-
-        // 2. 상담 진행 중 (부분 JSON 수신)
-        if (parsedResponse.displayMessage && parsedResponse.nextStep) {
-          // AI가 보낸 원본 JSON 메시지를 사용자에게 보여줄 displayMessage로 교체
-          setMessages(prev => {
-            const newMessages = [...prev];
-            const lastMessage = newMessages.find(m => m.id === message.id);
-            if(lastMessage) {
-                lastMessage.content = parsedResponse.displayMessage;
-            }
-            return newMessages;
-          });
-
-          // 다음 단계를 위해 상태 업데이트
-          setCurrentStep(parsedResponse.nextStep);
-          if(parsedResponse.consultationData) {
-            setConsultationData(prev => ({ ...prev, ...parsedResponse.consultationData }));
-          }
-        }
-      } catch (error) {
-        // JSON 파싱 실패 시, AI가 일반 텍스트로 대답한 것으로 간주하고 대화를 이어감
-        console.log("AI 응답이 JSON 형식이 아니므로 일반 대화로 처리합니다.", error);
-      }
-    },
-    onError: (error: Error) => {
-      console.error("AI chat error:", error);
-      toast.error(`오류가 발생했습니다: ${error.message}`);
-    },
-  });
-
-  const chatContainerRef = useRef<HTMLDivElement>(null);
-
-  // 프로젝트 생성 확정 처리
-  const handleCreateProject = async () => {
-    if (!finalProjectData) return;
-    
-    try {
-      toast.loading("프로젝트를 생성하는 중...");
-      
-      const response = await fetch('/api/projects/initial-setup', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(finalProjectData),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || '프로젝트 생성에 실패했습니다.');
-      }
-
-      const newProject = await response.json();
-      toast.success("프로젝트가 성공적으로 생성되었습니다!");
-      router.push(`/projects/${newProject.id}`);
-    } catch (error: any) {
-      toast.error(error.message);
+  switch (currentStep) {
+    case ConsultationStep.NAME_COLLECTION: {
+      return `${basePrompt}
+      사용자의 이름이나 호칭을 물어보는 질문을 'displayMessage'에 담고, 다음 단계를 'PROJECT_INFO_COLLECTION'으로 설정하여 JSON으로 응답하세요. 사용자가 이름을 알려주면, 그 이름을 'userName'으로 저장하고 다음 질문(프로젝트 이름)을 던지세요.
+      - 예시: {"displayMessage": "반갑습니다, [사용자 이름]님! 이제 프로젝트에 대해 이야기해볼까요? 구상 중인 프로젝트 이름이 무엇인가요?", "nextStep": "PROJECT_INFO_COLLECTION", "consultationData": {"userName": "[사용자 이름]"}}`;
     }
-  };
 
-  // 새 메시지가 추가될 때마다 스크롤을 맨 아래로 이동
-  useEffect(() => {
-    if (chatContainerRef.current) {
-      chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
+    case ConsultationStep.PROJECT_INFO_COLLECTION: {
+      let nextQuestion = '';
+      if (!consultationData.projectName) {
+        nextQuestion = '구상 중인 프로젝트 이름이 무엇인가요?';
+      } else if (!consultationData.projectGoal) {
+        nextQuestion = `좋은 이름이네요! '${consultationData.projectName}' 프로젝트의 핵심 목표는 무엇인가요?`;
+      } else if (!consultationData.techStack || consultationData.techStack.length === 0) {
+        nextQuestion = '프로젝트에 사용할 주요 기술 스택은 무엇인가요? (예: React, Next.js, Python, Django)';
+      } else if (!consultationData.mainFeatures || consultationData.mainFeatures.length === 0) {
+        nextQuestion = '해당 프로젝트의 핵심 기능들은 무엇이 있을까요? 2~3가지 정도 알려주세요.';
+      } else if (!consultationData.teamMembersCount) {
+        nextQuestion = '예상되는 팀원 수는 몇 명인가요?';
+      } else {
+        // 모든 정보 수집 완료, 다음 단계로 전환
+        return `${basePrompt}
+        모든 프로젝트 정보 수집이 완료되었습니다. 수집된 정보를 바탕으로 현실적인 팀 역할 구조를 제안하는 메시지를 'displayMessage'에 담아주세요. 역할, 인원수, 겸직 여부 등을 구체적으로 제안하세요. 다음 단계를 'TEAM_STRUCTURE_PROPOSAL'로 설정하고, AI가 제안한 역할 구조('aiSuggestedRoles')를 'consultationData'에 추가하여 JSON으로 응답하세요.`;
+      }
+      return `${basePrompt}
+      현재 프로젝트 정보를 수집하는 중입니다. 사용자에게 다음 질문("${nextQuestion}")을 던지고, 사용자의 답변을 바탕으로 'consultationData'를 업데이트하여 JSON으로 응답하세요. 'nextStep'은 'PROJECT_INFO_COLLECTION'으로 유지하세요.`;
     }
-  });
 
-  return (
-    <div className="flex flex-col h-[calc(100vh-4rem)] bg-gradient-to-br from-slate-50 to-blue-50 dark:from-slate-900 dark:to-slate-800">
-      <Card className="flex flex-col flex-grow m-4 shadow-xl border-0 bg-white/80 backdrop-blur-sm">
-        <CardHeader className="border-b bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-t-lg">
-          <CardTitle className="text-2xl font-bold text-center">
-            ✨ AI 프로젝트 기획 어시스턴트
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="flex flex-col flex-grow p-0 overflow-hidden">
-          <div ref={chatContainerRef} className="flex-grow overflow-y-auto p-6 space-y-6">
-            {messages.map((msg: VercelAIMessage) => (
-              <div key={msg.id} className={`flex items-end gap-3 ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
-                <div className={`max-w-2xl px-6 py-4 rounded-2xl shadow-lg transition-all duration-200 ${
-                  msg.role === "user" 
-                    ? "bg-gradient-to-r from-blue-600 to-blue-700 text-white" 
-                    : "bg-white border border-gray-200 text-gray-800 dark:bg-gray-800 dark:text-gray-200"
-                }`}>
-                  <p className="whitespace-pre-wrap leading-relaxed">{msg.content}</p>
-                </div>
-              </div>
-            ))}
-            
-            {/* 상담 완료 시 프로젝트 확정 버튼 */}
-            {isConsultationComplete && finalProjectData && (
-              <div className="flex justify-center mt-6">
-                <Card className="p-6 bg-gradient-to-r from-green-50 to-blue-50 border-green-200">
-                  <div className="text-center space-y-4">
-                    <div className="flex items-center justify-center gap-2 text-green-600">
-                      <CheckCircle2 className="h-6 w-6" />
-                      <h3 className="text-lg font-semibold">프로젝트 정보 수집 완료!</h3>
-                    </div>
-                    <div className="text-sm text-gray-600 space-y-2">
-                      <p><strong>프로젝트명:</strong> {finalProjectData.consultationData?.projectName}</p>
-                      <p><strong>목표:</strong> {finalProjectData.consultationData?.projectGoal}</p>
-                      <p><strong>예상 팀원 수:</strong> {finalProjectData.consultationData?.teamMembersCount}명</p>
-                    </div>
-                    <Button 
-                      onClick={handleCreateProject}
-                      className="bg-gradient-to-r from-green-600 to-blue-600 hover:from-green-700 hover:to-blue-700 text-white px-8 py-3 rounded-xl shadow-lg transition-all duration-200"
-                    >
-                      🚀 프로젝트 생성하기
-                    </Button>
-                  </div>
-                </Card>
-              </div>
-            )}
-            
-            {isLoading && (
-              <div className="flex items-end gap-3 justify-start">
-                <div className="max-w-xs px-6 py-4 rounded-2xl bg-white border border-gray-200 shadow-lg">
-                  <div className="flex items-center gap-2">
-                    <Loader2 className="h-5 w-5 animate-spin text-blue-600" />
-                    <span className="text-gray-600">AI가 응답 중...</span>
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
-          
-          {!isConsultationComplete && (
-            <div className="p-6 border-t bg-gray-50/50 backdrop-blur-sm">
-              <form onSubmit={handleSubmit} className="flex items-center gap-3">
-                <Input
-                  value={input}
-                  onChange={handleInputChange}
-                  placeholder={isLoading ? "AI가 응답을 생성 중입니다..." : "메시지를 입력하세요..."}
-                  className="flex-grow bg-white border-gray-300 focus:border-blue-500 focus:ring-blue-500 rounded-xl px-4 py-3"
-                  disabled={isLoading}
-                  autoFocus
-                />
-                <Button 
-                  type="submit" 
-                  disabled={isLoading || !input.trim()}
-                  className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-6 py-3 rounded-xl shadow-lg transition-all duration-200"
-                >
-                  {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : "전송"}
-                </Button>
-              </form>
-            </div>
-          )}
-        </CardContent>
-      </Card>
-    </div>
-  );
+    case ConsultationStep.TEAM_STRUCTURE_PROPOSAL: {
+      return `${basePrompt}
+      팀 구조 제안에 대한 사용자의 피드백을 반영하세요. 사용자가 동의하면, 지금까지 수집된 모든 정보를 자연스러운 문장으로 요약하여 최종 확인을 요청하는 메시지를 'displayMessage'에 담으세요. "이 설문은 초기 기획 청사진이며, 팀원 최종 선발 후 확정되니 걱정마세요!" 라는 문구를 반드시 포함하세요. 다음 단계를 'SUMMARY_CONFIRMATION'으로 설정하여 JSON으로 응답하세요.`;
+    }
+
+    case ConsultationStep.SUMMARY_CONFIRMATION: {
+      return `${basePrompt}
+      사용자의 응답을 분석하세요.
+      - 만약 사용자가 "네", "좋아요", "확인", "맞아요", "ㅇㅇ", "시작하기" 등 긍정적인 답변을 하면, 'isConsultationComplete'를 true로 설정하고, 현재까지 수집된 모든 데이터를 포함하는 최종 JSON 객체를 생성하세요. 이 JSON에는 'displayMessage'를 포함하지 마세요.
+      - 만약 사용자가 수정/보완을 원하면, 해당 부분을 재질문하고 반영하여 수정된 요약본을 'displayMessage'에 담아 다시 확인을 요청하세요. 'nextStep'은 'SUMMARY_CONFIRMATION'으로 유지하세요.`;
+    }
+
+    default: {
+      return `${basePrompt}
+      상담을 시작하는 단계입니다. 사용자에게 이름이나 호칭을 물어보는 질문을 'displayMessage'에 담고, 다음 단계를 'NAME_COLLECTION'으로 설정하여 JSON으로 응답하세요.
+      - 예시: {"displayMessage": "안녕하세요! 새로운 프로젝트 기획을 도와드릴 AI 매니저입니다. 시작하기에 앞서, 제가 뭐라고 불러드리면 될까요?", "nextStep": "NAME_COLLECTION", "consultationData": {}}`;
+    }
+  }
+};
+
+export async function POST(req: Request) {
+  try {
+    // 클라이언트로부터 현재 단계와 데이터를 받음
+    const { messages, currentStep, consultationData } = await req.json();
+
+    const apiKey = process.env.OPENROUTER_API_KEY;
+    if (!apiKey) {
+      throw new Error("OPENROUTER_API_KEY is not set in environment variables");
+    }
+
+    const openrouter = createOpenRouter({
+      apiKey,
+      headers: {
+        "HTTP-Referer": process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000",
+        "X-Title": "AI Team Building Manager",
+      },
+    });
+
+    // 동적으로 생성된 시스템 프롬프트를 사용
+    const dynamicSystemPrompt = getSystemPrompt(currentStep, consultationData);
+
+    const result = await streamText({
+      model: openrouter('deepseek/deepseek-chat-v3-0324:free'),
+      system: dynamicSystemPrompt,
+      messages: convertToCoreMessages(messages),
+    });
+
+    return result.toDataStreamResponse();
+  } catch (error) {
+    console.error("API Error:", error);
+    const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred';
+    return new Response(JSON.stringify({ error: errorMessage }), { 
+      status: 500, 
+      headers: { 'Content-Type': 'application/json' }
+    });
+  }
 }
 ```
 
 ## 🎯 이 수정으로 얻는 효과:
 
-1. **JSON 노출 문제 해결**: 사용자에게 raw JSON이 보이지 않음
-2. **프로젝트 생성 확정 기능**: 상담 완료 시 "프로젝트 생성하기" 버튼 표시
-3. **모던 UI 적용**: 그라데이션, 그림자, 둥근 모서리로 세련된 디자인
-4. **상담 완료 표시**: 체크 아이콘과 함께 완료 상태 명확히 표시
-5. **사용자 경험 개선**: 로딩 상태, 에러 처리, 부드러운 애니메이션
+1. **상담 완료 조건 개선**: "ㅇㅇ", "시작하기" 등 다양한 긍정 표현 인식
+2. **단계별 진행 강화**: 각 단계에서 필요한 정보만 수집하도록 명확히 제어
+3. **JSON 형식 엄격 제어**: AI가 순수 JSON만 출력하도록 강력히 지시
+4. **상담 완료 시점 명확화**: 모든 정보 수집 후 사용자 확인 시 완료 처리
+5. **에러 처리 개선**: 더 명확한 에러 메시지와 응답 처리
 
 ## 📝 Git 명령어:
 ```bash
-git add . && git commit -m "AI 상담 JSON 노출 문제 수정 및 UI/UX 개선" && git push
+git add . && git commit -m "AI 상담 백엔드 로직 개선 및 상담 완료 조건 수정" && git push
 ```

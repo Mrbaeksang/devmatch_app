@@ -40,10 +40,15 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-#.md
-#GEMINI.md
-#README_AI.md
-#error.md
-#ORDER.md
+# AI 문서들 (개발용)
+CLAUDE.md
+GEMINI.md
+PLAN.md
+GUIDE.md
+ORDER.md
+TO_CLAUDE.md
+README_AI.md
+error.md
+lims.txt
 .vercel
 .env*.local
