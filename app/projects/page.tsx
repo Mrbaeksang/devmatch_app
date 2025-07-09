@@ -3,13 +3,14 @@
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
-import { Button } from "@/components/ui/button";
-import Link from "next/link";
-import ProjectCard from "@/app/components/project/ProjectCard";
+// 사용되지 않는 imports 제거됨
+// import { Button } from "@/components/ui/button";
+// import Link from "next/link";
+// import ProjectCard from "@/app/components/project/ProjectCard";
 import { BentoGrid, BentoCard } from "@/components/ui/bento-grid";
 import { BackgroundPaths } from "@/components/ui/background-paths";
 import { motion } from "framer-motion";
-import { Plus, Users, Target, Bot, Rocket } from "lucide-react";
+import { Plus, Target, Bot } from "lucide-react";
 
 const ProjectsPage = () => {
   const { data: session, status } = useSession();
@@ -38,6 +39,9 @@ const ProjectsPage = () => {
     { id: '1', name: '팀 시너지 게시판', goal: 'Spring Boot와 JPA, React를 사용하여 기본적인 CRUD 기능과 로그인 기능이 있는 게시판 웹사이트를 4주 안에 완성한다.', memberCount: 3 },
     { id: '2', name: 'AI 면접 도우미', goal: 'AI를 활용하여 모의 면접을 진행하고 피드백을 제공하는 웹 서비스 개발', memberCount: 2 },
   ];
+  
+  // 개발용 로그 추가
+  console.log('Projects data:', projects);
 
   const fadeUpVariants = {
     hidden: { opacity: 0, y: 30 },

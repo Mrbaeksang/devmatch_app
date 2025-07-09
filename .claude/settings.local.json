@@ -14,7 +14,9 @@
       "Bash(./node_modules/.bin/tsc:*)",
       "Bash(pnpm next build:*)",
       "Bash(npx next lint:*)",
-      "Bash(pnpm build:*)"
+      "Bash(pnpm build:*)",
+      "Bash(npm run lint)",
+      "Bash(npm run dev:*)"
     ],
     "deny": []
   }

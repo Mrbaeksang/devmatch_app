@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import { toast } from "sonner";
 import { useSession } from "next-auth/react";
 
@@ -33,8 +33,7 @@ import {
   InterviewStatus, 
   MemberProfile, 
   TeamAnalysis, 
-  RoleAssignment, 
-  LeadershipAnalysis 
+  RoleAssignment
 } from "@/types/project";
 
 // 팀원 정보 (확장됨)
@@ -68,6 +67,7 @@ export default function AnalysisPage() {
   const params = useParams();
   const router = useRouter();
   const { data: session } = useSession();
+  console.log('Session data:', session); // 개발용 로그
   
   const projectId = params.projectId as string;
 
@@ -264,6 +264,7 @@ export default function AnalysisPage() {
       }
 
       const result = await response.json();
+      console.log('Analysis result:', result); // 개발용 로그
       
       // 분석 완료 후 프로젝트 데이터 새로고침
       await fetchProject();

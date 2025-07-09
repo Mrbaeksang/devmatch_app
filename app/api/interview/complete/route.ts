@@ -13,7 +13,7 @@ interface CompleteInterviewRequest {
     skills?: string[];
     experience?: string;
     leadershipLevel?: 'none' | 'interested' | 'experienced' | 'preferred';
-    workStyle?: string;
+    workStyle?: 'individual' | 'collaborative' | 'mixed';
     communication?: string;
     motivation?: string;
     availability?: string;
@@ -25,19 +25,14 @@ interface CompleteInterviewRequest {
 /**
  * 면담 데이터를 MemberProfile로 변환하는 함수
  */
-function createMemberProfile(interviewData: CompleteInterviewRequest['interviewData']): MemberProfile {
+function createMemberProfile(interviewData: CompleteInterviewRequest['interviewData']): Partial<MemberProfile> {
   return {
-    name: interviewData.memberName || '',
-    skills: interviewData.skills || [],
-    experience: interviewData.experience || '',
+    memberName: interviewData.memberName || '',
+    strongSkills: interviewData.skills || [],
     leadershipLevel: interviewData.leadershipLevel || 'none',
-    workStyle: interviewData.workStyle || '',
-    communication: interviewData.communication || '',
-    motivation: interviewData.motivation || '',
-    availability: interviewData.availability || '',
-    rolePreference: interviewData.rolePreference || '',
-    additionalInfo: interviewData.additionalInfo || '',
-    interviewCompletedAt: new Date().toISOString(),
+    workStyle: interviewData.workStyle || 'individual',
+    projectMotivation: interviewData.motivation || '',
+    // 기타 필드들은 면담 시 별도로 수집하거나 기본값 설정
   };
 }
 
@@ -131,7 +126,7 @@ export async function POST(req: Request) {
     
     return NextResponse.json({ 
       message: '면담 완료 처리 중 오류가 발생했습니다.',
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+      error: process.env.NODE_ENV === 'development' ? (error as Error).message : undefined
     }, { status: 500 });
   }
 }

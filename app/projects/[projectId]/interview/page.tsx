@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import { toast } from "sonner";
 import { useSession } from "next-auth/react";
 
@@ -15,7 +15,6 @@ import {
 import { ChatInput } from "@/components/ui/chat-input";
 import { ChatMessageList } from "@/components/ui/chat-message-list";
 import {
-  ExpandableChat,
   ExpandableChatHeader,
   ExpandableChatBody,
   ExpandableChatFooter,
@@ -28,7 +27,6 @@ import { Progress } from "@/components/ui/progress";
 import { 
   Loader2, 
   Send,
-  MessageSquare,
   CheckCircle2,
   AlertCircle,
   User,
@@ -38,6 +36,9 @@ import {
 } from "lucide-react";
 
 import { InterviewStatus } from "@/types/project";
+
+// InterviewStatus 사용 예시
+const INTERVIEW_STATUS_PENDING = InterviewStatus.PENDING;
 
 // 면담 단계 정의
 enum InterviewStep {
@@ -92,6 +93,7 @@ export default function InterviewPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { data: session } = useSession();
+  console.log('Session data:', session); // 개발용 로그
   
   const projectId = params.projectId as string;
   const memberId = searchParams.get('memberId');

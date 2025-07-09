@@ -28,7 +28,7 @@ import {
   ExternalLink
 } from "lucide-react";
 
-import { ProjectStatus } from "@/types/project";
+import { ProjectStatus, Project } from "@/types/project";
 
 export default function ProjectPage() {
   const params = useParams();
@@ -38,7 +38,7 @@ export default function ProjectPage() {
   const projectId = params.projectId as string;
 
   const [loading, setLoading] = useState(true);
-  const [project, setProject] = useState<any>(null);
+  const [project, setProject] = useState<Project | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   // 프로젝트 데이터 가져오기

@@ -23,6 +23,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
+import { Separator } from "@/components/ui/separator";
 import { ProjectModal, useProjectModal } from "@/components/ui/project-modal";
 import { 
   Loader2, 
@@ -56,25 +57,7 @@ interface Message {
   isTyping?: boolean;
 }
 
-// 타이핑 애니메이션 컴포넌트
-const TypingMessage = ({ content, onComplete }: { content: string; onComplete: () => void }) => {
-  const [displayedContent, setDisplayedContent] = useState("");
-  const [currentIndex, setCurrentIndex] = useState(0);
-
-  useEffect(() => {
-    if (currentIndex < content.length) {
-      const timer = setTimeout(() => {
-        setDisplayedContent(prev => prev + content[currentIndex]);
-        setCurrentIndex(prev => prev + 1);
-      }, 20);
-      return () => clearTimeout(timer);
-    } else {
-      onComplete();
-    }
-  }, [currentIndex, content, onComplete]);
-
-  return <>{displayedContent}</>;
-};
+// 타이핑 애니메이션 컴포넌트 (제거됨 - 사용되지 않음)
 
 // 프로그레스 계산 함수 (8단계로 확장)
 const calculateProgress = (data: ConsultationData, currentStep: ConsultationStep): number => {
@@ -112,7 +95,7 @@ export default function NewProjectPage() {
   const [consultationData, setConsultationData] = useState<ConsultationData>({});
   const [isConsultationComplete, setIsConsultationComplete] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [createdProject, setCreatedProject] = useState<any>(null);
+  const [createdProject, setCreatedProject] = useState<{ inviteCode: string } | null>(null);
   const [isCreatingProject, setIsCreatingProject] = useState(false);
   
   // 새로운 역할 제안 관련 상태
@@ -219,8 +202,9 @@ export default function NewProjectPage() {
     }
   };
 
-  // 타이핑 완료 처리
+  // 타이핑 완료 처리 (개발용 로그 추가)
   const handleTypingComplete = useCallback((messageId: string) => {
+    console.log('Typing complete for message:', messageId);
     setMessages(prev => prev.map(msg => 
       msg.id === messageId ? { ...msg, isTyping: false } : msg
     ));
@@ -370,6 +354,7 @@ export default function NewProjectPage() {
 
       const newProject = await response.json();
       setCreatedProject(newProject);
+      console.log('Project created:', newProject);
       toast.success("프로젝트가 생성되었습니다!");
       
       // 팀원 모집 페이지로 이동

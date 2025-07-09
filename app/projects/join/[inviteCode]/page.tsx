@@ -5,7 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
 import { BackgroundPaths } from "@/components/ui/background-paths";
-import { ProjectStatus, InterviewStatus } from "@/types/project";
+import { ProjectStatus, InterviewStatus, ConsultationData } from "@/types/project";
 import { 
   ExpandableChatHeader,
   ExpandableChatBody,
@@ -48,7 +48,7 @@ interface Project {
   inviteCode: string;
   maxMembers: number;
   createdBy: string;
-  consultationData: unknown;
+  consultationData: ConsultationData;
   blueprint?: unknown;
   members: TeamMember[];
   createdAt: Date;
@@ -147,7 +147,7 @@ export default function JoinProjectPage() {
     try {
       await navigator.clipboard.writeText(inviteUrl);
       toast.success('초대링크가 복사되었습니다!');
-    } catch (error) {
+    } catch {
       toast.error('복사에 실패했습니다.');
     }
   };
@@ -175,7 +175,7 @@ export default function JoinProjectPage() {
     try {
       // 면담 페이지로 이동
       router.push(`/projects/${project?.id}/interview?memberId=${memberId}`);
-    } catch (error) {
+    } catch {
       toast.error('면담 시작 중 오류가 발생했습니다.');
     }
   };

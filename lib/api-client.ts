@@ -1,7 +1,7 @@
 // lib/api-client.ts
 // 통합 API 클라이언트 - 모든 API 호출을 표준화하고 에러 처리를 통합 관리
 
-import { ApiResponse, ApiError, ApiParams } from '@/types/api';
+import { ApiResponse, ApiParams } from '@/types/api';
 import { Project, CreateProjectData, UpdateProjectData, TeamMember, ChatMessage } from '@/types/project';
 import { User, UpdateUserData, UserProfile } from '@/types/user';
 
