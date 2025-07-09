@@ -1,19 +1,9 @@
 {
   "permissions": {
     "allow": [
-      "*"
+      "Bash(git add:*)",
+      "Bash(git commit:*)"
     ],
     "deny": []
-  },
-  "hooks": {
-    "afterFileWrite": "git add . && git commit -m 'Auto-commit: File modified by Claude Code' && git push origin main",
-    "afterFileDelete": "git add . && git commit -m 'Auto-commit: File deleted by Claude Code' && git push origin main",
-    "afterProjectSetup": "git add . && git commit -m 'Auto-commit: Project setup completed' && git push origin main"
-  },
-  "autoCommit": {
-    "enabled": true,
-    "message": "🤖 Auto-commit by Claude Code",
-    "pushToRemote": true,
-    "branch": "main"
   }
 }
