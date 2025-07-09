@@ -3,13 +3,62 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { db } from '@/lib/db';
 import { z } from 'zod';
+import { ProjectBlueprint } from '@/types/project';
 
-// 요청 본문의 유효성 검사를 위한 Zod 스키마
+// 요청 본문의 유효성 검사를 위한 Zod 스키마 (확장됨)
 const projectSetupSchema = z.object({
   projectName: z.string().min(1, "Project name is required."),
   projectGoal: z.string().min(1, "Project goal is required."),
   consultationData: z.any(), // AI 상담 내용은 유연하게 받음
+  
+  // 새로운 ProjectBlueprint 데이터 (선택적)
+  projectBlueprint: z.object({
+    creatorName: z.string(),
+    projectName: z.string(),
+    projectDescription: z.string(),
+    techStack: z.array(z.string()),
+    projectType: z.string(),
+    complexity: z.enum(['beginner', 'intermediate', 'advanced']),
+    duration: z.string(),
+    requirements: z.array(z.string()),
+    goals: z.array(z.string()),
+    teamSize: z.number(),
+    preferredRoles: z.array(z.string()),
+    aiSuggestedRoles: z.array(z.object({
+      roleName: z.string(),
+      count: z.number(),
+      description: z.string(),
+      requirements: z.array(z.string()),
+      isLeader: z.boolean(),
+    })),
+  }).optional(),
 });
+
+/**
+ * ConsultationData를 ProjectBlueprint로 변환하는 함수
+ */
+function createProjectBlueprint(consultationData: ConsultationData, creatorName: string): ProjectBlueprint {
+  return {
+    creatorName,
+    projectName: consultationData.projectName || '',
+    projectDescription: consultationData.projectGoal || '',
+    techStack: Array.isArray(consultationData.techStack) ? consultationData.techStack : (consultationData.techStack ? [consultationData.techStack] : []),
+    projectType: 'web-application', // 기본값 설정
+    complexity: 'intermediate', // 기본값 설정
+    duration: consultationData.duration || consultationData.projectDuration || '',
+    requirements: [], // 기본값 설정
+    goals: consultationData.projectGoal ? [consultationData.projectGoal] : [],
+    teamSize: consultationData.teamMembersCount || 4,
+    preferredRoles: [],
+    aiSuggestedRoles: (consultationData.aiSuggestedRoles || []).map((role: { role: string; count: number; note?: string }) => ({
+      roleName: role.role || role.roleName || '',
+      count: role.count || 1,
+      description: role.note || role.description || '',
+      requirements: role.requirements || [],
+      isLeader: role.note?.includes('팀장') || role.note?.includes('리더') || false,
+    })),
+  };
+}
 
 export async function POST(req: Request) {
   try {
@@ -39,7 +88,13 @@ export async function POST(req: Request) {
       }, { status: 400 });
     }
 
-    const { projectName, projectGoal, consultationData } = validation.data;
+    const { projectName, projectGoal, consultationData, projectBlueprint } = validation.data;
+
+    // ProjectBlueprint 생성 또는 사용
+    const blueprint = projectBlueprint || createProjectBlueprint(
+      consultationData, 
+      session.user.name || 'Unknown'
+    );
 
     const newProject = await db.project.create({
       data: {
@@ -47,20 +102,32 @@ export async function POST(req: Request) {
         description: projectGoal, // description 필드 추가
         goal: projectGoal,
         ownerId: session.user.id,
-        status: 'RECRUITING', // PENDING 대신 RECRUITING 사용
-        consultationData: consultationData,
+        status: 'RECRUITING', // 새로운 상태 사용
+        interviewPhase: 'PENDING', // 면담 단계 초기화
+        consultationData: consultationData, // 기존 상담 데이터 유지
+        blueprint: blueprint, // 새로운 ProjectBlueprint 저장
+        techStack: Array.isArray(consultationData.techStack) ? consultationData.techStack : (consultationData.techStack ? [consultationData.techStack] : []),
       },
     });
 
-    // 프로젝트 생성 후 멤버로 추가
+    // 프로젝트 생성 후 멤버로 추가 (확장된 필드 포함)
     await db.projectMember.create({
       data: {
         projectId: newProject.id,
         userId: session.user.id,
+        consultationCompleted: true, // 생성자는 상담 완료 상태
+        interviewStatus: 'COMPLETED', // 생성자는 면담 완료 상태
+        role: 'owner', // 생성자 역할
       },
     });
 
-    return NextResponse.json(newProject, { status: 201 });
+    // 응답에 inviteCode 포함하여 반환
+    return NextResponse.json({
+      ...newProject,
+      inviteCode: newProject.inviteCode,
+      blueprint: blueprint,
+      success: true,
+    }, { status: 201 });
 
   } catch (error) {
     console.error('Error creating initial project:', error);

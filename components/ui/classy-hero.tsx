@@ -364,7 +364,7 @@ const ButtonRipple = ({
     children: React.ReactNode;
     className?: string;
     onClick?: (e: React.MouseEvent) => void;
-    [key: string]: any;
+    [key: string]: unknown;
 }) => {
     const [ripples, setRipples] = useState<RippleProps[]>([]);
     const buttonRef = useRef<HTMLButtonElement>(null);

@@ -1,16 +1,7 @@
 import { createOpenRouter } from '@openrouter/ai-sdk-provider';
 import { generateText } from 'ai';
 import { NextResponse } from 'next/server';
-import { ConsultationData } from '@/types/chat';
-
-// 상담 단계 Enum
-enum ConsultationStep {
-  NAME_COLLECTION = 'NAME_COLLECTION',
-  PROJECT_INFO_COLLECTION = 'PROJECT_INFO_COLLECTION',
-  TEAM_STRUCTURE_PROPOSAL = 'TEAM_STRUCTURE_PROPOSAL',
-  SUMMARY_CONFIRMATION = 'SUMMARY_CONFIRMATION',
-  COMPLETED = 'COMPLETED',
-}
+import { ConsultationData, ConsultationStep } from '@/types/chat';
 
 // AI 응답 인터페이스
 interface AIResponse {
@@ -23,7 +14,7 @@ interface AIResponse {
 /**
  * 현재 상담 단계와 데이터에 따라 AI에게 전달할 시스템 프롬프트를 동적으로 생성합니다.
  */
-const getSystemPrompt = (currentStep: ConsultationStep, consultationData: ConsultationData): string => {
+const getSystemPrompt = (currentStep: ConsultationStep, consultationData: ConsultationData, isEditMode?: boolean): string => {
   const basePrompt = `당신은 친근하고 전문적인 AI 프로젝트 매니저입니다. 사용자와 자연스러운 대화를 통해 프로젝트 정보를 수집하고 있습니다.
 
 중요: 반드시 JSON 형식으로만 응답하세요. 다음 형식을 엄격히 따르세요:
@@ -59,7 +50,7 @@ const getSystemPrompt = (currentStep: ConsultationStep, consultationData: Consul
       if (consultationData.userName) collectedInfo.push('사용자 이름');
       if (consultationData.projectName) collectedInfo.push('프로젝트명');
       if (consultationData.projectGoal) collectedInfo.push('프로젝트 목표');
-      if (consultationData.techStack?.length) collectedInfo.push('기술 스택');
+      if (consultationData.techStack && (Array.isArray(consultationData.techStack) ? consultationData.techStack.length : consultationData.techStack)) collectedInfo.push('기술 스택');
       if (consultationData.projectDuration || consultationData.duration) collectedInfo.push('프로젝트 기간');
       if (consultationData.teamMembersCount) collectedInfo.push('팀원 수');
 
@@ -80,11 +71,83 @@ const getSystemPrompt = (currentStep: ConsultationStep, consultationData: Consul
 - 팀원 수는 teamMembersCount 필드에 숫자로 저장하세요
 
 모든 정보(6가지)가 수집되면:
-- 수집된 정보를 자연스럽게 요약하세요
-- "이제 프로젝트를 생성하실 수 있어요!" 라고 안내하세요
-- nextStep을 "SUMMARY_CONFIRMATION"로 설정하세요
-- isConsultationComplete를 true로 설정하세요`;
+- 수집된 정보를 바탕으로 AI 역할 제안을 생성하세요
+- "수집된 정보를 바탕으로 최적의 팀 구조를 제안드리겠습니다!" 라고 안내하세요
+- nextStep을 "ROLE_SUGGESTION"로 설정하세요
+- aiSuggestedRoles 배열을 생성하여 consultationData에 추가하세요
+
+역할 제안 생성 규칙:
+- 프로젝트 복잡도와 기술 스택을 고려하여 현실적인 역할 제안
+- 각 역할별 필요 인원수와 간단한 설명 포함
+- 팀장 역할 포함 여부 결정
+- 총 팀원 수는 사용자가 제시한 수와 비슷하게 맞춤
+
+예시 aiSuggestedRoles 형식:
+[
+  {"role": "백엔드 개발자", "count": 2, "note": "Spring Boot, JPA 경험"},
+  {"role": "프론트엔드 개발자", "count": 1, "note": "React 경험"},
+  {"role": "팀장", "count": 1, "note": "프로젝트 관리 및 기술 리더십"}
+]`;
     }
+
+    case ConsultationStep.ROLE_SUGGESTION:
+      if (isEditMode) {
+        return `${basePrompt}
+
+현재 단계: 역할 제안 수정 모드
+프로젝트명: ${consultationData.projectName}
+기술 스택: ${Array.isArray(consultationData.techStack) ? consultationData.techStack.join(', ') : consultationData.techStack || '미정'}
+팀원 수: ${consultationData.teamMembersCount}명
+
+사용자가 역할 구조 수정을 요청했습니다. 사용자의 피드백을 분석하고:
+
+1. 구체적인 수정 요청 사항을 파악하세요
+2. aiSuggestedRoles 배열을 사용자 요구사항에 맞게 수정하세요
+3. 수정된 역할 구조에 대해 간단히 설명하세요
+4. nextStep을 "ROLE_SUGGESTION"로 설정하세요
+5. 수정된 aiSuggestedRoles를 consultationData에 포함하세요
+
+수정 예시:
+- "백엔드 개발자 2명으로 줄이고 싶어요" → count 값 수정
+- "팀장 역할 따로 안 두고 싶어요" → 팀장 역할 제거
+- "프론트엔드 개발자 추가해주세요" → 새로운 역할 추가
+
+응답 형식:
+{
+  "displayMessage": "요청사항을 반영하여 역할 구조를 수정했습니다. 다음과 같이 조정했습니다...",
+  "nextStep": "ROLE_SUGGESTION",
+  "consultationData": {
+    "aiSuggestedRoles": [수정된 역할 배열]
+  }
+}`;
+      } else {
+        return `${basePrompt}
+
+현재 단계: 역할 제안 생성
+프로젝트명: ${consultationData.projectName}
+기술 스택: ${Array.isArray(consultationData.techStack) ? consultationData.techStack.join(', ') : consultationData.techStack || '미정'}
+팀원 수: ${consultationData.teamMembersCount}명
+
+이제 수집된 정보를 바탕으로 최적의 팀 구조를 제안해주세요.
+
+역할 제안 생성 규칙:
+- 프로젝트 복잡도와 기술 스택을 고려하여 현실적인 역할 제안
+- 각 역할별 필요 인원수와 간단한 설명 포함
+- 팀장 역할 포함 여부 결정
+- 총 팀원 수는 사용자가 제시한 수와 비슷하게 맞춤
+
+응답 형식:
+{
+  "displayMessage": "수집된 정보를 바탕으로 최적의 팀 구조를 제안드리겠습니다! 다음과 같은 역할 구성을 추천합니다...",
+  "nextStep": "ROLE_SUGGESTION",
+  "consultationData": {
+    "aiSuggestedRoles": [
+      {"role": "역할명", "count": 인원수, "note": "설명"},
+      ...
+    ]
+  }
+}`;
+      }
 
     case ConsultationStep.TEAM_STRUCTURE_PROPOSAL:
       return `${basePrompt}
@@ -107,20 +170,20 @@ const getSystemPrompt = (currentStep: ConsultationStep, consultationData: Consul
     case ConsultationStep.SUMMARY_CONFIRMATION:
       return `${basePrompt}
 
-현재 단계: 최종 확인
+현재 단계: 최종 확인 (역할 제안 승인 후)
 
-사용자가 긍정적으로 응답하면 (네, 좋아요, 확인, 맞아요, ㅇㅇ, 시작하기 등):
+사용자가 역할 제안을 승인했습니다. 최종 상담 완료 처리를 해주세요:
+
 {
-  "displayMessage": "완벽합니다! 🎉 프로젝트 정보가 모두 준비되었습니다. 이제 프로젝트를 생성하실 수 있어요!",
+  "displayMessage": "완벽합니다! 🎉 프로젝트 정보와 역할 구조가 모두 준비되었습니다. 이제 프로젝트를 생성하실 수 있어요!",
   "isConsultationComplete": true,
   "consultationData": ${JSON.stringify(consultationData)}
 }
 
-사용자가 수정을 원하면:
-1. 수정하고 싶은 부분을 구체적으로 물어보세요
-2. 해당 정보만 업데이트하세요
-3. 수정된 요약을 다시 보여주세요
-4. nextStep은 "SUMMARY_CONFIRMATION"으로 유지하세요`;
+참고사항:
+- 모든 프로젝트 정보와 AI 역할 제안이 포함되어 있습니다
+- 사용자가 승인한 역할 구조로 팀 빌딩이 진행됩니다
+- 다음 단계는 프로젝트 생성 및 팀원 모집입니다`;
 
     default:
       return `${basePrompt}
@@ -170,7 +233,7 @@ const parseAIResponse = (content: string): AIResponse => {
 
 export async function POST(req: Request) {
   try {
-    const { messages, currentStep, consultationData } = await req.json();
+    const { messages, currentStep, consultationData, isEditMode } = await req.json();
 
     // API 키 확인
     const apiKey = process.env.OPENROUTER_API_KEY;
@@ -192,7 +255,7 @@ export async function POST(req: Request) {
     });
 
     // 동적 시스템 프롬프트 생성
-    const systemPrompt = getSystemPrompt(currentStep, consultationData);
+    const systemPrompt = getSystemPrompt(currentStep, consultationData, isEditMode);
 
     // AI 응답 생성 (fallback 모델 지원)
     let text: string;

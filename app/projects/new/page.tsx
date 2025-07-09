@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import { toast } from "sonner";
 import { ConsultationData } from "@/types/chat";
 
@@ -15,7 +15,6 @@ import {
 import { ChatInput } from "@/components/ui/chat-input";
 import { ChatMessageList } from "@/components/ui/chat-message-list";
 import {
-  ExpandableChat,
   ExpandableChatHeader,
   ExpandableChatBody,
   ExpandableChatFooter,
@@ -23,7 +22,6 @@ import {
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
 import { Progress } from "@/components/ui/progress";
 import { ProjectModal, useProjectModal } from "@/components/ui/project-modal";
 import { 
@@ -33,13 +31,16 @@ import {
   MessageSquare,
   CheckCircle2,
   AlertCircle,
-  RefreshCw
+  RefreshCw,
+  Bot,
+  Edit
 } from "lucide-react";
 
 // 상담 단계 정의
 enum ConsultationStep {
   NAME_COLLECTION = 'NAME_COLLECTION',
   PROJECT_INFO_COLLECTION = 'PROJECT_INFO_COLLECTION', 
+  ROLE_SUGGESTION = 'ROLE_SUGGESTION',
   TEAM_STRUCTURE_PROPOSAL = 'TEAM_STRUCTURE_PROPOSAL',
   SUMMARY_CONFIRMATION = 'SUMMARY_CONFIRMATION',
   COMPLETED = 'COMPLETED',
@@ -75,17 +76,22 @@ const TypingMessage = ({ content, onComplete }: { content: string; onComplete: (
   return <>{displayedContent}</>;
 };
 
-// 프로그레스 계산 함수 (핵심 6단계)
-const calculateProgress = (data: ConsultationData): number => {
-  const totalSteps = 6;
+// 프로그레스 계산 함수 (8단계로 확장)
+const calculateProgress = (data: ConsultationData, currentStep: ConsultationStep): number => {
+  const totalSteps = 8;
   let completedSteps = 0;
 
+  // 기본 정보 수집 (6단계)
   if (data.userName) completedSteps++;
   if (data.projectName) completedSteps++;
   if (data.projectGoal) completedSteps++;
   if (data.techStack && data.techStack.length > 0) completedSteps++;
-  if (data.projectDuration || data.duration) completedSteps++; // 프로젝트 기간
+  if (data.projectDuration || data.duration) completedSteps++;
   if (data.teamMembersCount) completedSteps++;
+
+  // 추가 단계 (2단계)
+  if (data.aiSuggestedRoles && data.aiSuggestedRoles.length > 0) completedSteps++; // 7단계: AI 역할 제안
+  if (currentStep === ConsultationStep.COMPLETED) completedSteps++; // 8단계: 최종 완료
 
   return (completedSteps / totalSteps) * 100;
 };
@@ -108,6 +114,12 @@ export default function NewProjectPage() {
   const [error, setError] = useState<string | null>(null);
   const [createdProject, setCreatedProject] = useState<any>(null);
   const [isCreatingProject, setIsCreatingProject] = useState(false);
+  
+  // 새로운 역할 제안 관련 상태
+  const [showRoleSuggestion, setShowRoleSuggestion] = useState(false);
+  const [isEditingRoles, setIsEditingRoles] = useState(false);
+  const [roleEditInput, setRoleEditInput] = useState("");
+  
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { isOpen: isModalOpen, openModal, closeModal } = useProjectModal();
 
@@ -176,12 +188,18 @@ export default function NewProjectPage() {
       // 상태 업데이트
       if (data.nextStep) {
         setCurrentStep(data.nextStep);
+        
+        // 역할 제안 단계 처리
+        if (data.nextStep === ConsultationStep.ROLE_SUGGESTION) {
+          setShowRoleSuggestion(true);
+        }
       }
       if (data.consultationData) {
         setConsultationData(prev => ({ ...prev, ...data.consultationData }));
       }
       if (data.isConsultationComplete) {
         setIsConsultationComplete(true);
+        setShowRoleSuggestion(false);
       }
 
     } catch (error) {
@@ -221,6 +239,91 @@ export default function NewProjectPage() {
     }
   };
 
+  // 역할 제안 승인 처리
+  const handleApproveRoles = async () => {
+    setCurrentStep(ConsultationStep.COMPLETED);
+    setIsConsultationComplete(true);
+    setShowRoleSuggestion(false);
+    
+    // 승인 메시지 추가
+    const approvalMessage: Message = {
+      id: Date.now().toString(),
+      role: 'assistant',
+      content: '역할 제안이 승인되었습니다! 프로젝트 생성을 완료하겠습니다.',
+      timestamp: new Date(),
+    };
+    setMessages(prev => [...prev, approvalMessage]);
+  };
+
+  // 역할 제안 수정 요청
+  const handleEditRoles = () => {
+    setIsEditingRoles(true);
+    setRoleEditInput("");
+  };
+
+  // 수정 요청 전송
+  const handleSendEditRequest = async () => {
+    if (!roleEditInput.trim()) return;
+    
+    setIsEditingRoles(false);
+    setShowRoleSuggestion(false);
+    
+    // 사용자 수정 요청 메시지 추가
+    const userMessage: Message = {
+      id: Date.now().toString(),
+      role: 'user',
+      content: roleEditInput,
+      timestamp: new Date(),
+    };
+    setMessages(prev => [...prev, userMessage]);
+    
+    // AI에게 수정 요청 전송
+    setIsLoading(true);
+    try {
+      const response = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          messages: [...messages, userMessage].map(m => ({
+            role: m.role,
+            content: m.content
+          })),
+          currentStep: ConsultationStep.ROLE_SUGGESTION,
+          consultationData,
+          isEditMode: true,
+        }),
+      });
+
+      if (!response.ok) throw new Error(`서버 오류: ${response.status}`);
+      
+      const data = await response.json();
+      
+      if (data.error) {
+        throw new Error(data.error);
+      }
+
+      const assistantMessage: Message = {
+        id: Date.now().toString(),
+        role: 'assistant',
+        content: data.message,
+        timestamp: new Date(),
+      };
+
+      setMessages(prev => [...prev, assistantMessage]);
+      
+      if (data.consultationData) {
+        setConsultationData(prev => ({ ...prev, ...data.consultationData }));
+      }
+      
+      setShowRoleSuggestion(true);
+      
+    } catch (error) {
+      setError(error instanceof Error ? error.message : '수정 요청 중 오류가 발생했습니다.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   // 프로젝트 생성 모달 열기
   const handleShowProjectModal = () => {
     openModal();
@@ -230,6 +333,28 @@ export default function NewProjectPage() {
   const handleConfirmCreateProject = async () => {
     setIsCreatingProject(true);
     try {
+      // ProjectBlueprint 데이터 생성
+      const projectBlueprint = {
+        creatorName: consultationData.userName || 'Unknown',
+        projectName: consultationData.projectName || '새 프로젝트',
+        projectDescription: consultationData.projectGoal || '프로젝트 목표',
+        techStack: Array.isArray(consultationData.techStack) ? consultationData.techStack : (consultationData.techStack ? [consultationData.techStack] : []),
+        projectType: 'web-application',
+        complexity: 'intermediate' as const,
+        duration: consultationData.duration || consultationData.projectDuration || '',
+        requirements: [],
+        goals: consultationData.projectGoal ? [consultationData.projectGoal] : [],
+        teamSize: consultationData.teamMembersCount || 4,
+        preferredRoles: [],
+        aiSuggestedRoles: (consultationData.aiSuggestedRoles || []).map((role: { role: string; count: number; note?: string; roleName?: string; description?: string; requirements?: string[]; isLeader?: boolean }) => ({
+          roleName: role.role || role.roleName || '',
+          count: role.count || 1,
+          description: role.note || role.description || '',
+          requirements: role.requirements || [],
+          isLeader: role.note?.includes('팀장') || role.note?.includes('리더') || false,
+        })),
+      };
+
       const response = await fetch('/api/projects/initial-setup', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -237,6 +362,7 @@ export default function NewProjectPage() {
           projectName: consultationData.projectName || '새 프로젝트',
           projectGoal: consultationData.projectGoal || '프로젝트 목표',
           consultationData: consultationData,
+          projectBlueprint: projectBlueprint,
         }),
       });
 
@@ -255,7 +381,7 @@ export default function NewProjectPage() {
     }
   };
 
-  const progress = calculateProgress(consultationData);
+  const progress = calculateProgress(consultationData, currentStep);
 
   return (
     <div className="relative min-h-screen w-full bg-zinc-950 font-inter">
@@ -348,6 +474,122 @@ export default function NewProjectPage() {
               </motion.div>
             )}
 
+            {/* AI 역할 제안 승인 카드 */}
+            {showRoleSuggestion && consultationData?.aiSuggestedRoles && (
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ type: "spring", stiffness: 200 }}
+              >
+                <Card className="border-blue-500/20 bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-950/20 dark:to-indigo-950/20 shadow-lg">
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2 text-blue-700 dark:text-blue-300">
+                      <Bot className="h-5 w-5" />
+                      AI 역할 제안
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="text-sm text-muted-foreground">
+                      {consultationData.projectName} 프로젝트에 적합한 역할 구조를 제안합니다:
+                    </div>
+                    
+                    <div className="space-y-3">
+                      {consultationData.aiSuggestedRoles.map((role, index) => (
+                        <div key={index} className="flex items-center justify-between p-3 bg-white/50 dark:bg-zinc-800/50 rounded-lg">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2">
+                              <span className="font-medium">{role.role}</span>
+                              <Badge variant="secondary">{role.count}명</Badge>
+                              {role.note && <Badge variant="outline">팀장</Badge>}
+                            </div>
+                            {role.note && (
+                              <p className="text-sm text-muted-foreground mt-1">{role.note}</p>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+
+                    <div className="flex gap-2">
+                      <Button 
+                        onClick={handleApproveRoles}
+                        className="flex-1"
+                        size="lg"
+                      >
+                        <CheckCircle2 className="h-4 w-4 mr-2" />
+                        이대로 진행
+                      </Button>
+                      <Button 
+                        onClick={handleEditRoles}
+                        variant="outline"
+                        size="lg"
+                      >
+                        수정하기
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              </motion.div>
+            )}
+
+            {/* 역할 수정 입력 카드 */}
+            {isEditingRoles && (
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ type: "spring", stiffness: 200 }}
+              >
+                <Card className="border-amber-500/20 bg-gradient-to-br from-amber-50 to-yellow-50 dark:from-amber-950/20 dark:to-yellow-950/20 shadow-lg">
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2 text-amber-700 dark:text-amber-300">
+                      <Edit className="h-5 w-5" />
+                      역할 구조 수정
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="text-sm text-muted-foreground">
+                      어떤 부분을 수정하고 싶으신가요? 구체적으로 말씀해주세요.
+                    </div>
+                    
+                    <textarea
+                      value={roleEditInput}
+                      onChange={(e) => setRoleEditInput(e.target.value)}
+                      placeholder="예: 백엔드 개발자를 2명으로 줄이고 싶어요"
+                      className="w-full min-h-20 p-3 rounded-lg border bg-background"
+                      disabled={isLoading}
+                    />
+
+                    <div className="flex gap-2">
+                      <Button 
+                        onClick={handleSendEditRequest}
+                        disabled={!roleEditInput.trim() || isLoading}
+                        className="flex-1"
+                      >
+                        {isLoading ? (
+                          <>
+                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                            수정 중...
+                          </>
+                        ) : (
+                          <>
+                            <Send className="h-4 w-4 mr-2" />
+                            수정 요청
+                          </>
+                        )}
+                      </Button>
+                      <Button 
+                        onClick={() => setIsEditingRoles(false)}
+                        variant="outline"
+                        disabled={isLoading}
+                      >
+                        취소
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              </motion.div>
+            )}
+
             {/* 프로젝트 생성 완료 카드 */}
             {isConsultationComplete && consultationData && (
               <motion.div
@@ -372,7 +614,7 @@ export default function NewProjectPage() {
                         <span className="font-medium text-muted-foreground">목표</span>
                         <p className="text-base">{consultationData.projectGoal}</p>
                       </div>
-                      {consultationData.techStack && (
+                      {consultationData.techStack && Array.isArray(consultationData.techStack) && (
                         <div className="space-y-1 md:col-span-2">
                           <span className="font-medium text-muted-foreground">기술 스택</span>
                           <div className="flex flex-wrap gap-2 mt-1">
@@ -402,7 +644,7 @@ export default function NewProjectPage() {
           </ExpandableChatBody>
 
           {/* 입력 영역 - demo.tsx 스타일 */}
-          {!isConsultationComplete && (
+          {!isConsultationComplete && !showRoleSuggestion && !isEditingRoles && (
             <ExpandableChatFooter>
               <motion.div 
                 initial={{ y: 20, opacity: 0 }}

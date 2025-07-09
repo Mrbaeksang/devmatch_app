@@ -3,7 +3,7 @@
 import { BentoGrid, BentoCard } from "@/components/ui/bento-grid";
 import { BackgroundPaths } from "@/components/ui/background-paths";
 import { motion } from "framer-motion";
-import { Clock, Users, CheckCircle, ArrowRight, Star } from "lucide-react";
+import { Users, CheckCircle, Star } from "lucide-react";
 
 const MyProjectsPage = () => {
   // 임시 프로젝트 데이터

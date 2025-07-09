@@ -2,7 +2,19 @@
   "permissions": {
     "allow": [
       "Bash(git add:*)",
-      "Bash(git commit:*)"
+      "Bash(git commit:*)",
+      "Bash(npx prisma:*)",
+      "Bash(pnpm lint:*)",
+      "Bash(pnpm install:*)",
+      "Bash(npx typescript:*)",
+      "Bash(npm run build:*)",
+      "Bash(pnpm prisma generate:*)",
+      "Bash(grep:*)",
+      "Bash(pnpm typecheck:*)",
+      "Bash(./node_modules/.bin/tsc:*)",
+      "Bash(pnpm next build:*)",
+      "Bash(npx next lint:*)",
+      "Bash(pnpm build:*)"
     ],
     "deny": []
   }

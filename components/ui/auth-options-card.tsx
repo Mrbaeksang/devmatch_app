@@ -3,7 +3,6 @@
 import React from "react";
 import { motion } from "framer-motion";
 import { signIn } from "next-auth/react";
-import FuzzyText from "./fuzzy-text";
 
 // Google Icon SVG Component
 const GoogleIcon = () => (

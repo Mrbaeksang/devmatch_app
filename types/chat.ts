@@ -110,7 +110,7 @@ export interface ChatEvent {
   type: ChatEventType;
   projectId: string;
   userId: string;
-  data: any;
+  data: unknown;
   timestamp: Date;
 }
 
@@ -120,7 +120,7 @@ export interface ChatEvent {
 export interface WebSocketMessage {
   type: 'chat' | 'typing' | 'status' | 'error';
   event: ChatEventType;
-  data: any;
+  data: unknown;
   timestamp: Date;
 }
 
@@ -209,12 +209,13 @@ export interface ChatSearchParams {
 // ======================
 
 /**
- * AI 상담 단계
+ * AI 상담 단계 (확장됨)
  */
 export enum ConsultationStep {
   NAME_COLLECTION = 'NAME_COLLECTION',
   PROJECT_INFO_COLLECTION = 'PROJECT_INFO_COLLECTION',
   TEAM_STRUCTURE_PROPOSAL = 'TEAM_STRUCTURE_PROPOSAL',
+  ROLE_SUGGESTION = 'ROLE_SUGGESTION',           // 새로운 역할 제안 단계
   SUMMARY_CONFIRMATION = 'SUMMARY_CONFIRMATION',
   COMPLETED = 'COMPLETED',
 }

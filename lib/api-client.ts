@@ -16,7 +16,7 @@ type HttpMethod = 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH';
 interface RequestOptions {
   method: HttpMethod;
   headers?: Record<string, string>;
-  body?: any;
+  body?: unknown;
   params?: Record<string, string>;
 }
 
@@ -37,7 +37,7 @@ class ApiClient {
   /**
    * 기본 요청 메서드
    */
-  private async request<T = any>(
+  private async request<T = unknown>(
     endpoint: string,
     options: RequestOptions
   ): Promise<ApiResponse<T>> {
@@ -82,35 +82,35 @@ class ApiClient {
   /**
    * GET 요청
    */
-  async get<T = any>(endpoint: string, params?: Record<string, string>): Promise<ApiResponse<T>> {
+  async get<T = unknown>(endpoint: string, params?: Record<string, string>): Promise<ApiResponse<T>> {
     return this.request<T>(endpoint, { method: 'GET', params });
   }
 
   /**
    * POST 요청
    */
-  async post<T = any>(endpoint: string, body?: any): Promise<ApiResponse<T>> {
+  async post<T = unknown>(endpoint: string, body?: unknown): Promise<ApiResponse<T>> {
     return this.request<T>(endpoint, { method: 'POST', body });
   }
 
   /**
    * PUT 요청
    */
-  async put<T = any>(endpoint: string, body?: any): Promise<ApiResponse<T>> {
+  async put<T = unknown>(endpoint: string, body?: unknown): Promise<ApiResponse<T>> {
     return this.request<T>(endpoint, { method: 'PUT', body });
   }
 
   /**
    * PATCH 요청
    */
-  async patch<T = any>(endpoint: string, body?: any): Promise<ApiResponse<T>> {
+  async patch<T = unknown>(endpoint: string, body?: unknown): Promise<ApiResponse<T>> {
     return this.request<T>(endpoint, { method: 'PATCH', body });
   }
 
   /**
    * DELETE 요청
    */
-  async delete<T = any>(endpoint: string): Promise<ApiResponse<T>> {
+  async delete<T = unknown>(endpoint: string): Promise<ApiResponse<T>> {
     return this.request<T>(endpoint, { method: 'DELETE' });
   }
 }
@@ -251,7 +251,7 @@ export default apiClient;
 /**
  * 에러 처리 유틸리티
  */
-export const handleApiError = (error: any): string => {
+export const handleApiError = (error: unknown): string => {
   if (error instanceof Error) {
     return error.message;
   }

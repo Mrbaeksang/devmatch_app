@@ -1,167 +1,270 @@
-# DevMatch 페이지 구조 및 기능 정리
+# 📋 DevMatch 프로젝트 구조 문서
 
-## 현재 구현된 페이지
+## 🏗️ 전체 아키텍처 개요
 
-### 1. 메인 페이지 (/)
-- **기능**: 랜딩 페이지, 로그인 진입점
-- **구성요소**:
-  - FuzzyText 효과가 적용된 타이틀
-  - 구글/카카오 로그인 버튼
-  - BackgroundPaths 애니메이션 배경
-- **파일**: `app/page.tsx`, `components/ui/shape-landing-hero.tsx`
+DevMatch는 AI 기반 팀 빌딩 플랫폼으로, **상담 → 모집 → 면담 → 분석 → 프로젝트 시작**의 체계적인 플로우를 제공합니다.
 
-### 2. 프로젝트 대시보드 (/projects)
-- **기능**: 프로젝트 관리 메인 허브
-- **구성요소**:
-  - 새 프로젝트 만들기 카드
-  - 팀 매칭 AI 카드
-  - 내 프로젝트들 카드
-  - Bento Grid 레이아웃
-- **파일**: `app/projects/page.tsx`
+### 핵심 기술 스택
+- **Next.js 15** (App Router) + **TypeScript** + **Prisma** + **NextAuth.js**
+- **AI**: OpenRouter API (DeepSeek 모델)
+- **UI**: Tailwind CSS + Radix UI + Framer Motion
 
-### 3. 새 프로젝트 만들기 (/projects/new)
-- **기능**: 새 프로젝트 생성 및 팀원 모집
-- **구성요소**: 프로젝트 정보 입력 폼
-- **파일**: `app/projects/new/page.tsx`
+---
 
-### 4. 프로젝트 참여 대기 (/projects/join/[inviteCode])
-- **기능**: 초대 코드로 프로젝트 참여, 팀원 대기
-- **구성요소**:
-  - 팀원 모집 중 카드
-  - 프로젝트 정보 카드
-  - 대기 시간 카드
-  - Bento Grid 레이아웃
-- **파일**: `app/projects/join/[inviteCode]/page.tsx`
+## 📁 App 디렉토리 구조
 
-### 5. 채팅 API (/api/chat)
-- **기능**: AI 상담 및 팀 빌딩 지원
-- **구성요소**: Vercel AI SDK 기반 채팅 API
-- **파일**: `app/api/chat/route.ts`
+### 🏠 메인 페이지들
+```
+app/
+├── page.tsx                    # 홈페이지 (로그인 전 랜딩)
+├── projects/
+│   ├── page.tsx               # 메인 대시보드 (BentoGrid)
+│   ├── new/
+│   │   └── page.tsx           # AI 프로젝트 상담 페이지
+│   ├── join/
+│   │   └── [inviteCode]/
+│   │       └── page.tsx       # 팀원 모집 대기실
+│   └── [projectId]/
+│       ├── page.tsx           # 프로젝트 상세 페이지
+│       ├── interview/
+│       │   └── page.tsx       # 개인 면담 페이지
+│       └── analysis/
+│           └── page.tsx       # 팀 분석 결과 페이지
+└── layout.tsx                 # 루트 레이아웃
+```
 
-## 향후 개발 예정 페이지
+### 🔌 API 라우트들
+```
+app/api/
+├── auth/[...nextauth]/route.ts    # NextAuth 인증
+├── chat/route.ts                  # AI 상담 채팅 API
+├── projects/
+│   ├── route.ts                   # 프로젝트 CRUD
+│   ├── initial-setup/route.ts     # 프로젝트 초기 설정
+│   ├── join/[inviteCode]/route.ts # 팀 참여 API
+│   └── [projectId]/
+│       ├── route.ts               # 개별 프로젝트 API
+│       ├── analyze/route.ts       # 팀 분석 API
+│       └── start/route.ts         # 프로젝트 시작 API
+└── interview/
+    ├── route.ts                   # 면담 진행 API
+    └── complete/route.ts          # 면담 완료 API
+```
 
-### 1. 내 프로젝트 목록 (/projects/my-projects)
-- **기능**: 역할 분담 완료된 프로젝트 목록
-- **예상 구성요소**:
-  - 참여 중인 프로젝트 카드들
-  - 프로젝트 상태 표시 (진행 중, 완료, 대기)
-  - 팀원 정보 및 역할 분담 현황
-- **우선순위**: 높음
+---
 
-### 2. 프로젝트 상세 페이지 (/projects/[projectId])
-- **기능**: 특정 프로젝트의 상세 정보 및 관리
-- **예상 구성요소**:
-  - 프로젝트 개요 및 목표
-  - 팀원 목록 및 역할 분담
-  - 진행 상황 추적
-  - 파일 공유 및 커뮤니케이션
-- **우선순위**: 높음
+## 🎯 핵심 기능별 상세 분석
 
-### 3. AI 면접 페이지 (/projects/[projectId]/interview)
-- **기능**: 프로젝트 참여 전 AI 면접 진행
-- **예상 구성요소**:
-  - 실시간 AI 면접 인터페이스
-  - 기술 스택 및 경험 질문
-  - 팀 적합성 평가
-  - 면접 결과 분석
-- **우선순위**: 중간
+### 1. 프로젝트 생성 플로우 (`/projects/new`)
+**파일**: `app/projects/new/page.tsx`
 
-### 4. 프로필 페이지 (/profile)
-- **기능**: 사용자 프로필 관리
-- **예상 구성요소**:
-  - 기본 정보 수정
-  - 기술 스택 및 경험 관리
-  - 프로젝트 히스토리
-  - 평가 및 피드백
-- **우선순위**: 중간
+**주요 기능**:
+- 8단계 AI 상담 진행 (이름 → 프로젝트 정보 → 역할 제안)
+- 실시간 채팅 UI (ExpandableChat)
+- 역할 제안 승인/수정 시스템
+- 상담 완료 시 프로젝트 생성 모달
 
-### 5. 팀 빌딩 결과 페이지 (/projects/[projectId]/team-result)
-- **기능**: AI 팀 빌딩 결과 확인 및 승인
-- **예상 구성요소**:
-  - 추천된 팀 구성
-  - 각 팀원의 역할 및 책임
-  - 팀 시너지 분석
-  - 팀 구성 승인/거부
-- **우선순위**: 높음
+**데이터 플로우**:
+```
+page.tsx → api/chat/route.ts → OpenRouter API → ConsultationData 수집
+         → api/projects/initial-setup/route.ts → ProjectBlueprint 생성
+         → prisma/db → 프로젝트 생성 완료
+```
 
-### 6. 대시보드 (/dashboard)
-- **기능**: 전체 활동 요약 및 통계
-- **예상 구성요소**:
-  - 참여 프로젝트 요약
-  - 활동 통계
-  - 추천 프로젝트
-  - 알림 센터
-- **우선순위**: 낮음
+**핵심 타입**:
+- `ConsultationStep` - 상담 단계 (types/chat.ts)
+- `ConsultationData` - 수집된 상담 데이터 (types/chat.ts)
+- `ProjectBlueprint` - 변환된 프로젝트 설계서 (types/project.ts)
 
-## 개선 가능성이 있는 페이지
+### 2. 팀원 모집 플로우 (`/projects/join/[inviteCode]`)
+**파일**: `app/projects/join/[inviteCode]/page.tsx`
 
-### 1. 프로젝트 찾기 (/projects/discover)
-- **기능**: 참여 가능한 프로젝트 검색 및 필터링
-- **예상 구성요소**:
-  - 프로젝트 검색 및 필터
-  - 카테고리별 분류
-  - 프로젝트 카드 그리드
-  - 즐겨찾기 기능
+**주요 기능**:
+- 초대 코드 기반 프로젝트 접근
+- 실시간 팀원 현황 업데이트 (5초 폴링)
+- 상담 완료 여부 체크
+- 면담 시작 버튼 활성화
 
-### 2. 팀원 찾기 (/team-members/find)
-- **기능**: 프로젝트에 맞는 팀원 직접 검색
-- **예상 구성요소**:
-  - 기술 스택 기반 검색
-  - 경험 수준 필터
-  - 팀원 프로필 카드
-  - 초대 발송 기능
+**데이터 플로우**:
+```
+page.tsx → api/projects/join/[inviteCode]/route.ts (GET) → 프로젝트 정보 조회
+         → api/projects/join/[inviteCode]/route.ts (POST) → 팀원 참여
+         → 실시간 업데이트 → 면담 단계 진행
+```
 
-### 3. 학습 리소스 (/learning)
-- **기능**: 팀워크 및 프로젝트 관리 학습 자료
-- **예상 구성요소**:
-  - 팀워크 가이드
-  - 프로젝트 관리 팁
-  - 기술 스택 학습 자료
-  - 성공 사례 분석
+### 3. 개인 면담 플로우 (`/projects/[projectId]/interview`)
+**파일**: `app/projects/[projectId]/interview/page.tsx`
 
-### 4. 커뮤니티 (/community)
-- **기능**: 사용자 간 소통 및 네트워킹
-- **예상 구성요소**:
-  - 게시판 기능
-  - 프로젝트 쇼케이스
-  - 질문 및 답변
-  - 네트워킹 이벤트
+**주요 기능**:
+- AI 기반 개인 면담 진행
+- 6단계 면담 (환영 → 기술평가 → 리더십평가 → 선호도수집 → 확인 → 완료)
+- 4단계 리더십 레벨 평가
+- MemberProfile 데이터 수집
 
-## 기술적 고려사항
+**데이터 플로우**:
+```
+page.tsx → api/interview/route.ts → OpenRouter API → 면담 질문 생성
+         → api/interview/complete/route.ts → MemberProfile 저장
+         → InterviewStatus 업데이트
+```
 
-### 현재 사용 중인 주요 기술
-- **Frontend**: Next.js 15, React, TypeScript
-- **Styling**: Tailwind CSS, Framer Motion
-- **AI**: Vercel AI SDK
-- **Authentication**: NextAuth.js
-- **UI Components**: Radix UI, Lucide Icons
-- **Database**: 미정 (향후 구현 예정)
+### 4. 팀 분석 플로우 (`/projects/[projectId]/analysis`)
+**파일**: `app/projects/[projectId]/analysis/page.tsx`
 
-### 향후 필요한 기술
-- **Database**: PostgreSQL 또는 MongoDB
-- **Real-time**: WebSocket 또는 Socket.io
-- **File Storage**: AWS S3 또는 Vercel Blob
-- **Email**: Resend 또는 SendGrid
-- **Deployment**: Vercel
+**주요 기능**:
+- AI 기반 팀 분석 실행
+- 팀 매칭 점수 (0-100점)
+- 리더십 분석 및 추천
+- 역할 배정 알고리즘
 
-## 우선순위 개발 순서
+**데이터 플로우**:
+```
+page.tsx → api/projects/[projectId]/analyze/route.ts → OpenRouter API
+         → TeamAnalysis 생성 → RoleAssignment 배정
+         → 프로젝트 상태 ACTIVE로 변경
+```
 
-1. **1단계 (즉시 필요)**:
-   - `/projects/my-projects` - 내 프로젝트 목록
-   - `/projects/[projectId]` - 프로젝트 상세 페이지
-   - `/projects/[projectId]/team-result` - 팀 빌딩 결과
+---
 
-2. **2단계 (단기)**:
-   - `/projects/[projectId]/interview` - AI 면접
-   - `/profile` - 사용자 프로필
-   - Database 연동 및 실제 데이터 관리
+## 🗂️ 핵심 디렉토리 상세
 
-3. **3단계 (중기)**:
-   - `/projects/discover` - 프로젝트 찾기
-   - `/team-members/find` - 팀원 찾기
-   - Real-time 기능 추가
+### 📚 lib/ 폴더
+```
+lib/
+├── auth.ts          # NextAuth 설정 (Google, Kakao OAuth)
+├── db.ts            # Prisma 클라이언트 (전역 인스턴스)
+├── utils.ts         # 유틸리티 함수 (cn, clsx)
+├── constants.ts     # 상수 정의
+└── api-client.ts    # API 클라이언트 (fetch 래퍼)
+```
 
-4. **4단계 (장기)**:
-   - `/learning` - 학습 리소스
-   - `/community` - 커뮤니티
-   - `/dashboard` - 종합 대시보드
+### 🏷️ types/ 폴더
+```
+types/
+├── project.ts       # 프로젝트 관련 타입
+│   ├── ProjectStatus, InterviewStatus, InterviewPhase
+│   ├── ProjectBlueprint, TeamAnalysis, MemberProfile
+│   └── RoleAssignment, LeadershipAnalysis
+├── chat.ts          # 채팅 및 상담 관련 타입
+│   ├── ConsultationStep, ConsultationData
+│   └── ChatMessage, AIResponse
+├── api.ts           # API 응답 타입
+├── user.ts          # 사용자 타입
+└── next-auth.d.ts   # NextAuth 타입 확장
+```
+
+### 🧩 components/ 폴더
+```
+components/
+├── ui/              # 공통 UI 컴포넌트 (shadcn/ui 기반)
+│   ├── bento-grid.tsx       # 메인 대시보드 그리드
+│   ├── background-paths.tsx # 배경 애니메이션
+│   ├── expandable-chat.tsx  # 채팅 UI 컴포넌트
+│   ├── chat-bubble.tsx      # 채팅 메시지 UI
+│   ├── project-modal.tsx    # 프로젝트 생성 모달
+│   ├── button.tsx           # 버튼 컴포넌트
+│   ├── card.tsx             # 카드 컴포넌트
+│   └── ... (기타 shadcn/ui 컴포넌트들)
+├── common/          # 공통 컴포넌트
+│   ├── Header.tsx
+│   ├── Footer.tsx
+│   └── LoadingSpinner.tsx
+└── hooks/           # 커스텀 훅
+    └── use-auto-scroll.ts
+```
+
+### 🗄️ prisma/ 폴더
+```
+prisma/
+└── schema.prisma    # 데이터베이스 스키마
+    ├── User, Project, ProjectMember
+    ├── Account, Session (NextAuth)
+    ├── InterviewQuestion, InterviewAnswer
+    └── ChatMessage
+```
+
+---
+
+## 🔄 데이터 플로우 상세
+
+### 전체 사용자 여정
+```
+1. 홈페이지 (/) → 로그인 → 대시보드 (/projects)
+2. 새 프로젝트 (/projects/new) → AI 상담 → 프로젝트 생성
+3. 초대 링크 공유 → 대기실 (/projects/join/[code])
+4. 팀원 참여 → 상담 완료 → 면담 시작
+5. 개인 면담 (/projects/[id]/interview) → 면담 완료
+6. 전체 면담 완료 → 팀 분석 (/projects/[id]/analysis)
+7. 분석 완료 → 프로젝트 시작 (/projects/[id])
+```
+
+### 파일 간 주요 의존성
+```
+프론트엔드 페이지 → API 라우트 → lib/db → Prisma → Database
+                → OpenRouter API (AI 기능)
+                → lib/auth → NextAuth (인증)
+                → types/* (타입 정의)
+                → components/ui/* (UI 컴포넌트)
+```
+
+---
+
+## 🚨 현재 알려진 문제점
+
+### 1. 린트 에러 (총 41개)
+- **any 타입 남용**: 17개 파일에서 타입 안정성 위반
+- **unused vars**: 컴포넌트 임포트 후 미사용
+- **empty interface**: 불필요한 인터페이스 정의
+
+### 2. 런타임 에러
+- `consultationData.techStack.map is not a function` - 배열/문자열 타입 충돌
+- 데이터베이스 스키마와 코드 간 불일치
+
+### 3. AI 로직 제어 문제
+- OpenRouter API 응답 불안정
+- 상담 단계 건너뛰기 현상
+- 예기치 않은 AI 질문 (예: 예산 질문)
+
+---
+
+## 🎯 우선순위 수정 사항
+
+### 즉시 수정 필요 (빌드 가능하게)
+1. **린트 에러 일괄 수정** - any 타입 제거, unused vars 정리
+2. **타입 안정성 확보** - 엄격한 타입 체크
+3. **런타임 에러 수정** - techStack 배열 처리
+
+### 아키텍처 개선
+1. **AI 로직 안정화** - 상담 단계 강제 제어
+2. **에러 바운더리** - 런타임 에러 처리
+3. **API 에러 핸들링** - 통합된 에러 처리
+
+---
+
+## 📖 개발 가이드
+
+### 개발 환경 설정
+```bash
+pnpm install          # 의존성 설치
+pnpm dev              # 개발 서버 (localhost:3000)
+pnpm build            # 프로덕션 빌드
+pnpm lint             # 린트 검사
+pnpm typecheck        # 타입 검사
+```
+
+### 주요 환경 변수
+```env
+NEXTAUTH_SECRET=      # NextAuth 시크릿
+NEXTAUTH_URL=         # NextAuth URL
+GOOGLE_CLIENT_ID=     # Google OAuth
+GOOGLE_CLIENT_SECRET= # Google OAuth
+KAKAO_CLIENT_ID=      # Kakao OAuth
+KAKAO_CLIENT_SECRET=  # Kakao OAuth
+OPENROUTER_API_KEY=   # AI API 키
+DATABASE_URL=         # PostgreSQL 연결
+```
+
+---
+
+**프로젝트 상태**: 핵심 기능 구현 완료, Phase D 테스트 및 안정성 개선 단계
+**마지막 업데이트**: 2024-12-07

@@ -15,12 +15,6 @@ export const metadata: Metadata = {
   description: "AI와 함께 최고의 팀을 만들어보세요.",
 };
 
-import Header from "@/app/components/common/Header";
-import Footer from "@/app/components/common/Footer";
-
-// ... (기존 import 구문들)
-
-// ... (기존 font, metadata 설정)
 
 export default function RootLayout({
   children,

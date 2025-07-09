@@ -56,11 +56,23 @@ model Session {
 
 enum ProjectStatus {
   RECRUITING // 팀원 모집 중
-  CONSULTING // 개별 상담 진행 중
+  INTERVIEWING // 개별 면담 진행 중
   ANALYZING // AI 분석 중
   ACTIVE // 프로젝트 진행 중
   COMPLETED // 프로젝트 완료
   PAUSED // 일시 정지
+}
+
+enum InterviewPhase {
+  PENDING // 면담 대기
+  IN_PROGRESS // 면담 진행 중
+  COMPLETED // 면담 완료
+}
+
+enum InterviewStatus {
+  PENDING // 면담 대기
+  IN_PROGRESS // 면담 진행 중
+  COMPLETED // 면담 완료
 }
 
 model Project {
@@ -78,9 +90,12 @@ model Project {
   progress          Int           @default(0)
   maxMembers        Int           @default(4)
   inviteCode        String        @unique @default(cuid())
+  interviewPhase    InterviewPhase @default(PENDING)
   
-  // AI 관련 데이터
-  consultationData  Json?
+  // AI 관련 데이터 (확장됨)
+  consultationData  Json?         // 기존 상담 데이터
+  blueprint         Json?         // ProjectBlueprint 저장
+  teamAnalysis      Json?         // TeamAnalysis 저장
   techStack         String[]
   aiAnalysis        Json?
 
@@ -107,11 +122,14 @@ model ProjectMember {
   userId                 String
   joinedAt               DateTime @default(now())
   
-  // 팀원 상태 정보
-  consultationCompleted  Boolean  @default(false)
-  isActive              Boolean  @default(true)
+  // 팀원 상태 정보 (확장됨)
+  consultationCompleted  Boolean         @default(false)
+  isActive              Boolean         @default(true)
   role                  String?
-  consultationData      Json?
+  consultationData      Json?           // 기존 상담 데이터
+  memberProfile         Json?           // MemberProfile 저장
+  interviewStatus       InterviewStatus @default(PENDING)
+  roleAssignment        Json?           // RoleAssignment 저장
   
   // 관계
   project               Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)

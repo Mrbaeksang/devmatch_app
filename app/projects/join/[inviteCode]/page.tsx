@@ -4,10 +4,9 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
-
 import { BackgroundPaths } from "@/components/ui/background-paths";
+import { ProjectStatus, InterviewStatus } from "@/types/project";
 import { 
-  ExpandableChat,
   ExpandableChatHeader,
   ExpandableChatBody,
   ExpandableChatFooter,
@@ -15,7 +14,6 @@ import {
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
 import { Progress } from "@/components/ui/progress";
 import { 
   Loader2, 
@@ -30,24 +28,18 @@ import {
   Link
 } from "lucide-react";
 
-// 프로젝트 상태 정의
-enum ProjectStatus {
-  RECRUITING = 'RECRUITING',
-  CONSULTING = 'CONSULTING', 
-  ANALYZING = 'ANALYZING',
-  ACTIVE = 'ACTIVE',
-}
-
-// 팀원 데이터 타입
+// 팀원 데이터 타입 (확장됨)
 interface TeamMember {
   id: string;
   name: string;
   consultationCompleted: boolean;
   joinedAt: Date;
   userId?: string;
+  interviewStatus: InterviewStatus;
+  canStartInterview: boolean;
 }
 
-// 프로젝트 데이터 타입
+// 프로젝트 데이터 타입 (확장됨)
 interface Project {
   id: string;
   name: string;
@@ -56,7 +48,8 @@ interface Project {
   inviteCode: string;
   maxMembers: number;
   createdBy: string;
-  consultationData: any;
+  consultationData: unknown;
+  blueprint?: unknown;
   members: TeamMember[];
   createdAt: Date;
 }
@@ -79,60 +72,21 @@ export default function JoinProjectPage() {
   // 초대 코드 유효성 검사 및 프로젝트 정보 가져오기
   const fetchProject = useCallback(async () => {
     try {
-      // TODO: 실제 API 호출로 대체
-      // 현재는 임시 데이터 사용
-      await new Promise(resolve => setTimeout(resolve, 1000)); // 로딩 시뮬레이션
+      // 실제 API 호출로 프로젝트 정보 가져오기
+      const response = await fetch(`/api/projects/join/${inviteCode}`);
       
-      // 임시 프로젝트 데이터
-      const mockProject: Project = {
-        id: '1',
-        name: 'DevMatch AI 플랫폼',
-        goal: 'AI 기반 팀 빌딩 플랫폼 개발',
-        status: ProjectStatus.RECRUITING,
-        inviteCode: inviteCode,
-        maxMembers: 4,
-        createdBy: 'user1',
-        consultationData: {
-          projectName: 'DevMatch AI 플랫폼',
-          projectGoal: 'AI 기반 팀 빌딩 플랫폼 개발',
-          techStack: ['Next.js', 'TypeScript', 'Tailwind CSS', 'OpenAI API'],
-          teamMembersCount: 4,
-        },
-        members: [
-          {
-            id: '1',
-            name: '김개발',
-            consultationCompleted: true,
-            joinedAt: new Date(),
-            userId: 'user1'
-          },
-          {
-            id: '2', 
-            name: '박프론트',
-            consultationCompleted: false,
-            joinedAt: new Date(),
-            userId: 'user2'
-          },
-        ],
-        createdAt: new Date(),
-      };
-
-      // 현재 사용자 (임시)
-      const mockCurrentUser: TeamMember = {
-        id: '2',
-        name: '박프론트',
-        consultationCompleted: false,
-        joinedAt: new Date(),
-        userId: 'user2'
-      };
-
-      setProject(mockProject);
-      setCurrentUser(mockCurrentUser);
+      if (!response.ok) {
+        throw new Error('프로젝트를 찾을 수 없습니다.');
+      }
+      
+      const data = await response.json();
+      setProject(data.project);
+      setCurrentUser(data.currentUser);
       setInviteUrl(`${window.location.origin}/projects/join/${inviteCode}`);
       
     } catch (error) {
       console.error('Error fetching project:', error);
-      setError('프로젝트 정보를 불러오는 중 오류가 발생했습니다.');
+      setError(error instanceof Error ? error.message : '프로젝트 정보를 불러오는 중 오류가 발생했습니다.');
     } finally {
       setLoading(false);
     }
@@ -166,17 +120,23 @@ export default function JoinProjectPage() {
     
     setJoiningProject(true);
     try {
-      // TODO: 실제 API 호출로 대체
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      const response = await fetch(`/api/projects/join/${inviteCode}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+      });
       
-      // 임시로 참여 성공 처리
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || '프로젝트 참여 중 오류가 발생했습니다.');
+      }
+      
       toast.success('프로젝트에 참여했습니다!');
       
       // 새로고침하여 업데이트된 팀원 목록 표시
       await fetchProject();
       
     } catch (error) {
-      toast.error('프로젝트 참여 중 오류가 발생했습니다.');
+      toast.error(error instanceof Error ? error.message : '프로젝트 참여 중 오류가 발생했습니다.');
     } finally {
       setJoiningProject(false);
     }
@@ -197,11 +157,64 @@ export default function JoinProjectPage() {
     router.push('/projects/new');
   };
 
-  // 진행률 계산
+  // 진행률 계산 (상담 완료 + 면담 완료)
   const calculateProgress = () => {
     if (!project) return 0;
-    const completedMembers = project.members.filter(m => m.consultationCompleted).length;
-    return (completedMembers / project.maxMembers) * 100;
+    const consultationCompleted = project.members.filter(m => m.consultationCompleted).length;
+    const interviewCompleted = project.members.filter(m => m.interviewStatus === InterviewStatus.COMPLETED).length;
+    
+    // 상담 완료 50% + 면담 완료 50%
+    const consultationProgress = (consultationCompleted / project.maxMembers) * 50;
+    const interviewProgress = (interviewCompleted / project.maxMembers) * 50;
+    
+    return consultationProgress + interviewProgress;
+  };
+
+  // 면담 시작 함수
+  const startInterview = async (memberId: string) => {
+    try {
+      // 면담 페이지로 이동
+      router.push(`/projects/${project?.id}/interview?memberId=${memberId}`);
+    } catch (error) {
+      toast.error('면담 시작 중 오류가 발생했습니다.');
+    }
+  };
+
+  // 면담 상태 배지 렌더링
+  const renderInterviewBadge = (member: TeamMember) => {
+    if (!member.consultationCompleted) {
+      return (
+        <Badge variant="outline" className="text-zinc-500">
+          <Clock className="w-3 h-3 mr-1" />
+          상담 대기
+        </Badge>
+      );
+    }
+
+    switch (member.interviewStatus) {
+      case InterviewStatus.COMPLETED:
+        return (
+          <Badge variant="default" className="bg-green-600">
+            <CheckCircle2 className="w-3 h-3 mr-1" />
+            면담 완료
+          </Badge>
+        );
+      case InterviewStatus.IN_PROGRESS:
+        return (
+          <Badge variant="default" className="bg-blue-600">
+            <Loader2 className="w-3 h-3 mr-1 animate-spin" />
+            면담 중
+          </Badge>
+        );
+      case InterviewStatus.PENDING:
+      default:
+        return (
+          <Badge variant="secondary">
+            <AlertCircle className="w-3 h-3 mr-1" />
+            면담 준비
+          </Badge>
+        );
+    }
   };
 
   // 로딩 상태
@@ -253,7 +266,10 @@ export default function JoinProjectPage() {
 
   const progress = calculateProgress();
   const completedMembers = project.members.filter(m => m.consultationCompleted).length;
+  const interviewCompletedMembers = project.members.filter(m => m.interviewStatus === InterviewStatus.COMPLETED).length;
   const isUserInProject = project.members.some(m => m.userId === currentUser?.userId);
+  const allConsultationCompleted = project.members.length === project.maxMembers && completedMembers === project.maxMembers;
+  const allInterviewCompleted = interviewCompletedMembers === project.maxMembers;
 
   return (
     <div className="relative min-h-screen w-full bg-zinc-950 font-inter">
@@ -277,17 +293,25 @@ export default function JoinProjectPage() {
                 <h1 className="text-lg md:text-xl font-semibold text-white">
                   {project.name}
                 </h1>
-                <p className="text-sm text-zinc-400">팀원 모집 중</p>
+                <p className="text-sm text-zinc-400">
+                  {allConsultationCompleted ? 
+                    (allInterviewCompleted ? '팀 구성 완료' : '면담 진행 중') : 
+                    '팀원 모집 중'
+                  }
+                </p>
               </div>
             </motion.div>
             <div className="flex items-center space-x-3">
               <div className="text-right">
-                <div className="text-sm text-zinc-400">진행률</div>
+                <div className="text-sm text-zinc-400">전체 진행률</div>
                 <div className="flex items-center gap-2">
                   <Progress value={progress} className="w-20 md:w-32 h-2" />
                   <Badge variant="secondary" className="text-xs">
-                    {completedMembers}/{project.maxMembers}
+                    {Math.round(progress)}%
                   </Badge>
+                </div>
+                <div className="text-xs text-zinc-500 mt-1">
+                  상담: {completedMembers}/{project.maxMembers} | 면담: {interviewCompletedMembers}/{project.maxMembers}
                 </div>
               </div>
             </div>
@@ -312,7 +336,7 @@ export default function JoinProjectPage() {
                   </CardHeader>
                   <CardContent>
                     <p className="text-zinc-300 mb-4">{project.goal}</p>
-                    {project.consultationData?.techStack && (
+                    {project.consultationData?.techStack && Array.isArray(project.consultationData.techStack) && (
                       <div className="flex flex-wrap gap-2">
                         {project.consultationData.techStack.map((tech: string) => (
                           <Badge key={tech} variant="outline" className="text-xs">
@@ -353,19 +377,21 @@ export default function JoinProjectPage() {
                               </div>
                             </div>
                           </div>
-                          <Badge variant={member.consultationCompleted ? "default" : "secondary"}>
-                            {member.consultationCompleted ? (
-                              <>
-                                <CheckCircle2 className="w-3 h-3 mr-1" />
-                                상담 완료
-                              </>
-                            ) : (
-                              <>
-                                <Clock className="w-3 h-3 mr-1" />
-                                대기 중
-                              </>
+                          <div className="flex items-center gap-2">
+                            {renderInterviewBadge(member)}
+                            {member.consultationCompleted && 
+                             member.interviewStatus === InterviewStatus.PENDING && 
+                             member.canStartInterview && 
+                             currentUser?.userId === member.userId && (
+                              <Button 
+                                size="sm" 
+                                onClick={() => startInterview(member.id)}
+                                className="ml-2"
+                              >
+                                면담 시작
+                              </Button>
                             )}
-                          </Badge>
+                          </div>
                         </div>
                       ))}
                       
@@ -435,13 +461,56 @@ export default function JoinProjectPage() {
                       </Button>
                     </CardContent>
                   </Card>
-                ) : (
+                ) : currentUser && currentUser.consultationCompleted && currentUser.interviewStatus === InterviewStatus.PENDING && currentUser.canStartInterview ? (
+                  <Card className="border-blue-500/20 bg-blue-500/5">
+                    <CardContent className="p-6 text-center">
+                      <MessageSquare className="h-12 w-12 text-blue-500 mx-auto mb-4" />
+                      <h3 className="text-white font-semibold mb-2">면담을 시작해주세요</h3>
+                      <p className="text-zinc-400 mb-4">
+                        팀 구성을 위한 개인 면담을 진행해주세요.
+                      </p>
+                      <Button onClick={() => startInterview(currentUser.id)} className="w-full">
+                        <MessageSquare className="w-4 h-4 mr-2" />
+                        면담 시작하기
+                      </Button>
+                    </CardContent>
+                  </Card>
+                ) : currentUser && currentUser.interviewStatus === InterviewStatus.COMPLETED ? (
                   <Card className="border-green-500/20 bg-green-500/5">
                     <CardContent className="p-6 text-center">
                       <CheckCircle2 className="h-12 w-12 text-green-500 mx-auto mb-4" />
-                      <h3 className="text-white font-semibold mb-2">상담 완료!</h3>
+                      <h3 className="text-white font-semibold mb-2">면담 완료!</h3>
                       <p className="text-zinc-400 mb-4">
-                        다른 팀원들의 상담 완료를 기다리고 있습니다.
+                        {allInterviewCompleted ? 
+                          '모든 팀원의 면담이 완료되었습니다. 곧 팀 분석 결과를 확인할 수 있습니다.' :
+                          '다른 팀원들의 면담 완료를 기다리고 있습니다.'
+                        }
+                      </p>
+                      {allInterviewCompleted && (
+                        <Button 
+                          onClick={() => router.push(`/projects/${project.id}/analysis`)}
+                          className="w-full mb-4"
+                        >
+                          <CheckCircle2 className="w-4 h-4 mr-2" />
+                          팀 분석 보기
+                        </Button>
+                      )}
+                      <div className="flex items-center justify-center gap-2 text-sm text-zinc-500">
+                        <RefreshCw className="w-4 h-4" />
+                        실시간 업데이트 중...
+                      </div>
+                    </CardContent>
+                  </Card>
+                ) : (
+                  <Card className="border-amber-500/20 bg-amber-500/5">
+                    <CardContent className="p-6 text-center">
+                      <Clock className="h-12 w-12 text-amber-500 mx-auto mb-4" />
+                      <h3 className="text-white font-semibold mb-2">대기 중</h3>
+                      <p className="text-zinc-400 mb-4">
+                        {!allConsultationCompleted ? 
+                          '모든 팀원의 상담이 완료되면 면담을 시작할 수 있습니다.' :
+                          '면담 순서를 기다리고 있습니다.'
+                        }
                       </p>
                       <div className="flex items-center justify-center gap-2 text-sm text-zinc-500">
                         <RefreshCw className="w-4 h-4" />

@@ -4,7 +4,7 @@
 /**
  * 표준 API 응답 형식
  */
-export interface ApiResponse<T = any> {
+export interface ApiResponse<T = unknown> {
   success: boolean;
   data?: T;
   error?: string;
@@ -32,7 +32,7 @@ export interface PaginatedResponse<T> extends ApiResponse<T[]> {
 export interface ApiError {
   code: string;
   message: string;
-  details?: any;
+  details?: unknown;
   timestamp: string;
 }
 
@@ -54,7 +54,7 @@ export interface FilterParams {
   status?: string;
   dateFrom?: string;
   dateTo?: string;
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 /**
