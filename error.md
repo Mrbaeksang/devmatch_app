@@ -103,7 +103,18 @@ interface RoleSuggestion {
 - 팀 규모 조정
 - 기술 스택 수정
 
-**여기서 직접 정해서 말해달라고해 위에서 수정하기를클릭했으면**
+#### **🔄 수정 모드 활성화:**
+**"수정하기" 클릭 시 → AI가 직접 질문:**
+```
+AI: "어떤 부분을 수정하고 싶으신가요? 직접 말씀해주세요."
+
+사용자 입력 예시:
+- "백엔드 개발자 2명으로 줄이고 싶어요"
+- "팀장 역할을 따로 두지 말고 풀스택이 겸직했으면 좋겠어요"
+- "프론트엔드 개발자 1명 추가해주세요"
+
+AI: 수정사항 반영 후 재제안
+```
 #### **🔄 진행률 계산 (8단계):**
 ```typescript
 const calculateProgress = (data: ProjectBlueprint): number => {
@@ -193,7 +204,48 @@ interface MemberProfile {
 }
 ```
 
-**팀장 관심도가 단순 불리언이면 개별면담후 종합결정할때 팀장 하고싶다는사람 여러명이면 어떻게할거임?**
+#### **🤔 팀장 선정 로직 개선:**
+**문제:** `leadershipInterest: boolean`로는 여러명이 팀장 원할 때 처리 불가
+
+**해결책:** 다단계 팀장 선정 시스템
+```typescript
+interface MemberProfile {
+  // 기존 필드들...
+  
+  // 팀장 관련 (개선됨)
+  leadershipLevel: 'none' | 'interested' | 'experienced' | 'preferred';
+  leadershipExperience: string[];  // 팀장 경험 설명
+  leadershipMotivation: string;    // 팀장 지원 동기
+}
+
+// AI 분석 시 팀장 선정 로직
+interface LeadershipAnalysis {
+  candidates: LeaderCandidate[];
+  selectedLeader: string;
+  selectionReason: string;
+  alternativeLeaders: string[];    // 부팀장 후보
+}
+
+interface LeaderCandidate {
+  memberId: string;
+  memberName: string;
+  leadershipScore: number;        // AI 평가 점수
+  strengths: string[];            // 리더십 장점
+  concerns: string[];             // 우려사항
+  recommendation: 'primary' | 'secondary' | 'not_recommended';
+}
+```
+
+**팀장 선정 우선순위:**
+1. `leadershipLevel: 'preferred'` + 경험 많음
+2. `leadershipLevel: 'experienced'` + 동기 강함  
+3. `leadershipLevel: 'interested'` + 적합성 높음
+4. AI가 팀 구성 보고 최적 후보 추천
+
+**충돌 시 해결:**
+- 여러 명이 'preferred'면 → AI가 프로젝트 특성 고려해서 선정
+- 선정 이유 명시 (예: "Spring Boot 경험이 가장 많아서")
+- 탈락자들에게는 "부팀장" 또는 "기술 리더" 역할 제안
 
 #### **🔄 면담 후 플로우:**
 1. **면담 완료** → 데이터 저장
