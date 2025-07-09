@@ -5,45 +5,83 @@ DevMatch - AI 기반 팀 빌딩 플랫폼 (Next.js 15 + TypeScript + Vercel AI S
 ## 프로젝트 개요
 AI의 도움을 받아 최적의 개발 팀을 구성하는 플랫폼입니다. 사용자가 프로젝트를 생성하면 AI가 팀원 매칭, 역할 분담, 면접 등을 지원합니다.
 
+## ⚠️ **개발 수칙 & 오류 방지 가이드**
+
+### **🔧 기술 스택별 주의사항**
+
+#### **Next.js 15 (App Router)**
+- ✅ **DO**: `"use client"`를 상태/이벤트 핸들러 사용 컴포넌트에만 추가
+- ✅ **DO**: API 라우트는 `route.ts` 파일명 사용 (page.tsx 아님)
+- ✅ **DO**: 동적 라우팅은 `[param]` 폴더 구조 사용
+- ❌ **DON'T**: Server Component에서 `useState`, `useEffect` 사용 금지
+- ❌ **DON'T**: `pages/` 디렉토리 혼용 금지 (App Router 전용)
+
+#### **TypeScript**
+- ✅ **DO**: 모든 props, 함수 파라미터 타입 정의 필수
+- ✅ **DO**: `types/` 폴더의 공통 타입 사용 (중복 정의 금지)
+- ✅ **DO**: API 응답은 반드시 `ApiResponse<T>` 타입 사용
+- ❌ **DON'T**: `any` 타입 사용 금지 (불가피한 경우 `unknown` 사용)
+- ❌ **DON'T**: 타입 단언(as) 남용 금지
+
+#### **Prisma**
+- ✅ **DO**: 스키마 변경 후 반드시 `pnpm prisma generate` 실행
+- ✅ **DO**: 프로덕션 배포 전 `prisma migrate deploy` 실행
+- ✅ **DO**: 관계형 데이터는 `include` 또는 `select` 명시
+- ❌ **DON'T**: `prisma db push` 프로덕션 사용 금지
+- ❌ **DON'T**: 트랜잭션 없이 관련 데이터 동시 수정 금지
+
+#### **NextAuth.js**
+- ✅ **DO**: 모든 보호된 라우트에 미들웨어 적용
+- ✅ **DO**: `SessionProvider`로 전체 앱 wrapping 필수
+- ✅ **DO**: 사용자 세션 확인 후 API 호출
+- ❌ **DON'T**: 클라이언트에서 직접 토큰 관리 금지
+- ❌ **DON'T**: 세션 없이 사용자 데이터 접근 금지
+
+#### **Framer Motion**
+- ✅ **DO**: 페이지 전환 시 일관된 애니메이션 패턴 사용
+- ✅ **DO**: `variants` 객체로 애니메이션 관리
+- ✅ **DO**: 성능을 위해 `layoutId` 적절히 활용
+- ❌ **DON'T**: 과도한 애니메이션으로 성능 저하 금지
+- ❌ **DON'T**: 애니메이션 중첩으로 인한 레이아웃 시프트 방지
+
+#### **Tailwind CSS**
+- ✅ **DO**: 일관된 spacing scale 사용 (4, 8, 16, 24...)
+- ✅ **DO**: zinc 컬러 팔레트 통일 사용
+- ✅ **DO**: 반응형 디자인 모바일 우선 (`md:`, `lg:`)
+- ❌ **DON'T**: 인라인 스타일 또는 직접 CSS 사용 금지
+- ❌ **DON'T**: 임의 값 남용 금지 (`w-[123px]`)
+
+### **🛡️ 필수 검증 체크리스트**
+
+#### **파일 생성/수정 전**
+- [ ] 기존 컴포넌트 재사용 가능한지 확인
+- [ ] 타입 정의 `types/` 폴더에 존재하는지 확인
+- [ ] 유사한 기능 구현체 있는지 검색
+- [ ] 디자인 시스템 일관성 확인
+
+#### **API 구현 시**
+- [ ] 인증 미들웨어 적용 여부 확인
+- [ ] 요청 body 유효성 검증 (Zod 스키마)
+- [ ] 에러 핸들링 및 표준 응답 형식 준수
+- [ ] 데이터베이스 트랜잭션 필요 여부 확인
+
+#### **컴포넌트 개발 시**
+- [ ] Server/Client Component 구분 명확히
+- [ ] props 타입 정의 완료
+- [ ] 에러 바운더리 필요 여부 확인
+- [ ] 접근성 (aria-\*) 속성 추가
+
+#### **배포 전 최종 확인**
+- [ ] TypeScript 컴파일 에러 없음
+- [ ] 린트 에러 없음
+- [ ] 빌드 성공 확인
+- [ ] 환경 변수 설정 완료
+- [ ] 
 ## 개발 명령어
 - `pnpm dev` - 개발 서버 실행
 - `pnpm build` - 빌드 
 - `pnpm lint` - ESLint 검사
 - `pnpm typecheck` - TypeScript 타입 검사
-
-## 현재 상태 (2025-01-08)
-✅ **완료된 기능**:
-- NextAuth.js 세션 관리 (Google/Kakao OAuth)
-- FuzzyText 효과 랜딩 페이지
-- BackgroundPaths 애니메이션 배경
-- Bento Grid 레이아웃 시스템
-- 프로젝트 대시보드 (/projects)
-- 팀원 대기 페이지 (/projects/join/[inviteCode])
-- Vercel AI SDK 기반 채팅 API
-
-🔄 **진행 중**: UI 컴포넌트 통합 및 최적화
-⏳ **대기**: 데이터베이스 연동, 실제 팀 매칭 로직
-
-## 핵심 파일 구조
-
-### UI 컴포넌트
-- `components/ui/bento-grid.tsx` - 메인 카드 레이아웃 시스템
-- `components/ui/background-paths.tsx` - 애니메이션 SVG 배경
-- `components/ui/fuzzy-text.tsx` - 글리치 효과 텍스트
-- `components/ui/auth-options-card.tsx` - 소셜 로그인 버튼
-- `components/ui/shape-landing-hero.tsx` - 랜딩 페이지 메인 컴포넌트
-
-### 페이지 컴포넌트
-- `app/page.tsx` - 랜딩 페이지 (로그인 진입점)
-- `app/projects/page.tsx` - 프로젝트 대시보드 (3개 메인 카드)
-- `app/projects/new/page.tsx` - 새 프로젝트 생성
-- `app/projects/join/[inviteCode]/page.tsx` - 팀원 대기 페이지
-- `app/api/chat/route.ts` - AI 상담 API (Vercel AI SDK)
-
-### 설정 파일
-- `app/providers.tsx` - NextAuth SessionProvider 래퍼
-- `app/layout.tsx` - 전역 레이아웃 및 폰트 설정
-- `types/next-auth.d.ts` - NextAuth 타입 확장
 
 ## 디자인 시스템
 
@@ -105,38 +143,6 @@ KAKAO_CLIENT_SECRET="..."
 OPENAI_API_KEY="..."
 OPENROUTER_API_KEY="..."
 ```
-
-## 우선순위 개발 계획
-
-### 1단계 (즉시 구현 필요)
-- **내 프로젝트 목록 페이지** (`/projects/my-projects`)
-- **프로젝트 상세 페이지** (`/projects/[projectId]`)
-- **팀 빌딩 결과 페이지** (`/projects/[projectId]/team-result`)
-
-### 2단계 (단기 목표)
-- **AI 면접 시스템** (`/projects/[projectId]/interview`)
-- **사용자 프로필 관리** (`/profile`)
-- **데이터베이스 스키마** (PostgreSQL + Prisma)
-
-### 3단계 (중장기 목표)
-- **실시간 팀 매칭** (WebSocket 연동)
-- **프로젝트 관리 도구** (칸반 보드, 일정 관리)
-- **커뮤니티 기능** (프로젝트 쇼케이스, 네트워킹)
-
-## 학습 가이드
-- 사용자가 단계별로 학습하면서 프로젝트 완성
-- 각 구현 단계별 상세 설명 제공
-- 실제 프로덕션 수준의 코드 품질 유지
-- 최신 웹 개발 트렌드 및 베스트 프랙티스 적용
-
-## 참고 자료
-- **Next.js 15 문서**: App Router, Server Components
-- **Vercel AI SDK**: 채팅 및 AI 통합
-- **Framer Motion**: 애니메이션 구현
-- **Tailwind CSS**: 스타일링 시스템
-- **Radix UI**: 접근성 우선 컴포넌트
-
----
 
 이 문서는 DevMatch 프로젝트의 현재 상태와 개발 방향을 정리한 것입니다. 
 모든 구현은 실제 서비스 배포 수준의 품질을 목표로 합니다.

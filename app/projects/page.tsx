@@ -1,5 +1,8 @@
 "use client";
 
+import { useSession } from "next-auth/react";
+import { useRouter } from "next/navigation";
+import { useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import ProjectCard from "@/app/components/project/ProjectCard";
@@ -9,7 +12,26 @@ import { motion } from "framer-motion";
 import { Plus, Users, Target, Bot, Rocket } from "lucide-react";
 
 const ProjectsPage = () => {
-  // isModalOpen 상태는 더 이상 필요하지 않으므로 제거
+  const { data: session, status } = useSession();
+  const router = useRouter();
+
+  // 로그인 확인
+  useEffect(() => {
+    if (status === "loading") return; // 로딩 중이면 대기
+    if (!session) {
+      router.push("/"); // 로그인 안 되어 있으면 홈페이지로
+      return;
+    }
+  }, [session, status, router]);
+
+  // 로딩 중이거나 로그인 안 된 상태면 로딩 표시
+  if (status === "loading" || !session) {
+    return (
+      <div className="min-h-screen bg-zinc-950 flex items-center justify-center">
+        <div className="text-white">로딩 중...</div>
+      </div>
+    );
+  }
 
   // 임시 프로젝트 데이터 (나중에 API에서 받아올 예정)
   const projects = [

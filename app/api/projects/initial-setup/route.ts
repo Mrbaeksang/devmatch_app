@@ -22,13 +22,20 @@ export async function POST(req: Request) {
     const body = await req.json();
     console.log('Received project setup request:', JSON.stringify(body, null, 2));
     
+    // 데이터 검증 전 디버깅
+    console.log('projectName:', body.projectName);
+    console.log('projectGoal:', body.projectGoal);
+    console.log('consultationData:', body.consultationData);
+    
     const validation = projectSetupSchema.safeParse(body);
 
     if (!validation.success) {
       console.error('Validation failed:', validation.error.errors);
+      console.error('Received data that failed validation:', body);
       return NextResponse.json({ 
         message: 'Validation failed',
-        errors: validation.error.errors 
+        errors: validation.error.errors,
+        receivedData: body
       }, { status: 400 });
     }
 
@@ -37,9 +44,10 @@ export async function POST(req: Request) {
     const newProject = await db.project.create({
       data: {
         name: projectName,
+        description: projectGoal, // description 필드 추가
         goal: projectGoal,
         ownerId: session.user.id,
-        status: 'PENDING',
+        status: 'RECRUITING', // PENDING 대신 RECRUITING 사용
         consultationData: consultationData,
       },
     });

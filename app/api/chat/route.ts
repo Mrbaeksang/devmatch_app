@@ -1,6 +1,7 @@
 import { createOpenRouter } from '@openrouter/ai-sdk-provider';
 import { generateText } from 'ai';
 import { NextResponse } from 'next/server';
+import { ConsultationData } from '@/types/chat';
 
 // 상담 단계 Enum
 enum ConsultationStep {
@@ -9,18 +10,6 @@ enum ConsultationStep {
   TEAM_STRUCTURE_PROPOSAL = 'TEAM_STRUCTURE_PROPOSAL',
   SUMMARY_CONFIRMATION = 'SUMMARY_CONFIRMATION',
   COMPLETED = 'COMPLETED',
-}
-
-// 상담 데이터 인터페이스
-interface ConsultationData {
-  userName?: string;
-  projectName?: string;
-  projectGoal?: string;
-  techStack?: string[];
-  mainFeatures?: string[];
-  communicationSkills?: string[];
-  teamMembersCount?: number;
-  aiSuggestedRoles?: Array<{ role: string; count: number; note?: string }>;
 }
 
 // AI 응답 인터페이스
@@ -71,27 +60,30 @@ const getSystemPrompt = (currentStep: ConsultationStep, consultationData: Consul
       if (consultationData.projectName) collectedInfo.push('프로젝트명');
       if (consultationData.projectGoal) collectedInfo.push('프로젝트 목표');
       if (consultationData.techStack?.length) collectedInfo.push('기술 스택');
-      if (consultationData.mainFeatures?.length) collectedInfo.push('핵심 기능');
+      if (consultationData.projectDuration || consultationData.duration) collectedInfo.push('프로젝트 기간');
       if (consultationData.teamMembersCount) collectedInfo.push('팀원 수');
 
       return `${basePrompt}
 
-현재 단계: 프로젝트 정보 수집
+현재 단계: 프로젝트 정보 수집 (핵심 정보만)
 이미 수집된 정보: ${collectedInfo.join(', ') || '없음'}
 사용자 이름: ${consultationData.userName || '미수집'}
 
-수집 순서:
-1. 프로젝트명 → 2. 프로젝트 목표 → 3. 기술 스택 → 4. 핵심 기능 → 5. 예상 팀원 수
+수집 순서 (총 6가지):
+1. 프로젝트명 → 2. 프로젝트 목표 → 3. 기술 스택 → 4. 프로젝트 기간 → 5. 예상 팀원 수
 
 다음 질문을 결정하고 자연스럽게 대화하세요:
 - 이미 수집된 정보는 다시 묻지 마세요
 - 사용자 답변에 공감하며 다음 질문으로 이어가세요
-- 기술 스택이나 기능은 쉼표로 구분된 배열로 저장하세요
+- 기술 스택은 쉼표로 구분된 배열로 저장하세요 (techStack 필드)
+- 프로젝트 기간은 duration 또는 projectDuration 필드에 저장하세요
+- 팀원 수는 teamMembersCount 필드에 숫자로 저장하세요
 
-모든 정보가 수집되면:
-- 수집된 정보를 바탕으로 현실적인 팀 구조를 제안하세요
-- aiSuggestedRoles에 역할별 인원을 제안하세요
-- nextStep을 "TEAM_STRUCTURE_PROPOSAL"로 설정하세요`;
+모든 정보(6가지)가 수집되면:
+- 수집된 정보를 자연스럽게 요약하세요
+- "이제 프로젝트를 생성하실 수 있어요!" 라고 안내하세요
+- nextStep을 "SUMMARY_CONFIRMATION"로 설정하세요
+- isConsultationComplete를 true로 설정하세요`;
     }
 
     case ConsultationStep.TEAM_STRUCTURE_PROPOSAL:
@@ -215,8 +207,8 @@ export async function POST(req: Request) {
         maxTokens: 1000,
       });
       text = result.text;
-    } catch (error: any) {
-      if (error.message?.includes('rate limit') || error.message?.includes('Rate limit')) {
+    } catch (error: unknown) {
+      if (error instanceof Error && (error.message?.includes('rate limit') || error.message?.includes('Rate limit'))) {
         // 2차 시도: DeepSeek R1 (보조 모델)
         try {
           const fallbackResult = await generateText({
@@ -227,7 +219,7 @@ export async function POST(req: Request) {
             maxTokens: 1000,
           });
           text = fallbackResult.text;
-        } catch (fallbackError: any) {
+        } catch {
           // 3차 시도: 에러 메시지
           throw new Error('AI 서비스가 일시적으로 이용할 수 없습니다. 잠시 후 다시 시도해주세요.');
         }

@@ -64,6 +64,7 @@ export async function POST(req: Request) {
     const project = await db.project.create({
       data: {
         name,
+        description: goal, // description 필드 추가
         goal,
         ownerId: session.user.id,
         members: {

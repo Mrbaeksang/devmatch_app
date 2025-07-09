@@ -8,10 +8,10 @@ import { db } from "./db";
 export const authOptions: NextAuthOptions = {
   adapter: PrismaAdapter(db),
   session: {
-    strategy: "jwt",
+    strategy: "database", // JWT → database로 변경
   },
   pages: {
-    signIn: "/auth",
+    signIn: "/", // 홈페이지로 변경
   },
   providers: [
     GoogleProvider({
@@ -24,20 +24,15 @@ export const authOptions: NextAuthOptions = {
     }),
   ],
   callbacks: {
-    async session({ token, session }) {
-      if (token && session.user) {
-        session.user.id = token.sub as string; // 핵심 변경: token.id → token.sub
-        session.user.name = token.name;
-        session.user.email = token.email;
-        session.user.image = token.picture;
+    async session({ session, user }) {
+      // database strategy에서는 user 객체를 직접 사용
+      if (user && session.user) {
+        session.user.id = user.id;
+        session.user.name = user.name;
+        session.user.email = user.email;
+        session.user.image = user.image;
       }
       return session;
-    },
-    async jwt({ token, user }) {
-      if (user) {
-        token.sub = user.id; // 핵심 변경: user.id를 token.sub에 저장
-      }
-      return token;
     },
      async redirect({ url, baseUrl }) {
       console.log("==============================================");

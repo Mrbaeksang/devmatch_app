@@ -4,24 +4,36 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
+import { ConsultationData } from "@/types/chat";
 
+import { BackgroundPaths } from "@/components/ui/background-paths";
+import { 
+  ChatBubble, 
+  ChatBubbleAvatar, 
+  ChatBubbleMessage 
+} from "@/components/ui/chat-bubble";
+import { ChatInput } from "@/components/ui/chat-input";
+import { ChatMessageList } from "@/components/ui/chat-message-list";
+import {
+  ExpandableChat,
+  ExpandableChatHeader,
+  ExpandableChatBody,
+  ExpandableChatFooter,
+} from "@/components/ui/expandable-chat";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Progress } from "@/components/ui/progress";
+import { ProjectModal, useProjectModal } from "@/components/ui/project-modal";
 import { 
-  Bot, 
-  User, 
   Loader2, 
-  CheckCircle2, 
   Send,
   Sparkles,
   MessageSquare,
-  RefreshCw,
-  AlertCircle
+  CheckCircle2,
+  AlertCircle,
+  RefreshCw
 } from "lucide-react";
 
 // 상담 단계 정의
@@ -33,17 +45,6 @@ enum ConsultationStep {
   COMPLETED = 'COMPLETED',
 }
 
-// 상담 데이터 타입
-interface ConsultationData {
-  userName?: string;
-  projectName?: string;
-  projectGoal?: string;
-  techStack?: string[];
-  mainFeatures?: string[];
-  communicationSkills?: string[];
-  teamMembersCount?: number;
-  aiSuggestedRoles?: Array<{ role: string; count: number; note?: string }>;
-}
 
 // 메시지 타입
 interface Message {
@@ -74,15 +75,16 @@ const TypingMessage = ({ content, onComplete }: { content: string; onComplete: (
   return <>{displayedContent}</>;
 };
 
-// 프로그레스 계산 함수
+// 프로그레스 계산 함수 (핵심 6단계)
 const calculateProgress = (data: ConsultationData): number => {
-  const totalSteps = 5;
+  const totalSteps = 6;
   let completedSteps = 0;
 
   if (data.userName) completedSteps++;
   if (data.projectName) completedSteps++;
   if (data.projectGoal) completedSteps++;
   if (data.techStack && data.techStack.length > 0) completedSteps++;
+  if (data.projectDuration || data.duration) completedSteps++; // 프로젝트 기간
   if (data.teamMembersCount) completedSteps++;
 
   return (completedSteps / totalSteps) * 100;
@@ -104,8 +106,10 @@ export default function NewProjectPage() {
   const [consultationData, setConsultationData] = useState<ConsultationData>({});
   const [isConsultationComplete, setIsConsultationComplete] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [createdProject, setCreatedProject] = useState<any>(null);
+  const [isCreatingProject, setIsCreatingProject] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const chatContainerRef = useRef<HTMLDivElement>(null);
+  const { isOpen: isModalOpen, openModal, closeModal } = useProjectModal();
 
   // 자동 스크롤
   const scrollToBottom = useCallback(() => {
@@ -158,13 +162,13 @@ export default function NewProjectPage() {
         throw new Error(data.error);
       }
 
-      // 타이핑 중인 메시지 추가
+      // AI 응답 메시지 추가
       const assistantMessage: Message = {
         id: Date.now().toString(),
         role: 'assistant',
         content: data.message,
         timestamp: new Date(),
-        isTyping: true,
+        isTyping: false,
       };
 
       setMessages(prev => [...prev, assistantMessage]);
@@ -217,11 +221,15 @@ export default function NewProjectPage() {
     }
   };
 
-  // 프로젝트 생성
-  const handleCreateProject = async () => {
+  // 프로젝트 생성 모달 열기
+  const handleShowProjectModal = () => {
+    openModal();
+  };
+
+  // 실제 프로젝트 생성 API 호출
+  const handleConfirmCreateProject = async () => {
+    setIsCreatingProject(true);
     try {
-      toast.loading("프로젝트를 생성하는 중...");
-      
       const response = await fetch('/api/projects/initial-setup', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -235,118 +243,83 @@ export default function NewProjectPage() {
       if (!response.ok) throw new Error('프로젝트 생성 실패');
 
       const newProject = await response.json();
+      setCreatedProject(newProject);
       toast.success("프로젝트가 생성되었습니다!");
-      router.push(`/projects/${newProject.id}`);
+      
+      // 팀원 모집 페이지로 이동
+      router.push(`/projects/join/${newProject.inviteCode}`);
     } catch (error) {
       toast.error(error instanceof Error ? error.message : '프로젝트 생성 중 오류가 발생했습니다.');
+    } finally {
+      setIsCreatingProject(false);
     }
   };
 
   const progress = calculateProgress(consultationData);
 
   return (
-    <div className="h-screen flex flex-col bg-gradient-to-b from-background to-muted/20">
-      {/* 헤더 */}
-      <motion.div 
-        initial={{ y: -20, opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
-        className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60"
-      >
-        <div className="flex h-16 items-center px-4 md:px-6">
-          <div className="flex items-center space-x-2">
-            <Sparkles className="h-5 w-5 md:h-6 md:w-6 text-primary animate-pulse" />
-            <h1 className="text-lg md:text-xl font-semibold bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
-              AI 프로젝트 컨설팅
-            </h1>
-          </div>
-          <div className="ml-auto flex items-center space-x-2">
-            <Progress value={progress} className="w-20 md:w-32 h-2" />
-            <Badge variant="secondary" className="text-xs">
-              {Math.round(progress)}%
-            </Badge>
-          </div>
-        </div>
-      </motion.div>
+    <div className="relative min-h-screen w-full bg-zinc-950 font-inter">
+      {/* Background */}
+      <div className="absolute inset-0">
+        <BackgroundPaths title="" />
+      </div>
 
-      {/* 채팅 영역 - 고정 높이 */}
-      <div className="flex-1 overflow-hidden flex flex-col">
-        <div 
-          ref={chatContainerRef}
-          className="flex-1 overflow-y-auto px-4 md:px-6 py-4"
-        >
-          <div className="max-w-3xl mx-auto space-y-3">
-            <AnimatePresence mode="popLayout">
-              {messages.map((message) => (
-                <motion.div
-                  key={message.id}
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -10 }}
-                  className={`flex items-start gap-3 ${
-                    message.role === 'user' ? 'flex-row-reverse' : ''
-                  }`}
+      <div className="relative z-10 h-screen flex items-center justify-center p-4">
+        <div className="w-full max-w-4xl h-full bg-zinc-900/50 backdrop-blur border border-zinc-800 rounded-lg overflow-hidden flex flex-col">
+          {/* 헤더 - ExpandableChat 스타일 */}
+          <ExpandableChatHeader className="flex items-center justify-between p-4 border-b border-zinc-800">
+            <motion.div 
+              initial={{ y: -20, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              className="flex items-center space-x-2"
+            >
+              <Sparkles className="h-5 w-5 md:h-6 md:w-6 text-blue-500 animate-pulse" />
+              <h1 className="text-lg md:text-xl font-semibold text-white">
+                AI 프로젝트 컨설팅
+              </h1>
+            </motion.div>
+            <div className="flex items-center space-x-2">
+              <Progress value={progress} className="w-20 md:w-32 h-2" />
+              <Badge variant="secondary" className="text-xs">
+                {Math.round(progress)}%
+              </Badge>
+            </div>
+          </ExpandableChatHeader>
+
+          {/* 채팅 영역 - ExpandableChat Body */}
+          <ExpandableChatBody>
+            <ChatMessageList className="h-full">
+            {messages.map((message) => (
+              <ChatBubble
+                key={message.id}
+                variant={message.role === 'user' ? 'sent' : 'received'}
+              >
+                <ChatBubbleAvatar
+                  src={message.role === 'user' 
+                    ? undefined 
+                    : undefined
+                  }
+                  fallback={message.role === 'user' ? 'YOU' : 'AI'}
+                />
+                <ChatBubbleMessage
+                  variant={message.role === 'user' ? 'sent' : 'received'}
+                  isLoading={message.isTyping}
                 >
-                  <Avatar className="h-8 w-8 border-2 border-primary/10">
-                    <AvatarFallback className={message.role === 'user' ? 'bg-primary text-primary-foreground' : 'bg-muted'}>
-                      {message.role === 'user' ? (
-                        <User className="h-4 w-4" />
-                      ) : (
-                        <Bot className="h-4 w-4" />
-                      )}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div className={`max-w-[80%] ${message.role === 'user' ? 'text-right' : ''}`}>
-                    <Card className={`${
-                      message.role === 'user'
-                        ? 'bg-primary text-primary-foreground border-primary'
-                        : 'bg-card/50 backdrop-blur'
-                    } shadow-sm`}>
-                      <CardContent className="p-3 md:p-4">
-                        <p className="text-sm leading-relaxed whitespace-pre-wrap">
-                          {message.isTyping ? (
-                            <TypingMessage 
-                              content={message.content} 
-                              onComplete={() => handleTypingComplete(message.id)}
-                            />
-                          ) : (
-                            message.content
-                          )}
-                        </p>
-                      </CardContent>
-                    </Card>
-                    <p className="text-xs text-muted-foreground mt-1 px-1">
-                      {message.timestamp.toLocaleTimeString('ko-KR', { 
-                        hour: '2-digit', 
-                        minute: '2-digit' 
-                      })}
-                    </p>
+                  <div className="whitespace-pre-wrap">
+                    {message.content}
                   </div>
-                </motion.div>
-              ))}
-            </AnimatePresence>
+                </ChatBubbleMessage>
+              </ChatBubble>
+            ))}
 
             {/* 로딩 인디케이터 */}
             {isLoading && (
-              <motion.div
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="flex items-start gap-3"
-              >
-                <Avatar className="h-8 w-8 border-2 border-primary/10">
-                  <AvatarFallback className="bg-muted">
-                    <Bot className="h-4 w-4" />
-                  </AvatarFallback>
-                </Avatar>
-                <Card className="bg-card/50 backdrop-blur shadow-sm">
-                  <CardContent className="p-3 md:p-4">
-                    <div className="flex items-center gap-2">
-                      <Loader2 className="h-4 w-4 animate-spin text-primary" />
-                      <span className="text-sm text-muted-foreground">AI가 응답 중...</span>
-                    </div>
-                  </CardContent>
-                </Card>
-              </motion.div>
+              <ChatBubble variant="received">
+                <ChatBubbleAvatar fallback="AI" />
+                <ChatBubbleMessage variant="received" isLoading />
+              </ChatBubble>
             )}
+
 
             {/* 에러 메시지 */}
             {error && (
@@ -412,7 +385,7 @@ export default function NewProjectPage() {
                     </div>
                     <Separator />
                     <Button 
-                      onClick={handleCreateProject} 
+                      onClick={handleShowProjectModal} 
                       className="w-full" 
                       size="lg"
                     >
@@ -425,50 +398,101 @@ export default function NewProjectPage() {
             )}
 
             <div ref={messagesEndRef} />
-          </div>
-        </div>
+            </ChatMessageList>
+          </ExpandableChatBody>
 
-        {/* 입력 영역 */}
-        {!isConsultationComplete && (
-          <motion.div 
-            initial={{ y: 20, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            className="border-t bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60"
-          >
-            <div className="p-4 md:p-6 max-w-3xl mx-auto">
-              <form onSubmit={handleSubmit} className="flex items-end gap-2">
-                <div className="flex-1">
-                  <Input
-                    value={input}
-                    onChange={(e) => setInput(e.target.value)}
-                    placeholder="메시지를 입력하세요..."
-                    disabled={isLoading}
-                    className="min-h-[48px] resize-none bg-background/50"
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter' && !e.shiftKey) {
-                        e.preventDefault();
-                        handleSubmit(e);
-                      }
-                    }}
-                  />
+          {/* 입력 영역 - demo.tsx 스타일 */}
+          {!isConsultationComplete && (
+            <ExpandableChatFooter>
+              <motion.div 
+                initial={{ y: 20, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                className="p-4"
+              >
+              <form 
+                onSubmit={handleSubmit}
+                className="relative rounded-lg border bg-background focus-within:ring-1 focus-within:ring-ring p-1"
+              >
+                <ChatInput
+                  value={input}
+                  onChange={(e) => setInput(e.target.value)}
+                  placeholder="메시지를 입력하세요..."
+                  disabled={isLoading}
+                  className="min-h-12 resize-none rounded-lg bg-background border-0 p-3 shadow-none focus-visible:ring-0"
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                      e.preventDefault();
+                      handleSubmit(e);
+                    }
+                  }}
+                />
+                <div className="flex items-center p-3 pt-0 justify-end">
+                  <Button 
+                    type="submit" 
+                    disabled={isLoading || !input.trim()} 
+                    size="sm" 
+                    className="ml-auto gap-1.5"
+                  >
+                    {isLoading ? (
+                      <>
+                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                        AI 응답 중...
+                      </>
+                    ) : (
+                      <>
+                        메시지 전송
+                        <Send className="h-3.5 w-3.5" />
+                      </>
+                    )}
+                  </Button>
                 </div>
-                <Button 
-                  type="submit" 
-                  disabled={isLoading || !input.trim()} 
-                  size="lg"
-                  className="h-12 px-4"
-                >
-                  {isLoading ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <Send className="h-4 w-4" />
-                  )}
-                </Button>
               </form>
-            </div>
-          </motion.div>
-        )}
+              </motion.div>
+            </ExpandableChatFooter>
+          )}
+        </div>
       </div>
+
+      {/* 프로젝트 생성 확인 모달 */}
+      <ProjectModal
+        isOpen={isModalOpen}
+        onClose={closeModal}
+        title={`🚀 ${consultationData.projectName || '새 프로젝트'} 생성하기`}
+        description="AI가 분석한 프로젝트 정보를 확인하고 팀원을 모집해보세요!"
+        infoCards={[
+          {
+            icon: "👥",
+            label: "팀원 수",
+            value: `${consultationData.teamMembersCount || 4}명`
+          },
+          {
+            icon: "⏰",
+            label: "예상 기간",
+            value: consultationData.projectDuration || consultationData.duration || "미정"
+          },
+          {
+            icon: "🛠️",
+            label: "기술 스택",
+            value: Array.isArray(consultationData.techStack) 
+              ? consultationData.techStack.slice(0, 3).join(", ")
+              : consultationData.techStack || "미정"
+          },
+          {
+            icon: "🎯",
+            label: "프로젝트 목표",
+            value: consultationData.projectGoal?.slice(0, 20) + "..." || "목표 설정 중"
+          }
+        ]}
+        primaryAction={{
+          label: isCreatingProject ? "생성 중..." : "프로젝트 생성 및 팀원 모집",
+          onClick: handleConfirmCreateProject,
+          loading: isCreatingProject
+        }}
+        secondaryAction={{
+          label: "취소",
+          onClick: () => closeModal()
+        }}
+      />
     </div>
   );
 }
