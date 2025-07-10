@@ -17,16 +17,22 @@ export async function POST(
 
     const { projectId } = await params;
 
-    // 프로젝트 소유자 확인
+    // 프로젝트 확인 (소유자 개념 제거됨)
     const project = await db.project.findUnique({
       where: {
-        id: projectId,
-        ownerId: session.user.id,
+        id: projectId
       },
+      include: {
+        members: {
+          where: {
+            userId: session.user.id
+          }
+        }
+      }
     });
 
-    if (!project) {
-      return new NextResponse('Project not found or you are not the owner', { status: 404 });
+    if (!project || project.members.length === 0) {
+      return new NextResponse('Project not found or you are not a member', { status: 404 });
     }
 
     // 고유한 초대 코드 생성

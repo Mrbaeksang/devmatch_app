@@ -347,16 +347,16 @@ export default function ProjectPage() {
                   </CardHeader>
                   <CardContent>
                     <p className="text-zinc-300 mb-4">{project.description}</p>
-                    {project.blueprint?.techStack && typeof project.blueprint.techStack === 'object' && (
+                    {project.blueprint && typeof project.blueprint === 'object' && (project.blueprint as any).techStack && typeof (project.blueprint as any).techStack === 'object' && (
                       <div className="space-y-2">
                         {/* Frontend */}
-                        {(project.blueprint.techStack as any)?.frontend && (
+                        {((project.blueprint as any).techStack as any)?.frontend && (
                           <div>
                             <span className="text-blue-400 text-xs font-medium">Frontend: </span>
                             {[
-                              ...((project.blueprint.techStack as any).frontend.languages || []),
-                              ...((project.blueprint.techStack as any).frontend.frameworks || []),
-                              ...((project.blueprint.techStack as any).frontend.tools || [])
+                              ...(((project.blueprint as any).techStack as any).frontend.languages || []),
+                              ...(((project.blueprint as any).techStack as any).frontend.frameworks || []),
+                              ...(((project.blueprint as any).techStack as any).frontend.tools || [])
                             ].map((tech: string) => (
                               <Badge key={tech} variant="outline" className="text-xs mr-1 mb-1 bg-blue-600/10 text-blue-300 border-blue-600/30">
                                 {tech}
@@ -366,13 +366,13 @@ export default function ProjectPage() {
                         )}
                         
                         {/* Backend */}
-                        {(project.blueprint.techStack as any)?.backend && (
+                        {((project.blueprint as any).techStack as any)?.backend && (
                           <div>
                             <span className="text-green-400 text-xs font-medium">Backend: </span>
                             {[
-                              ...((project.blueprint.techStack as any).backend.languages || []),
-                              ...((project.blueprint.techStack as any).backend.frameworks || []),
-                              ...((project.blueprint.techStack as any).backend.tools || [])
+                              ...(((project.blueprint as any).techStack as any).backend.languages || []),
+                              ...(((project.blueprint as any).techStack as any).backend.frameworks || []),
+                              ...(((project.blueprint as any).techStack as any).backend.tools || [])
                             ].map((tech: string) => (
                               <Badge key={tech} variant="outline" className="text-xs mr-1 mb-1 bg-green-600/10 text-green-300 border-green-600/30">
                                 {tech}
@@ -382,12 +382,12 @@ export default function ProjectPage() {
                         )}
                         
                         {/* Collaboration */}
-                        {(project.blueprint.techStack as any)?.collaboration && (
+                        {((project.blueprint as any).techStack as any)?.collaboration && (
                           <div>
                             <span className="text-yellow-400 text-xs font-medium">협업: </span>
                             {[
-                              ...((project.blueprint.techStack as any).collaboration.git || []),
-                              ...((project.blueprint.techStack as any).collaboration.tools || [])
+                              ...(((project.blueprint as any).techStack as any).collaboration.git || []),
+                              ...(((project.blueprint as any).techStack as any).collaboration.tools || [])
                             ].map((tech: string) => (
                               <Badge key={tech} variant="outline" className="text-xs mr-1 mb-1 bg-yellow-600/10 text-yellow-300 border-yellow-600/30">
                                 {tech}

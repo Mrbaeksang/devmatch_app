@@ -64,13 +64,12 @@ export async function POST(req: Request) {
     const project = await db.project.create({
       data: {
         name,
-        description: goal, // description 필드 추가
-        goal,
-        ownerId: session.user.id,
-        techStack: [], // 기본값 설정
+        description: goal,
+        techStack: {}, // 빈 객체로 초기화
         members: {
           create: {
             userId: session.user.id,
+            interviewStatus: 'PENDING'
           },
         },
       },

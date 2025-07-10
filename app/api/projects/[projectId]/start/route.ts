@@ -48,9 +48,7 @@ export async function POST(
     const updatedProject = await db.project.update({
       where: { id: projectId },
       data: {
-        status: 'ACTIVE',
-        startedAt: new Date(),
-        interviewPhase: 'COMPLETED'
+        status: 'ACTIVE'
       }
     });
 
@@ -66,8 +64,7 @@ export async function POST(
       project: {
         id: updatedProject.id,
         name: updatedProject.name,
-        status: updatedProject.status,
-        startedAt: updatedProject.startedAt
+        status: updatedProject.status
       },
       message: '프로젝트가 시작되었습니다.'
     });

@@ -96,7 +96,6 @@ export async function POST(req: Request) {
       await db.project.update({
         where: { id: projectId },
         data: {
-          interviewPhase: 'COMPLETED',
           status: 'ANALYZING'
         }
       });

@@ -213,9 +213,9 @@ export async function POST(
 
     const systemPrompt = getAnalysisPrompt({
       name: project.name,
-      goal: project.goal,
+      goal: project.description,
       techStack: project.techStack as string[] | undefined,
-      maxMembers: project.maxMembers,
+      maxMembers: project.teamSize,
       blueprint: project.blueprint ? {
         aiSuggestedRoles: (project.blueprint as Record<string, unknown>)?.aiSuggestedRoles as Array<{ roleName: string; count: number; description: string }> || []
       } : undefined
@@ -288,8 +288,7 @@ export async function POST(
       where: { id: projectId },
       data: {
         teamAnalysis: JSON.parse(JSON.stringify(analysisResult.teamAnalysis)),
-        status: 'ACTIVE',
-        interviewPhase: 'COMPLETED'
+        status: 'ACTIVE'
       }
     });
 
@@ -301,7 +300,8 @@ export async function POST(
           await db.projectMember.update({
             where: { id: member.id },
             data: {
-              roleAssignment: JSON.parse(JSON.stringify(assignment))
+              role: assignment.assignedRole,
+              memberProfile: JSON.parse(JSON.stringify(assignment))
             }
           });
         }
