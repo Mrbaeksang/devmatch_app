@@ -22,7 +22,8 @@
       "Bash(pnpm tsc:*)",
       "Bash(rm:*)",
       "Bash(mkdir:*)",
-      "Bash(mv:*)"
+      "Bash(mv:*)",
+      "Bash(git rm:*)"
     ],
     "deny": []
   }

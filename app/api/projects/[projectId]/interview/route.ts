@@ -37,7 +37,7 @@ interface InterviewResponse {
 
 // 면담 시스템 프롬프트 생성 (데피 스타일 적용)
 const createInterviewPrompt = (
-  projectInfo: { name: string; goal: string; techStack: unknown },
+  projectInfo: { name: string; goal: string; techStack: unknown; techStackStructure?: any },
   memberInfo: { name: string },
   conversationHistory: Array<{role: string; content: string}>,
   userInput: string,
@@ -216,7 +216,7 @@ export async function POST(req: Request) {
       name: project.name,
       goal: project.goal,
       techStack: techStackArray,
-      techStackStructure: project.techStack // 원본 구조도 함께 전달
+      techStackStructure: project.techStack as any // 원본 구조도 함께 전달
     };
 
     // 멤버 정보 구성

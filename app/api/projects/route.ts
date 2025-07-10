@@ -67,6 +67,7 @@ export async function POST(req: Request) {
         description: goal, // description 필드 추가
         goal,
         ownerId: session.user.id,
+        techStack: [], // 기본값 설정
         members: {
           create: {
             userId: session.user.id,

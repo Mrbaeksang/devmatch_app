@@ -214,7 +214,7 @@ export async function POST(
     const systemPrompt = getAnalysisPrompt({
       name: project.name,
       goal: project.goal,
-      techStack: project.techStack,
+      techStack: project.techStack as string[] | undefined,
       maxMembers: project.maxMembers,
       blueprint: project.blueprint ? {
         aiSuggestedRoles: (project.blueprint as Record<string, unknown>)?.aiSuggestedRoles as Array<{ roleName: string; count: number; description: string }> || []
