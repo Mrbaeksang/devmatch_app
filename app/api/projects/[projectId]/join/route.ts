@@ -16,13 +16,6 @@ export async function GET(
     const project = await db.project.findUnique({
       where: { id: projectId },
       include: {
-        owner: {
-          select: {
-            id: true,
-            name: true,
-            email: true
-          }
-        },
         members: {
           include: {
             user: {
@@ -54,30 +47,27 @@ export async function GET(
       id: member.id,
       name: member.user.nickname || member.user.name,
       avatar: member.user.avatar,
-      interviewCompleted: member.interviewCompleted,
       joinedAt: member.joinedAt,
       userId: member.user.id,
       interviewStatus: member.interviewStatus,
-      canStartInterview: member.interviewCompleted && member.interviewStatus === 'PENDING',
+      canStartInterview: member.interviewStatus === 'PENDING',
       memberProfile: member.memberProfile,
-      roleAssignment: member.roleAssignment
+      role: member.role
     }));
 
     // 프로젝트 정보 반환
     const projectData = {
       id: project.id,
       name: project.name,
-      goal: project.goal,
+      description: project.description,
       status: project.status,
       inviteCode: project.inviteCode,
-      maxMembers: project.maxMembers,
-      createdBy: project.owner.id,
-      interviewData: project.interviewData,
+      teamSize: project.teamSize,
+      techStack: project.techStack,
       blueprint: project.blueprint,
       teamAnalysis: project.teamAnalysis,
       members: members,
-      createdAt: project.createdAt,
-      interviewPhase: project.interviewPhase
+      createdAt: project.createdAt
     };
 
     // 현재 사용자 정보 변환
@@ -87,13 +77,13 @@ export async function GET(
         id: currentUser.id,
         name: currentUser.user.nickname || currentUser.user.name,
         avatar: currentUser.user.avatar,
-        interviewCompleted: currentUser.interviewCompleted,
         joinedAt: currentUser.joinedAt,
         userId: currentUser.user.id,
         interviewStatus: currentUser.interviewStatus,
-        canStartInterview: currentUser.interviewCompleted && currentUser.interviewStatus === 'PENDING',
+        canStartInterview: currentUser.interviewStatus === 'PENDING',
         memberProfile: currentUser.memberProfile,
-        roleAssignment: currentUser.roleAssignment
+        role: currentUser.role,
+        user: currentUser.user
       };
     }
 
@@ -147,7 +137,7 @@ export async function POST(
     }
 
     // 최대 인원 확인
-    if (project.members.length >= project.maxMembers) {
+    if (project.members.length >= project.teamSize) {
       return NextResponse.json({ message: '프로젝트가 가득 찼습니다.' }, { status: 400 });
     }
 
@@ -156,9 +146,7 @@ export async function POST(
       data: {
         projectId: project.id,
         userId: session.user.id,
-        interviewCompleted: false,
-        interviewStatus: 'PENDING',
-        role: 'member'
+        interviewStatus: 'PENDING'
       }
     });
 

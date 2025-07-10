@@ -40,7 +40,6 @@ import {
 interface TeamMemberExtended {
   id: string;
   name: string;
-  consultationCompleted: boolean;
   interviewStatus: InterviewStatus;
   memberProfile?: MemberProfile;
   roleAssignment?: RoleAssignment;
@@ -52,11 +51,10 @@ interface TeamMemberExtended {
 interface ProjectExtended {
   id: string;
   name: string;
-  goal: string;
+  description: string;
   status: ProjectStatus;
   inviteCode: string;
-  maxMembers: number;
-  createdBy: string;
+  teamSize: number;
   blueprint?: unknown;
   teamAnalysis?: TeamAnalysis;
   members: TeamMemberExtended[];
@@ -88,11 +86,10 @@ export default function AnalysisPage() {
       const mockProject: ProjectExtended = {
         id: projectId,
         name: 'DevMatch AI 플랫폼',
-        goal: 'AI 기반 팀 빌딩 플랫폼 개발',
+        description: 'AI 기반 팀 빌딩 플랫폼 개발',
         status: ProjectStatus.ACTIVE,
         inviteCode: 'ABC123',
-        maxMembers: 4,
-        createdBy: 'user1',
+        teamSize: 4,
         blueprint: {
           aiSuggestedRoles: [
             { roleName: '백엔드 개발자', count: 2, description: 'API 및 데이터베이스 설계' },
@@ -119,7 +116,6 @@ export default function AnalysisPage() {
           {
             id: '1',
             name: '김개발',
-            consultationCompleted: true,
             interviewStatus: InterviewStatus.COMPLETED,
             memberProfile: {
               memberId: '1',
@@ -159,7 +155,6 @@ export default function AnalysisPage() {
           {
             id: '2',
             name: '박프론트',
-            consultationCompleted: true,
             interviewStatus: InterviewStatus.COMPLETED,
             memberProfile: {
               memberId: '2',
@@ -199,7 +194,6 @@ export default function AnalysisPage() {
           {
             id: '3',
             name: '이백엔드',
-            consultationCompleted: true,
             interviewStatus: InterviewStatus.COMPLETED,
             memberProfile: {
               memberId: '3',
@@ -239,7 +233,6 @@ export default function AnalysisPage() {
           {
             id: '4',
             name: '최테스트',
-            consultationCompleted: true,
             interviewStatus: InterviewStatus.COMPLETED,
             memberProfile: {
               memberId: '4',

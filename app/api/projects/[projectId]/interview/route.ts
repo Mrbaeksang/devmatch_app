@@ -138,9 +138,9 @@ export async function POST(req: Request) {
       where: { id: projectId },
       select: {
         name: true,
-        goal: true,
+        description: true,
         techStack: true,
-        interviewData: true
+        blueprint: true
       }
     });
 
@@ -215,7 +215,7 @@ export async function POST(req: Request) {
 
     const projectInfo = {
       name: project.name,
-      goal: project.goal,
+      goal: project.description,
       techStack: techStackArray,
       techStackStructure: project.techStack as any // 원본 구조도 함께 전달
     };
