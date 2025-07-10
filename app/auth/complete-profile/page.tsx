@@ -238,7 +238,7 @@ export default function CompleteProfilePage() {
                   type="text"
                   value={formData.nickname}
                   onChange={(e) => handleNicknameChange(e.target.value)}
-                  placeholder="3-15자의 닉네임을 입력하세요"
+                  placeholder="2-15자의 닉네임을 입력하세요"
                   className={`w-full px-4 py-3 bg-zinc-800 border rounded-lg text-white placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-blue-500 ${
                     errors.nickname ? 'border-red-500' : 'border-zinc-700'
                   }`}

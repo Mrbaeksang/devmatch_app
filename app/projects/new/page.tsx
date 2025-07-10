@@ -217,7 +217,7 @@ export default function NewProjectPage() {
   
   // 오토스크롤용 ref
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
 
   // 채팅 히스토리 변경 시 자동 스크롤
   useEffect(() => {
@@ -415,16 +415,16 @@ export default function NewProjectPage() {
 
           {/* 입력 영역 */}
           <div className="p-4 border-t border-zinc-800">
-            <div className="flex gap-2">
-              <input
+            <div className="flex gap-2 items-end">
+              <textarea
                 ref={inputRef}
-                type="text"
                 value={userInput}
                 onChange={(e) => setUserInput(e.target.value)}
                 onKeyDown={handleKeyPress}
-                placeholder="메시지를 입력하세요..."
+                placeholder="메시지를 입력하세요... (Shift+Enter로 줄바꿈, Enter로 전송)"
                 disabled={isLoading}
-                className="flex-1 px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-lg text-white placeholder-zinc-400 focus:outline-none focus:border-blue-500 text-base"
+                rows={2}
+                className="flex-1 px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-lg text-white placeholder-zinc-400 focus:outline-none focus:border-blue-500 text-base resize-none min-h-[3rem] max-h-32"
               />
               <Button
                 onClick={sendMessage}
