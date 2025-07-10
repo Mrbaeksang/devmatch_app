@@ -41,13 +41,9 @@ export interface TeamMember {
   projectId: string;
   userId: string;
   joinedAt: Date;
-  consultationCompleted: boolean;
-  isActive: boolean;
-  role?: string | null;
-  consultationData?: unknown;  // Json 타입
-  memberProfile?: unknown;  // Json 타입
-  interviewStatus: InterviewStatus;
-  roleAssignment?: unknown;  // Json 타입
+  interviewStatus: InterviewStatus;  // 통합된 면담 상태
+  memberProfile?: MemberProfile;     // 면담 결과
+  role?: string | null;              // 최종 배정 역할
   user?: {
     id: string;
     name: string | null;
@@ -156,27 +152,14 @@ export interface MemberProfile {
 export interface Project {
   id: string;
   name: string;
-  description: string;
-  goal: string;
+  description: string;  // goal과 description 통합
   status: ProjectStatus;
-  progress: number;
   inviteCode: string;
-  maxMembers: number;
-  createdBy?: string;  // ownerId의 별칭
-  ownerId: string;
-  owner?: {
-    id: string;
-    name: string | null;
-    email?: string | null;
-  };
+  teamSize: number;     // maxMembers → teamSize
   members: TeamMember[];
-  techStack: string[];
-  consultationData?: unknown;  // Json 타입
-  blueprint?: unknown;  // Json 타입
-  teamAnalysis?: unknown;  // Json 타입 
-  aiAnalysis?: unknown;  // Json 타입
-  interviewPhase: InterviewPhase;
-  startedAt?: Date | null;
+  techStack: unknown;   // Json 타입 (3-category 구조)
+  blueprint?: ProjectBlueprint;    // AI 상담 결과
+  teamAnalysis?: TeamAnalysis;     // 최종 분석 결과
   createdAt: Date;
   updatedAt: Date;
 }
@@ -187,8 +170,8 @@ export interface Project {
 export interface CreateProjectData {
   name: string;
   description: string;
-  consultationData: ConsultationData;
-  maxMembers?: number;
+  blueprint: ProjectBlueprint;
+  teamSize?: number;
 }
 
 /**
@@ -198,8 +181,7 @@ export interface UpdateProjectData {
   name?: string;
   description?: string;
   status?: ProjectStatus;
-  progress?: number;
-  maxMembers?: number;
+  teamSize?: number;
 }
 
 /**
