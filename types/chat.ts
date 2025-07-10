@@ -205,13 +205,13 @@ export interface ChatSearchParams {
 }
 
 // ======================
-// AI 상담 관련 타입들
+// AI 면담 관련 타입들
 // ======================
 
 /**
- * AI 상담 단계 (7단계 완전 플로우)
+ * AI 면담 단계 (7단계 완전 플로우)
  */
-export enum ConsultationStep {
+export enum InterviewStep {
   NAME_COLLECTION = 'NAME_COLLECTION',
   PROJECT_INFO_COLLECTION = 'PROJECT_INFO_COLLECTION',
   ADDITIONAL_QUESTIONS = 'ADDITIONAL_QUESTIONS',    // 추가 질문 상호작용
@@ -222,9 +222,9 @@ export enum ConsultationStep {
 }
 
 /**
- * AI 상담 데이터 (통합 버전)
+ * AI 면담 데이터 (통합 버전)
  */
-export interface ConsultationData {
+export interface InterviewData {
   // 기본 정보 (6개 필드)
   userName?: string;
   projectName?: string;
@@ -247,9 +247,9 @@ export interface ConsultationData {
 }
 
 /**
- * AI 상담 메시지
+ * AI 면담 메시지
  */
-export interface ConsultationMessage {
+export interface InterviewMessage {
   id: string;
   type: 'user' | 'ai';
   content: string;
@@ -261,7 +261,18 @@ export interface ConsultationMessage {
  */
 export interface AIResponse {
   displayMessage?: string;
-  nextStep?: ConsultationStep;
-  consultationData?: ConsultationData;
-  isConsultationComplete?: boolean;
+  nextStep?: InterviewStep;
+  interviewData?: InterviewData;
+  isInterviewComplete?: boolean;
 }
+
+// 하위 호환성을 위한 별칭 (legacy support)
+/** @deprecated Use InterviewStep instead */
+export const ConsultationStep = InterviewStep;
+export type ConsultationStep = InterviewStep;
+
+/** @deprecated Use InterviewData instead */
+export type ConsultationData = InterviewData;
+
+/** @deprecated Use InterviewMessage instead */
+export type ConsultationMessage = InterviewMessage;

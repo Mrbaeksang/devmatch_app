@@ -68,7 +68,7 @@ export default function InterviewPage() {
         const response = await fetch(`/api/projects/${projectId}`);
         if (response.ok) {
           const data = await response.json();
-          const currentMember = data.project?.members?.find(
+          const currentMember = data.members?.find(
             (m: any) => m.id === memberId
           );
           
@@ -177,10 +177,7 @@ export default function InterviewPage() {
       if (data.isComplete) {
         setIsComplete(true);
         toast.success('면담이 완료되었습니다!');
-        // 2초 후 자동으로 이전 페이지로 이동
-        setTimeout(() => {
-          router.back();
-        }, 2000);
+        // 자동 리다이렉트 제거 - 사용자가 직접 확인 후 이동하도록 변경
       }
 
     } catch {
@@ -202,9 +199,14 @@ export default function InterviewPage() {
     }
   };
 
-  // 뒤로가기
+  // 뒤로가기 (면담 완료 후에는 강제 새로고침)
   const handleGoBack = () => {
-    router.back();
+    if (isComplete) {
+      // 면담 완료 후에는 프로젝트 페이지로 직접 이동 (강제 새로고침)
+      router.push(`/projects/${projectId}?refresh=${Date.now()}`);
+    } else {
+      router.back();
+    }
   };
 
   return (
@@ -305,7 +307,7 @@ export default function InterviewPage() {
           </div>
 
           {/* 입력 영역 */}
-          {!isComplete && (
+          {!isComplete ? (
             <div className="p-4 border-t border-zinc-800">
               <div className="flex gap-2 items-end">
                 <textarea
@@ -328,6 +330,23 @@ export default function InterviewPage() {
                   ) : (
                     <Send className="h-4 w-4" />
                   )}
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <div className="p-6 border-t border-zinc-800 bg-green-500/5">
+              <div className="text-center">
+                <div className="text-green-500 text-xl mb-3">✅</div>
+                <h3 className="text-white font-bold text-lg mb-2">면담이 완료되었습니다!</h3>
+                <p className="text-zinc-400 mb-4">
+                  수집된 정보를 바탕으로 최적의 역할 분배가 진행됩니다.
+                </p>
+                <Button 
+                  onClick={handleGoBack}
+                  className="w-full text-lg font-bold py-3 bg-gradient-to-r from-green-600 to-green-500 hover:from-green-700 hover:to-green-600 transition-all duration-200"
+                >
+                  <ArrowLeft className="w-5 h-5 mr-2" />
+                  프로젝트로 돌아가기
                 </Button>
               </div>
             </div>

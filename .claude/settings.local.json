@@ -23,7 +23,11 @@
       "Bash(rm:*)",
       "Bash(mkdir:*)",
       "Bash(mv:*)",
-      "Bash(git rm:*)"
+      "Bash(git rm:*)",
+      "WebFetch(domain:openrouter.ai)",
+      "Bash(pnpm prisma migrate dev:*)",
+      "Bash(pnpm prisma migrate reset:*)",
+      "Bash(pnpm prisma:*)"
     ],
     "deny": []
   }

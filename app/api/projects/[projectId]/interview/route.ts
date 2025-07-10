@@ -56,6 +56,7 @@ const createInterviewPrompt = (
 - workStyles: ["스타일1", "스타일2"] (최소 2개 스타일)
 
 **3. 대화 원칙 (Conversation Principles):**
+- **중요: 절대 사용자에게 JSON 형태로 직접 보여주지 마세요. 항상 자연스러운 대화로 응답하세요.**
 - **목표 지향적 면담:** 당신의 유일한 임무는 최종 목표 JSON의 빈칸을 채우는 것입니다. '현재 수집된 정보'를 보고, 아직 채워지지 않은 정보를 자연스럽게 질문하세요. 정해진 순서는 없습니다.
 - **정보 저장 필수:** 사용자가 제공한 모든 정보를 즉시 memberProfile에 저장하세요. 예시:
   - "React 3점 정도요" → {"skillScores": {"React": 3}}
@@ -139,7 +140,7 @@ export async function POST(req: Request) {
         name: true,
         goal: true,
         techStack: true,
-        consultationData: true
+        interviewData: true
       }
     });
 
@@ -229,7 +230,7 @@ export async function POST(req: Request) {
 
     // AI 응답 생성
     const result = await generateText({
-      model: openrouter('google/gemini-2.0-flash-001'),
+      model: openrouter('deepseek/deepseek-chat:free'),
       messages: [{ role: 'user', content: prompt }],
       temperature: 0.7,
       maxTokens: 1000,

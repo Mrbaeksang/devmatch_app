@@ -32,7 +32,9 @@ export async function GET(
               select: {
                 id: true,
                 name: true,
-                email: true
+                email: true,
+                nickname: true,
+                avatar: true
               }
             }
           }
@@ -68,14 +70,14 @@ export async function GET(
       members: project.members.map(member => ({
         id: member.id,
         role: member.role,
-        consultationCompleted: member.consultationCompleted,
+        interviewCompleted: member.interviewCompleted,
         interviewStatus: member.interviewStatus,
         joinedAt: member.joinedAt,
         user: member.user,
         memberProfile: member.memberProfile,
         roleAssignment: member.roleAssignment
       })),
-      consultationData: project.consultationData,
+      interviewData: project.interviewData,
       blueprint: project.blueprint,
       teamAnalysis: project.teamAnalysis
     });

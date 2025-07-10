@@ -101,7 +101,7 @@ model Project {
   interviewPhase    InterviewPhase @default(PENDING)
   
   // AI 관련 데이터 (확장됨)
-  consultationData  Json?         // 기존 상담 데이터
+  interviewData     Json?         // 기본 프로젝트 정보
   blueprint         Json?         // ProjectBlueprint 저장
   teamAnalysis      Json?         // TeamAnalysis 저장
   techStack         Json
@@ -131,10 +131,10 @@ model ProjectMember {
   joinedAt               DateTime @default(now())
   
   // 팀원 상태 정보 (확장됨)
-  consultationCompleted  Boolean         @default(false)
+  interviewCompleted    Boolean         @default(false)
   isActive              Boolean         @default(true)
   role                  String?
-  consultationData      Json?           // 기존 상담 데이터
+  interviewData         Json?           // 기본 프로젝트 정보
   memberProfile         Json?           // MemberProfile 저장
   interviewStatus       InterviewStatus @default(PENDING)
   roleAssignment        Json?           // RoleAssignment 저장

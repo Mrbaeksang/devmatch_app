@@ -54,11 +54,11 @@ export async function GET(
       id: member.id,
       name: member.user.nickname || member.user.name,
       avatar: member.user.avatar,
-      consultationCompleted: member.consultationCompleted,
+      interviewCompleted: member.interviewCompleted,
       joinedAt: member.joinedAt,
       userId: member.user.id,
       interviewStatus: member.interviewStatus,
-      canStartInterview: member.consultationCompleted && member.interviewStatus === 'PENDING',
+      canStartInterview: member.interviewCompleted && member.interviewStatus === 'PENDING',
       memberProfile: member.memberProfile,
       roleAssignment: member.roleAssignment
     }));
@@ -72,7 +72,7 @@ export async function GET(
       inviteCode: project.inviteCode,
       maxMembers: project.maxMembers,
       createdBy: project.owner.id,
-      consultationData: project.consultationData,
+      interviewData: project.interviewData,
       blueprint: project.blueprint,
       teamAnalysis: project.teamAnalysis,
       members: members,
@@ -87,11 +87,11 @@ export async function GET(
         id: currentUser.id,
         name: currentUser.user.nickname || currentUser.user.name,
         avatar: currentUser.user.avatar,
-        consultationCompleted: currentUser.consultationCompleted,
+        interviewCompleted: currentUser.interviewCompleted,
         joinedAt: currentUser.joinedAt,
         userId: currentUser.user.id,
         interviewStatus: currentUser.interviewStatus,
-        canStartInterview: currentUser.consultationCompleted && currentUser.interviewStatus === 'PENDING',
+        canStartInterview: currentUser.interviewCompleted && currentUser.interviewStatus === 'PENDING',
         memberProfile: currentUser.memberProfile,
         roleAssignment: currentUser.roleAssignment
       };
@@ -156,7 +156,7 @@ export async function POST(
       data: {
         projectId: project.id,
         userId: session.user.id,
-        consultationCompleted: false,
+        interviewCompleted: false,
         interviewStatus: 'PENDING',
         role: 'member'
       }
