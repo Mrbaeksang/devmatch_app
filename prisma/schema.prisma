@@ -1,5 +1,3 @@
-// prisma/schema.prisma
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -17,37 +15,33 @@ model User {
   image            String?
   createdAt        DateTime          @default(now())
   updatedAt        DateTime          @updatedAt
-  
-  // 확장된 프로필 정보
-  nickname         String?           @unique  // 사용자 닉네임 (3-15자, 고유값)
-  avatar           String?                    // 아바타 이미지 URL 또는 식별자
-  bio              String?                    // 자기소개 (최대 100자)
-  isCompleted      Boolean           @default(false)  // 프로필 완성 여부
-  
+  nickname         String?           @unique
+  avatar           String?
+  bio              String?
+  isCompleted      Boolean           @default(false)
   accounts         Account[]
-  sessions         Session[]
-  projects         ProjectMember[]
-  interviewAnswers InterviewAnswer[]
   chatMessages     ChatMessage[]
+  interviewAnswers InterviewAnswer[]
+  projects         ProjectMember[]
   recommendedRoles RecommendedRole[]
+  sessions         Session[]
 }
 
 model Account {
-  id                        String    @id @default(cuid())
-  userId                    String
-  type                      String
-  provider                  String
-  providerAccountId         String
-  refresh_token             String?   @db.Text
-  access_token              String?   @db.Text
-  expires_at                Int?
-  token_type                String?
-  scope                     String?
-  id_token                  String?   @db.Text
-  session_state             String?
-  refresh_token_expires_in  Int?      // <-- 이 줄을 추가합니다.
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id                       String  @id @default(cuid())
+  userId                   String
+  type                     String
+  provider                 String
+  providerAccountId        String
+  refresh_token            String?
+  access_token             String?
+  expires_at               Int?
+  token_type               String?
+  scope                    String?
+  id_token                 String?
+  session_state            String?
+  refresh_token_expires_in Int?
+  user                     User    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([provider, providerAccountId])
 }
@@ -60,75 +54,44 @@ model Session {
   user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
-enum ProjectStatus {
-  RECRUITING // 팀원 모집 중
-  INTERVIEWING // 개별 면담 진행 중
-  ANALYZING // AI 분석 중
-  ACTIVE // 프로젝트 진행 중
-  COMPLETED // 프로젝트 완료
-  PAUSED // 일시 정지
-}
-
-enum InterviewPhase {
-  PENDING // 면담 대기
-  IN_PROGRESS // 면담 진행 중
-  COMPLETED // 면담 완료
-}
-
-enum InterviewStatus {
-  PENDING // 면담 대기
-  IN_PROGRESS // 면담 진행 중
-  COMPLETED // 면담 완료
-}
-
 model Project {
-  id          String   @id @default(cuid())
-  name        String
-  description String   @db.Text  // goal과 description 통합
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  // 프로젝트 상태 및 설정 (간소화)
-  status            ProjectStatus @default(RECRUITING)
-  teamSize          Int           @default(4)  // maxMembers → teamSize
-  inviteCode        String        @unique @default(cuid())
-  
-  // AI 관련 데이터 (정리됨)
-  blueprint         Json?         // AI 상담 결과 (기존 interviewData 역할)
-  teamAnalysis      Json?         // 모든 면담 완료 후 최종 분석
-  techStack         Json
-
-  // 관계
-  members          ProjectMember[]
-  roles            Role[]
-  inviteLinks      InviteLink[]
+  id               String            @id @default(cuid())
+  name             String
+  description      String
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+  status           ProjectStatus     @default(RECRUITING)
+  inviteCode       String            @unique @default(cuid())
+  blueprint        Json?
+  teamAnalysis     Json?
+  techStack        Json
+  teamSize         Int               @default(4)
   chatMessages     ChatMessage[]
+  inviteLinks      InviteLink[]
+  members          ProjectMember[]
   recommendedRoles RecommendedRole[]
+  roles            Role[]
 }
 
 model Role {
   id               String            @id @default(cuid())
   projectId        String
   name             String
-  description      String?           @db.Text
-  project          Project           @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  description      String?
   recommendedRoles RecommendedRole[]
+  project          Project           @relation(fields: [projectId], references: [id], onDelete: Cascade)
 }
 
 model ProjectMember {
-  id                     String   @id @default(cuid())
-  projectId              String
-  userId                 String
-  joinedAt               DateTime @default(now())
-  
-  // 팀원 상태 정보 (간소화)
-  interviewStatus       InterviewStatus @default(PENDING)  // 통합된 면담 상태
-  memberProfile         Json?           // 면담 결과 저장
-  role                  String?         // 최종 배정 역할
-  
-  // 관계
-  project               Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  user                  User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id              String          @id @default(cuid())
+  projectId       String
+  userId          String
+  joinedAt        DateTime        @default(now())
+  role            String?
+  memberProfile   Json?
+  interviewStatus InterviewStatus @default(PENDING)
+  project         Project         @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  user            User            @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([projectId, userId])
 }
@@ -144,7 +107,7 @@ model InviteLink {
 
 model InterviewQuestion {
   id       String            @id @default(cuid())
-  question String            @db.Text
+  question String
   order    Int
   answers  InterviewAnswer[]
 }
@@ -153,10 +116,10 @@ model InterviewAnswer {
   id         String            @id @default(cuid())
   userId     String
   questionId String
-  answer     String            @db.Text
+  answer     String
   createdAt  DateTime          @default(now())
-  user       User              @relation(fields: [userId], references: [id], onDelete: Cascade)
   question   InterviewQuestion @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  user       User              @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, questionId])
 }
@@ -166,30 +129,49 @@ model RecommendedRole {
   projectId String
   userId    String
   roleId    String
-  reason    String?  @db.Text
+  reason    String?
   createdAt DateTime @default(now())
   project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   role      Role     @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([projectId, userId])
+}
+
+model ChatMessage {
+  id        String      @id @default(cuid())
+  projectId String
+  userId    String?
+  content   String
+  type      MessageType @default(USER)
+  createdAt DateTime    @default(now())
+  project   Project     @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  user      User?       @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+enum ProjectStatus {
+  RECRUITING
+  INTERVIEWING
+  ANALYZING
+  ACTIVE
+  COMPLETED
+  PAUSED
+}
+
+enum InterviewPhase {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+}
+
+enum InterviewStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
 }
 
 enum MessageType {
   USER
   SYSTEM
   AI
-}
-
-model ChatMessage {
-  id        String      @id @default(cuid())
-  projectId String
-  userId    String?     // nullable for system messages
-  content   String      @db.Text
-  type      MessageType @default(USER)
-  createdAt DateTime    @default(now())
-  
-  // 관계
-  project   Project     @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  user      User?       @relation(fields: [userId], references: [id], onDelete: Cascade)
 }

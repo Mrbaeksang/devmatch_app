@@ -190,8 +190,8 @@ export default function ProjectPage() {
     if (!project || project.members.length === 0) return 0;
     const detailedInterviewCompleted = project.members.filter(m => m.interviewStatus === InterviewStatus.COMPLETED).length;
     
-    // 면담 완료 기준으로 계산
-    return (detailedInterviewCompleted / project.members.length) * 100;
+    // 전체 팀 규모 기준으로 계산 (현재 참여 인원이 아닌 목표 인원 기준)
+    return (detailedInterviewCompleted / project.teamSize) * 100;
   };
 
   // 면담 시작 함수
@@ -522,20 +522,6 @@ export default function ProjectPage() {
                       >
                         <MessageSquare className="w-5 h-5 mr-2" />
                         🎯 개인 면담 시작하기
-                      </Button>
-                    </CardContent>
-                  </Card>
-                ) : currentUser && currentUser.interviewStatus === InterviewStatus.PENDING && currentUser.canStartInterview ? (
-                  <Card className="border-blue-500/20 bg-blue-500/5">
-                    <CardContent className="p-6 text-center">
-                      <MessageSquare className="h-12 w-12 text-blue-500 mx-auto mb-4" />
-                      <h3 className="text-white font-semibold mb-2">면담을 시작해주세요</h3>
-                      <p className="text-zinc-400 mb-4">
-                        팀 구성을 위한 개인 면담을 진행해주세요.
-                      </p>
-                      <Button onClick={() => startInterview(currentUser.id)} className="w-full">
-                        <MessageSquare className="w-4 h-4 mr-2" />
-                        면담 시작하기
                       </Button>
                     </CardContent>
                   </Card>
