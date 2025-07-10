@@ -441,17 +441,6 @@ export default function ProjectPage() {
                           </div>
                           <div className="flex items-center gap-2">
                             {renderInterviewBadge(member)}
-                            {member.interviewStatus === InterviewStatus.PENDING && 
-                             member.canStartInterview && 
-                             currentUser?.user.id === member.user.id && (
-                              <Button 
-                                size="sm" 
-                                onClick={() => startInterview(member.id)}
-                                className="ml-2"
-                              >
-                                면담 시작
-                              </Button>
-                            )}
                           </div>
                         </div>
                       ))}
