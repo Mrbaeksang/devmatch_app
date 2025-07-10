@@ -37,7 +37,6 @@ interface TeamMember {
   id: string;
   name: string;
   avatar?: string;
-  interviewCompleted: boolean;
   joinedAt: Date;
   userId?: string;
   interviewStatus: InterviewStatus;
@@ -54,13 +53,11 @@ interface TeamMember {
 interface Project {
   id: string;
   name: string;
-  goal: string;
+  description: string;  // goal → description
   status: ProjectStatus;
   inviteCode: string;
-  maxMembers: number;
-  createdBy: string;
-  interviewData: InterviewData;
-  blueprint?: unknown;
+  teamSize: number;     // maxMembers → teamSize
+  blueprint?: unknown;  // interviewData → blueprint
   members: TeamMember[];
   createdAt: Date;
 }
@@ -188,17 +185,13 @@ export default function ProjectPage() {
     }
   };
 
-  // 진행률 계산 (설정 완료 + 면담 완료)
+  // 진행률 계산 (면담 완료 기준)
   const calculateProgress = () => {
     if (!project || project.members.length === 0) return 0;
-    const interviewCompleted = project.members.filter(m => m.interviewCompleted).length;
     const detailedInterviewCompleted = project.members.filter(m => m.interviewStatus === InterviewStatus.COMPLETED).length;
     
-    // 현재 참여한 팀원 수 기준으로 계산 (기본 면담 50% + 상세 면담 50%)
-    const basicInterviewProgress = (interviewCompleted / project.members.length) * 50;
-    const detailedInterviewProgress = (detailedInterviewCompleted / project.members.length) * 50;
-    
-    return basicInterviewProgress + detailedInterviewProgress;
+    // 면담 완료 기준으로 계산
+    return (detailedInterviewCompleted / project.members.length) * 100;
   };
 
   // 면담 시작 함수
@@ -213,15 +206,6 @@ export default function ProjectPage() {
 
   // 면담 상태 배지 렌더링
   const renderInterviewBadge = (member: TeamMember) => {
-    if (!member.interviewCompleted) {
-      return (
-        <Badge variant="outline" className="text-zinc-500">
-          <Clock className="w-3 h-3 mr-1" />
-          설정 대기
-        </Badge>
-      );
-    }
-
     switch (member.interviewStatus) {
       case InterviewStatus.COMPLETED:
         return (
@@ -296,11 +280,9 @@ export default function ProjectPage() {
   }
 
   const progress = calculateProgress();
-  const completedMembers = project.members.filter(m => m.interviewCompleted).length;
   const interviewCompletedMembers = project.members.filter(m => m.interviewStatus === InterviewStatus.COMPLETED).length;
   const isUserInProject = project.members.some(m => m.user.id === currentUser?.user.id);
-  const allBasicInterviewCompleted = project.members.length === project.maxMembers && completedMembers === project.maxMembers;
-  const allDetailedInterviewCompleted = interviewCompletedMembers === project.maxMembers;
+  const allInterviewCompleted = interviewCompletedMembers === project.teamSize;
 
   return (
     <div className="relative min-h-screen w-full bg-zinc-950 font-inter">
@@ -325,10 +307,7 @@ export default function ProjectPage() {
                   {project.name}
                 </h1>
                 <p className="text-sm text-zinc-400">
-                  {allBasicInterviewCompleted ? 
-                    (allDetailedInterviewCompleted ? '팀 구성 완료' : '면담 진행 중') : 
-                    '팀원 모집 중'
-                  }
+                  {allInterviewCompleted ? '팀 구성 완료' : '팀원 모집 중'}
                 </p>
               </div>
             </motion.div>
@@ -342,7 +321,7 @@ export default function ProjectPage() {
                   </Badge>
                 </div>
                 <div className="text-xs text-zinc-500 mt-1">
-                  설정: {completedMembers}/{project.maxMembers} | 면담: {interviewCompletedMembers}/{project.maxMembers}
+                  면담 완료: {interviewCompletedMembers}/{project.teamSize}
                 </div>
               </div>
             </div>
@@ -366,17 +345,17 @@ export default function ProjectPage() {
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <p className="text-zinc-300 mb-4">{project.goal}</p>
-                    {project.interviewData?.techStack && typeof project.interviewData.techStack === 'object' && (
+                    <p className="text-zinc-300 mb-4">{project.description}</p>
+                    {project.blueprint?.techStack && typeof project.blueprint.techStack === 'object' && (
                       <div className="space-y-2">
                         {/* Frontend */}
-                        {(project.interviewData.techStack as any)?.frontend && (
+                        {(project.blueprint.techStack as any)?.frontend && (
                           <div>
                             <span className="text-blue-400 text-xs font-medium">Frontend: </span>
                             {[
-                              ...((project.interviewData.techStack as any).frontend.languages || []),
-                              ...((project.interviewData.techStack as any).frontend.frameworks || []),
-                              ...((project.interviewData.techStack as any).frontend.tools || [])
+                              ...((project.blueprint.techStack as any).frontend.languages || []),
+                              ...((project.blueprint.techStack as any).frontend.frameworks || []),
+                              ...((project.blueprint.techStack as any).frontend.tools || [])
                             ].map((tech: string) => (
                               <Badge key={tech} variant="outline" className="text-xs mr-1 mb-1 bg-blue-600/10 text-blue-300 border-blue-600/30">
                                 {tech}
@@ -386,13 +365,13 @@ export default function ProjectPage() {
                         )}
                         
                         {/* Backend */}
-                        {(project.interviewData.techStack as any)?.backend && (
+                        {(project.blueprint.techStack as any)?.backend && (
                           <div>
                             <span className="text-green-400 text-xs font-medium">Backend: </span>
                             {[
-                              ...((project.interviewData.techStack as any).backend.languages || []),
-                              ...((project.interviewData.techStack as any).backend.frameworks || []),
-                              ...((project.interviewData.techStack as any).backend.tools || [])
+                              ...((project.blueprint.techStack as any).backend.languages || []),
+                              ...((project.blueprint.techStack as any).backend.frameworks || []),
+                              ...((project.blueprint.techStack as any).backend.tools || [])
                             ].map((tech: string) => (
                               <Badge key={tech} variant="outline" className="text-xs mr-1 mb-1 bg-green-600/10 text-green-300 border-green-600/30">
                                 {tech}
@@ -402,12 +381,12 @@ export default function ProjectPage() {
                         )}
                         
                         {/* Collaboration */}
-                        {(project.interviewData.techStack as any)?.collaboration && (
+                        {(project.blueprint.techStack as any)?.collaboration && (
                           <div>
                             <span className="text-yellow-400 text-xs font-medium">협업: </span>
                             {[
-                              ...((project.interviewData.techStack as any).collaboration.git || []),
-                              ...((project.interviewData.techStack as any).collaboration.tools || [])
+                              ...((project.blueprint.techStack as any).collaboration.git || []),
+                              ...((project.blueprint.techStack as any).collaboration.tools || [])
                             ].map((tech: string) => (
                               <Badge key={tech} variant="outline" className="text-xs mr-1 mb-1 bg-yellow-600/10 text-yellow-300 border-yellow-600/30">
                                 {tech}
@@ -431,7 +410,7 @@ export default function ProjectPage() {
                   <CardHeader>
                     <CardTitle className="text-white flex items-center gap-2">
                       <Users className="h-5 w-5" />
-                      팀원 현황 ({project.members.length}/{project.maxMembers})
+                      팀원 현황 ({project.members.length}/{project.teamSize})
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
@@ -461,8 +440,7 @@ export default function ProjectPage() {
                           </div>
                           <div className="flex items-center gap-2">
                             {renderInterviewBadge(member)}
-                            {member.interviewCompleted && 
-                             member.interviewStatus === InterviewStatus.PENDING && 
+                            {member.interviewStatus === InterviewStatus.PENDING && 
                              member.canStartInterview && 
                              currentUser?.user.id === member.user.id && (
                               <Button 
@@ -478,7 +456,7 @@ export default function ProjectPage() {
                       ))}
                       
                       {/* 빈 슬롯 표시 */}
-                      {Array.from({ length: project.maxMembers - project.members.length }).map((_, index) => (
+                      {Array.from({ length: project.teamSize - project.members.length }).map((_, index) => (
                         <div key={`empty-${index}`} className="flex items-center justify-between p-3 bg-zinc-800/30 rounded-lg border-2 border-dashed border-zinc-700">
                           <div className="flex items-center gap-3">
                             <div className="w-10 h-10 bg-zinc-800 rounded-full flex items-center justify-center">
@@ -529,7 +507,7 @@ export default function ProjectPage() {
                       </Button>
                     </CardContent>
                   </Card>
-                ) : currentUser && !currentUser.interviewCompleted ? (
+                ) : currentUser && currentUser.interviewStatus === InterviewStatus.PENDING ? (
                   <Card className="border-emerald-500/20 bg-emerald-500/5">
                     <CardContent className="p-6 text-center">
                       <Clock className="h-12 w-12 text-emerald-500 mx-auto mb-4" />
@@ -546,7 +524,7 @@ export default function ProjectPage() {
                       </Button>
                     </CardContent>
                   </Card>
-                ) : currentUser && currentUser.interviewCompleted && currentUser.interviewStatus === InterviewStatus.PENDING && currentUser.canStartInterview ? (
+                ) : currentUser && currentUser.interviewStatus === InterviewStatus.PENDING && currentUser.canStartInterview ? (
                   <Card className="border-blue-500/20 bg-blue-500/5">
                     <CardContent className="p-6 text-center">
                       <MessageSquare className="h-12 w-12 text-blue-500 mx-auto mb-4" />
@@ -566,12 +544,12 @@ export default function ProjectPage() {
                       <CheckCircle2 className="h-12 w-12 text-green-500 mx-auto mb-4" />
                       <h3 className="text-white font-semibold mb-2">면담 완료!</h3>
                       <p className="text-zinc-400 mb-4">
-                        {allDetailedInterviewCompleted ? 
+                        {allInterviewCompleted ? 
                           '모든 팀원의 면담이 완료되었습니다. 곧 팀 분석 결과를 확인할 수 있습니다.' :
                           '다른 팀원들의 면담 완료를 기다리고 있습니다.'
                         }
                       </p>
-                      {allDetailedInterviewCompleted && (
+                      {allInterviewCompleted && (
                         <Button 
                           onClick={() => router.push(`/projects/${project.id}/analysis`)}
                           className="w-full mb-4 text-lg font-bold py-4 bg-gradient-to-r from-green-600 to-green-500 hover:from-green-700 hover:to-green-600 transition-all duration-200 transform hover:scale-[1.02]"
@@ -592,10 +570,7 @@ export default function ProjectPage() {
                       <Clock className="h-12 w-12 text-amber-500 mx-auto mb-4" />
                       <h3 className="text-white font-semibold mb-2">대기 중</h3>
                       <p className="text-zinc-400 mb-4">
-                        {!allBasicInterviewCompleted ? 
-                          '모든 팀원의 설정이 완료되면 면담을 시작할 수 있습니다.' :
-                          '면담 순서를 기다리고 있습니다.'
-                        }
+                        면담 순서를 기다리고 있습니다.
                       </p>
                       <div className="flex items-center justify-center gap-2 text-sm text-zinc-500">
                         <RefreshCw className="w-4 h-4 animate-spin" />

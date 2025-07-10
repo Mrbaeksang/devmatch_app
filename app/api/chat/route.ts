@@ -222,28 +222,12 @@ async function createProject(finalData: {
   const project = await db.project.create({
     data: {
       name: finalData.projectName,
-      description: finalData.projectGoal,
-      goal: finalData.projectGoal,
-      ownerId: userId,
+      description: finalData.projectGoal,  // goal 제거, description으로 통합
       status: 'RECRUITING',
       inviteCode,
-      maxMembers: finalData.teamSize,
+      teamSize: finalData.teamSize,        // maxMembers → teamSize
       techStack: JSON.parse(JSON.stringify(finalData.techStack)),
       blueprint: {
-        creatorName: '',
-        projectName: finalData.projectName,
-        projectDescription: finalData.projectGoal,
-        techStack: JSON.parse(JSON.stringify(finalData.techStack)),
-        projectType: 'web-application',
-        complexity: 'intermediate',
-        duration: finalData.duration,
-        requirements: [],
-        goals: [finalData.projectGoal],
-        teamSize: finalData.teamSize,
-        preferredRoles: [],
-        aiSuggestedRoles: []
-      },
-      interviewData: {
         projectName: finalData.projectName,
         projectGoal: finalData.projectGoal,
         teamSize: finalData.teamSize,
@@ -260,8 +244,7 @@ async function createProject(finalData: {
       projectId: project.id,
       userId,
       role: 'owner',
-      interviewCompleted: false,
-      interviewStatus: 'PENDING'
+      interviewStatus: 'PENDING'  // interviewCompleted 제거, 통합됨
     }
   });
 
