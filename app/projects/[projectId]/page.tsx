@@ -213,6 +213,7 @@ export default function ProjectPage() {
             <CheckCircle2 className="w-3 h-3 mr-1" />
             면담 완료
           </Badge>
+          
         );
       case InterviewStatus.IN_PROGRESS:
         return (
