@@ -75,6 +75,26 @@ export interface RoleSuggestion {
 }
 
 /**
+ * 기술 스택 3-category 구조 타입 정의
+ */
+export interface TechStackStructure {
+  frontend?: {
+    languages?: string[];
+    frameworks?: string[];
+    tools?: string[];
+  };
+  backend?: {
+    languages?: string[];
+    frameworks?: string[];
+    tools?: string[];
+  };
+  collaboration?: {
+    git?: string[];
+    tools?: string[];
+  };
+}
+
+/**
  * 프로젝트 청사진 (새로운 설계)
  */
 export interface ProjectBlueprint {
@@ -84,7 +104,7 @@ export interface ProjectBlueprint {
   projectDescription: string;    // 상세 설명
 
   // 기술 정보
-  techStack: string[];          // 기술 스택 배열
+  techStack: string[] | TechStackStructure;  // 기술 스택 (배열 또는 3-category)
   projectType: string;          // 프로젝트 유형 (웹앱, 모바일 등)
   complexity: 'beginner' | 'intermediate' | 'advanced';
 
@@ -157,7 +177,7 @@ export interface Project {
   inviteCode: string;
   teamSize: number;     // maxMembers → teamSize
   members: TeamMember[];
-  techStack: unknown;   // Json 타입 (3-category 구조)
+  techStack: string[] | TechStackStructure;  // 타입 안정성 개선
   blueprint?: ProjectBlueprint;    // AI 상담 결과
   teamAnalysis?: TeamAnalysis;     // 최종 분석 결과
   createdAt: Date;

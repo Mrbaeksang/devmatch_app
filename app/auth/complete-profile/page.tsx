@@ -121,7 +121,7 @@ export default function CompleteProfilePage() {
     if (!error) {
       setTimeout(() => checkNicknameAvailability(value), 500);
     }
-  }, []);
+  }, [checkNicknameAvailability]);
 
   // 아바타 변경 핸들러 (메모이제이션)
   const handleAvatarChange = useCallback((avatarConfig: AvatarConfig) => {

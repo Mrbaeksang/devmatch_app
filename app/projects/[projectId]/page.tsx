@@ -6,8 +6,7 @@ import { useSession } from "next-auth/react";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
 import { BackgroundPaths } from "@/components/ui/background-paths";
-import { ProjectStatus, InterviewStatus } from "@/types/project";
-import { InterviewData } from "@/types/chat";
+import { ProjectStatus, InterviewStatus, TechStackStructure, ProjectBlueprint } from "@/types/project";
 import { 
   ExpandableChatHeader,
   ExpandableChatBody,
@@ -57,7 +56,7 @@ interface Project {
   status: ProjectStatus;
   inviteCode: string;
   teamSize: number;     // maxMembers → teamSize
-  blueprint?: unknown;  // interviewData → blueprint
+  blueprint?: ProjectBlueprint;  // 타입 안정성 개선
   members: TeamMember[];
   createdAt: Date;
 }
@@ -93,7 +92,7 @@ export default function ProjectPage() {
       setProject(data);
       
       // 현재 사용자 정보를 members에서 찾기
-      const user = data.members?.find((member: any) => member.user.id === session?.user?.id) || null;
+      const user = data.members?.find((member: TeamMember) => member.user.id === session?.user?.id) || null;
       setCurrentUser(user);
       setInviteUrl(`${window.location.origin}/projects/${projectId}`);
       
@@ -347,16 +346,16 @@ export default function ProjectPage() {
                   </CardHeader>
                   <CardContent>
                     <p className="text-zinc-300 mb-4">{project.description}</p>
-                    {project.blueprint && typeof project.blueprint === 'object' && (project.blueprint as any).techStack && typeof (project.blueprint as any).techStack === 'object' && (
+                    {project.blueprint && typeof project.blueprint.techStack === 'object' && 'frontend' in project.blueprint.techStack && (
                       <div className="space-y-2">
                         {/* Frontend */}
-                        {((project.blueprint as any).techStack as any)?.frontend && (
+                        {(project.blueprint.techStack as TechStackStructure).frontend && (
                           <div>
                             <span className="text-blue-400 text-xs font-medium">Frontend: </span>
                             {[
-                              ...(((project.blueprint as any).techStack as any).frontend.languages || []),
-                              ...(((project.blueprint as any).techStack as any).frontend.frameworks || []),
-                              ...(((project.blueprint as any).techStack as any).frontend.tools || [])
+                              ...((project.blueprint.techStack as TechStackStructure).frontend?.languages || []),
+                              ...((project.blueprint.techStack as TechStackStructure).frontend?.frameworks || []),
+                              ...((project.blueprint.techStack as TechStackStructure).frontend?.tools || [])
                             ].map((tech: string) => (
                               <Badge key={tech} variant="outline" className="text-xs mr-1 mb-1 bg-blue-600/10 text-blue-300 border-blue-600/30">
                                 {tech}
@@ -366,13 +365,13 @@ export default function ProjectPage() {
                         )}
                         
                         {/* Backend */}
-                        {((project.blueprint as any).techStack as any)?.backend && (
+                        {(project.blueprint.techStack as TechStackStructure).backend && (
                           <div>
                             <span className="text-green-400 text-xs font-medium">Backend: </span>
                             {[
-                              ...(((project.blueprint as any).techStack as any).backend.languages || []),
-                              ...(((project.blueprint as any).techStack as any).backend.frameworks || []),
-                              ...(((project.blueprint as any).techStack as any).backend.tools || [])
+                              ...((project.blueprint.techStack as TechStackStructure).backend?.languages || []),
+                              ...((project.blueprint.techStack as TechStackStructure).backend?.frameworks || []),
+                              ...((project.blueprint.techStack as TechStackStructure).backend?.tools || [])
                             ].map((tech: string) => (
                               <Badge key={tech} variant="outline" className="text-xs mr-1 mb-1 bg-green-600/10 text-green-300 border-green-600/30">
                                 {tech}
@@ -382,12 +381,12 @@ export default function ProjectPage() {
                         )}
                         
                         {/* Collaboration */}
-                        {((project.blueprint as any).techStack as any)?.collaboration && (
+                        {(project.blueprint.techStack as TechStackStructure).collaboration && (
                           <div>
                             <span className="text-yellow-400 text-xs font-medium">협업: </span>
                             {[
-                              ...(((project.blueprint as any).techStack as any).collaboration.git || []),
-                              ...(((project.blueprint as any).techStack as any).collaboration.tools || [])
+                              ...((project.blueprint.techStack as TechStackStructure).collaboration?.git || []),
+                              ...((project.blueprint.techStack as TechStackStructure).collaboration?.tools || [])
                             ].map((tech: string) => (
                               <Badge key={tech} variant="outline" className="text-xs mr-1 mb-1 bg-yellow-600/10 text-yellow-300 border-yellow-600/30">
                                 {tech}

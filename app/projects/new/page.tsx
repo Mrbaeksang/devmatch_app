@@ -19,6 +19,7 @@ import {
   Bot,
   User
 } from "lucide-react";
+import { TechStackStructure } from '@/types/project';
 
 // 간단한 메시지 타입
 interface Message {
@@ -82,17 +83,17 @@ function SuccessModal({ isOpen, projectData, onNavigate }: SuccessModalProps) {
             <div>
               <span className="text-white font-semibold text-base">기술 스택:</span>
               <div className="flex flex-wrap gap-2 mt-3">
-                {projectData?.techStack && typeof projectData.techStack === 'object' ? (
+                {projectData?.techStack && typeof projectData.techStack === 'object' && 'frontend' in projectData.techStack ? (
                   <>
                     {/* Frontend */}
-                    {(projectData.techStack as any)?.frontend && (
+                    {(projectData.techStack as TechStackStructure).frontend && (
                       <div className="w-full">
                         <span className="text-blue-400 text-sm font-medium">Frontend:</span>
                         <div className="flex flex-wrap gap-1 mt-1">
                           {[
-                            ...((projectData.techStack as any).frontend.languages || []),
-                            ...((projectData.techStack as any).frontend.frameworks || []),
-                            ...((projectData.techStack as any).frontend.tools || [])
+                            ...((projectData.techStack as TechStackStructure).frontend?.languages || []),
+                            ...((projectData.techStack as TechStackStructure).frontend?.frameworks || []),
+                            ...((projectData.techStack as TechStackStructure).frontend?.tools || [])
                           ].map((tech: string) => (
                             <Badge key={tech} variant="secondary" className="text-xs px-2 py-1 bg-blue-600/20 text-blue-300">
                               {tech}
@@ -103,14 +104,14 @@ function SuccessModal({ isOpen, projectData, onNavigate }: SuccessModalProps) {
                     )}
                     
                     {/* Backend */}
-                    {(projectData.techStack as any)?.backend && (
+                    {(projectData.techStack as TechStackStructure).backend && (
                       <div className="w-full">
                         <span className="text-green-400 text-sm font-medium">Backend:</span>
                         <div className="flex flex-wrap gap-1 mt-1">
                           {[
-                            ...((projectData.techStack as any).backend.languages || []),
-                            ...((projectData.techStack as any).backend.frameworks || []),
-                            ...((projectData.techStack as any).backend.tools || [])
+                            ...((projectData.techStack as TechStackStructure).backend?.languages || []),
+                            ...((projectData.techStack as TechStackStructure).backend?.frameworks || []),
+                            ...((projectData.techStack as TechStackStructure).backend?.tools || [])
                           ].map((tech: string) => (
                             <Badge key={tech} variant="secondary" className="text-xs px-2 py-1 bg-green-600/20 text-green-300">
                               {tech}
@@ -121,13 +122,13 @@ function SuccessModal({ isOpen, projectData, onNavigate }: SuccessModalProps) {
                     )}
                     
                     {/* Collaboration */}
-                    {(projectData.techStack as any)?.collaboration && (
+                    {(projectData.techStack as TechStackStructure).collaboration && (
                       <div className="w-full">
                         <span className="text-yellow-400 text-sm font-medium">협업:</span>
                         <div className="flex flex-wrap gap-1 mt-1">
                           {[
-                            ...((projectData.techStack as any).collaboration.git || []),
-                            ...((projectData.techStack as any).collaboration.tools || [])
+                            ...((projectData.techStack as TechStackStructure).collaboration?.git || []),
+                            ...((projectData.techStack as TechStackStructure).collaboration?.tools || [])
                           ].map((tech: string) => (
                             <Badge key={tech} variant="secondary" className="text-xs px-2 py-1 bg-yellow-600/20 text-yellow-300">
                               {tech}

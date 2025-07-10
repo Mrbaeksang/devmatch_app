@@ -51,7 +51,7 @@ export function AvatarSelector({
       };
       onChange(newConfig);
     }
-  }, [selectedStyle, seed]); // onChange 제거
+  }, [selectedStyle, seed, onChange]);
 
   // 랜덤 프리뷰 재생성
   const generateNewPreviews = () => {

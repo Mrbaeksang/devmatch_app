@@ -69,7 +69,7 @@ export default function InterviewPage() {
         if (response.ok) {
           const data = await response.json();
           const currentMember = data.members?.find(
-            (m: any) => m.id === memberId
+            (m: { id: string }) => m.id === memberId
           );
           
           if (currentMember?.interviewStatus === 'COMPLETED') {

@@ -4,6 +4,7 @@ import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { db } from '@/lib/db';
+import { TechStackStructure } from '@/types/project';
 
 // 면담 요청 타입
 interface InterviewRequest {
@@ -37,7 +38,7 @@ interface InterviewResponse {
 
 // 면담 시스템 프롬프트 생성 (데피 스타일 적용)
 const createInterviewPrompt = (
-  projectInfo: { name: string; goal: string; techStack: unknown; techStackStructure?: any },
+  projectInfo: { name: string; goal: string; techStack: unknown; techStackStructure?: TechStackStructure },
   memberInfo: { name: string },
   conversationHistory: Array<{role: string; content: string}>,
   userInput: string,
@@ -190,7 +191,7 @@ export async function POST(req: Request) {
     
     // 새로운 3-category 구조에서 기술스택 추출
     if (project.techStack && typeof project.techStack === 'object') {
-      const techStackObj = project.techStack as any;
+      const techStackObj = project.techStack as TechStackStructure;
       
       // Frontend 기술들
       if (techStackObj.frontend) {
@@ -220,7 +221,7 @@ export async function POST(req: Request) {
       name: project.name,
       goal: project.description,
       techStack: techStackArray,
-      techStackStructure: project.techStack as any // 원본 구조도 함께 전달
+      techStackStructure: project.techStack as TechStackStructure // 타입 안정성 개선
     };
 
     // 멤버 정보 구성
