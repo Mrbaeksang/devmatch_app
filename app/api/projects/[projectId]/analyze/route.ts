@@ -231,7 +231,7 @@ export async function POST(
     let analysisText: string;
     try {
       const result = await generateText({
-        model: openrouter('deepseek/deepseek-chat-v3-0324:free'),
+        model: openrouter('google/gemini-2.0-flash-001'),
         system: systemPrompt,
         messages: [
           {
@@ -248,7 +248,7 @@ export async function POST(
         // 백업 모델 사용
         try {
           const fallbackResult = await generateText({
-            model: openrouter('deepseek/deepseek-r1-0528:free'),
+            model: openrouter('google/gemini-2.0-flash-001'),
             system: systemPrompt,
             messages: [
               {

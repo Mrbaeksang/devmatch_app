@@ -229,7 +229,7 @@ export async function POST(req: Request) {
 
     // AI 응답 생성
     const result = await generateText({
-      model: openrouter('deepseek/deepseek-chat'),
+      model: openrouter('google/gemini-2.0-flash-001'),
       messages: [{ role: 'user', content: prompt }],
       temperature: 0.7,
       maxTokens: 1000,
