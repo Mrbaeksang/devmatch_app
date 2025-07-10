@@ -29,7 +29,6 @@ model User {
   projects         ProjectMember[]
   interviewAnswers InterviewAnswer[]
   chatMessages     ChatMessage[]
-  ownedProjects    Project[]         @relation("ProjectOwner")
   recommendedRoles RecommendedRole[]
 }
 
@@ -85,27 +84,19 @@ enum InterviewStatus {
 model Project {
   id          String   @id @default(cuid())
   name        String
-  description String   @db.Text
-  goal        String   @db.Text
+  description String   @db.Text  // goal과 description 통합
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
-  startedAt   DateTime? // 프로젝트 시작 시간 (ACTIVE 상태가 된 시점)
-  ownerId     String
-  owner       User     @relation("ProjectOwner", fields: [ownerId], references: [id])
 
-  // 프로젝트 상태 및 설정
+  // 프로젝트 상태 및 설정 (간소화)
   status            ProjectStatus @default(RECRUITING)
-  progress          Int           @default(0)
-  maxMembers        Int           @default(4)
+  teamSize          Int           @default(4)  // maxMembers → teamSize
   inviteCode        String        @unique @default(cuid())
-  interviewPhase    InterviewPhase @default(PENDING)
   
-  // AI 관련 데이터 (확장됨)
-  interviewData     Json?         // 기본 프로젝트 정보
-  blueprint         Json?         // ProjectBlueprint 저장
-  teamAnalysis      Json?         // TeamAnalysis 저장
+  // AI 관련 데이터 (정리됨)
+  blueprint         Json?         // AI 상담 결과 (기존 interviewData 역할)
+  teamAnalysis      Json?         // 모든 면담 완료 후 최종 분석
   techStack         Json
-  aiAnalysis        Json?
 
   // 관계
   members          ProjectMember[]
@@ -130,14 +121,10 @@ model ProjectMember {
   userId                 String
   joinedAt               DateTime @default(now())
   
-  // 팀원 상태 정보 (확장됨)
-  interviewCompleted    Boolean         @default(false)
-  isActive              Boolean         @default(true)
-  role                  String?
-  interviewData         Json?           // 기본 프로젝트 정보
-  memberProfile         Json?           // MemberProfile 저장
-  interviewStatus       InterviewStatus @default(PENDING)
-  roleAssignment        Json?           // RoleAssignment 저장
+  // 팀원 상태 정보 (간소화)
+  interviewStatus       InterviewStatus @default(PENDING)  // 통합된 면담 상태
+  memberProfile         Json?           // 면담 결과 저장
+  role                  String?         // 최종 배정 역할
   
   // 관계
   project               Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
