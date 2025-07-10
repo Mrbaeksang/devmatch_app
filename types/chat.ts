@@ -209,32 +209,41 @@ export interface ChatSearchParams {
 // ======================
 
 /**
- * AI 상담 단계 (확장됨)
+ * AI 상담 단계 (7단계 완전 플로우)
  */
 export enum ConsultationStep {
   NAME_COLLECTION = 'NAME_COLLECTION',
   PROJECT_INFO_COLLECTION = 'PROJECT_INFO_COLLECTION',
-  TEAM_STRUCTURE_PROPOSAL = 'TEAM_STRUCTURE_PROPOSAL',
-  ROLE_SUGGESTION = 'ROLE_SUGGESTION',           // 새로운 역할 제안 단계
-  SUMMARY_CONFIRMATION = 'SUMMARY_CONFIRMATION',
+  ADDITIONAL_QUESTIONS = 'ADDITIONAL_QUESTIONS',    // 추가 질문 상호작용
+  ROLE_SUGGESTION = 'ROLE_SUGGESTION',
+  ROLE_REFINEMENT = 'ROLE_REFINEMENT',             // 역할 협상
+  FINAL_CONFIRMATION = 'FINAL_CONFIRMATION',        // 최종 확인
   COMPLETED = 'COMPLETED',
 }
 
 /**
- * AI 상담 데이터
+ * AI 상담 데이터 (통합 버전)
  */
 export interface ConsultationData {
+  // 기본 정보 (6개 필드)
   userName?: string;
   projectName?: string;
   projectGoal?: string;
-  projectScope?: string; // 프론트엔드/백엔드 구현 범위
   techStack?: string[];
-  mainFeatures?: string[];
-  projectDuration?: string; // 프로젝트 기간
-  duration?: string; // AI가 저장하는 기간 필드 (하위 호환성)
-  communicationSkills?: string[];
+  projectDuration?: string; // 통일된 기간 필드
   teamMembersCount?: number;
+  
+  // 추가 정보 (ADDITIONAL_QUESTIONS 단계에서 수집)
+  projectScope?: string; // 프론트엔드/백엔드 구현 범위
+  mainFeatures?: string[];
+  communicationSkills?: string[];
+  
+  // AI 역할 제안
   aiSuggestedRoles?: Array<{ role: string; count: number; note?: string }>;
+  
+  // 진행 상황 추적
+  additionalQuestionsComplete?: boolean;
+  roleRefinementComplete?: boolean;
 }
 
 /**

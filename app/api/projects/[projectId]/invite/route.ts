@@ -6,7 +6,7 @@ import { nanoid } from 'nanoid';
 
 export async function POST(
   request: Request,
-  { params }: { params: { projectId: string } }
+  { params }: { params: Promise<{ projectId: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -15,7 +15,7 @@ export async function POST(
       return new NextResponse('Unauthorized', { status: 401 });
     }
 
-    const { projectId } = params;
+    const { projectId } = await params;
 
     // 프로젝트 소유자 확인
     const project = await db.project.findUnique({

@@ -1,251 +1,212 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
 import { useSession } from "next-auth/react";
 
 import { BackgroundPaths } from "@/components/ui/background-paths";
-import { 
-  ChatBubble, 
-  ChatBubbleAvatar, 
-  ChatBubbleMessage 
-} from "@/components/ui/chat-bubble";
-import { ChatInput } from "@/components/ui/chat-input";
-import { ChatMessageList } from "@/components/ui/chat-message-list";
-import {
-  ExpandableChatHeader,
-  ExpandableChatBody,
-  ExpandableChatFooter,
-} from "@/components/ui/expandable-chat";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
-import { Progress } from "@/components/ui/progress";
+import { generateAvatarDataUrl, deserializeAvatarConfig } from "@/lib/avatar";
+import Image from "next/image";
 import { 
   Loader2, 
   Send,
-  CheckCircle2,
-  AlertCircle,
+  Bot,
   User,
-  Star,
-  Users,
   ArrowLeft
 } from "lucide-react";
 
-import { InterviewStatus } from "@/types/project";
-
-// InterviewStatus 사용 예시
-const INTERVIEW_STATUS_PENDING = InterviewStatus.PENDING;
-
-// 면담 단계 정의
-enum InterviewStep {
-  WELCOME = 'WELCOME',
-  SKILL_ASSESSMENT = 'SKILL_ASSESSMENT',
-  LEADERSHIP_ASSESSMENT = 'LEADERSHIP_ASSESSMENT',
-  PREFERENCE_COLLECTION = 'PREFERENCE_COLLECTION',
-  SUMMARY_CONFIRMATION = 'SUMMARY_CONFIRMATION',
-  COMPLETED = 'COMPLETED'
-}
-
-// 메시지 타입
+// 간단한 메시지 타입
 interface Message {
   id: string;
-  role: 'user' | 'assistant';
+  role: 'user' | 'ai';
   content: string;
   timestamp: Date;
-  isTyping?: boolean;
 }
-
-// 면담 데이터 타입
-interface InterviewData {
-  memberName?: string;
-  skills?: string[];
-  experience?: string;
-  leadershipLevel?: 'none' | 'interested' | 'experienced' | 'preferred';
-  workStyle?: string;
-  communication?: string;
-  motivation?: string;
-  availability?: string;
-  rolePreference?: string;
-  additionalInfo?: string;
-}
-
-// 프로그레스 계산 함수
-const calculateProgress = (data: InterviewData, currentStep: InterviewStep): number => {
-  const totalSteps = 6;
-  let completedSteps = 0;
-
-  if (data.memberName) completedSteps++;
-  if (data.skills && data.skills.length > 0) completedSteps++;
-  if (data.leadershipLevel) completedSteps++;
-  if (data.workStyle) completedSteps++;
-  if (data.rolePreference) completedSteps++;
-  if (currentStep === InterviewStep.COMPLETED) completedSteps++;
-
-  return (completedSteps / totalSteps) * 100;
-};
 
 export default function InterviewPage() {
   const params = useParams();
   const router = useRouter();
   const searchParams = useSearchParams();
   const { data: session } = useSession();
-  console.log('Session data:', session); // 개발용 로그
   
   const projectId = params.projectId as string;
-  const memberId = searchParams.get('memberId');
-
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      id: '1',
-      role: 'assistant',
-      content: '👋 안녕하세요! 팀 구성을 위한 개인 면담을 시작하겠습니다. 먼저 자기소개를 간단히 해주시겠어요?',
-      timestamp: new Date(),
-    }
-  ]);
-  const [input, setInput] = useState("");
+  const memberId = searchParams.get('memberId') || '';
+  
+  // 면담 상태 관리
+  const [userInput, setUserInput] = useState("");
+  const [chatHistory, setChatHistory] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [currentStep, setCurrentStep] = useState<InterviewStep>(InterviewStep.WELCOME);
-  const [interviewData, setInterviewData] = useState<InterviewData>({});
-  const [isInterviewComplete, setIsInterviewComplete] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
+  const [memberProfile, setMemberProfile] = useState({});
+  const [isComplete, setIsComplete] = useState(false);
+  const [isFirstLoad, setIsFirstLoad] = useState(true);
+  
+  // 오토스크롤용 ref
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
 
-  // 자동 스크롤
-  const scrollToBottom = useCallback(() => {
+  // 채팅 히스토리 변경 시 자동 스크롤
+  useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [chatHistory]);
+
+  // 컴포넌트 마운트 시 입력창 포커스 (지연)
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      inputRef.current?.focus();
+    }, 1000);
+    
+    return () => clearTimeout(timer);
   }, []);
 
+  // 면담 완료 여부 체크 및 첫 인사
   useEffect(() => {
-    scrollToBottom();
-  }, [scrollToBottom]);
+    const initializeInterview = async () => {
+      try {
+        const response = await fetch(`/api/projects/${projectId}`);
+        if (response.ok) {
+          const data = await response.json();
+          const currentMember = data.project?.members?.find(
+            (m: any) => m.id === memberId
+          );
+          
+          if (currentMember?.interviewStatus === 'COMPLETED') {
+            toast.error('이미 면담을 완료하셨습니다!');
+            setTimeout(() => {
+              router.push(`/projects/${projectId}`);
+            }, 1500);
+            return;
+          }
+          
+          // 첫 로드 시 AI 인사말 전송
+          if (isFirstLoad && chatHistory.length === 0) {
+            setIsFirstLoad(false);
+            setIsLoading(true);
+            
+            const firstResponse = await fetch(`/api/projects/${projectId}/interview`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                userInput: '',
+                projectId,
+                memberId,
+                chatHistory: [],
+                memberProfile: {}
+              })
+            });
+            
+            if (firstResponse.ok) {
+              const firstData = await firstResponse.json();
+              const aiGreeting: Message = {
+                id: Date.now().toString(),
+                role: 'ai',
+                content: firstData.response,
+                timestamp: new Date()
+              };
+              setChatHistory([aiGreeting]);
+            }
+            
+            setIsLoading(false);
+          }
+        }
+      } catch (error) {
+        console.error('Interview initialization error:', error);
+        setIsLoading(false);
+      }
+    };
 
-  // 메시지 전송 처리
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!input.trim() || isLoading) return;
+    if (projectId && memberId) {
+      initializeInterview();
+    }
+  }, [projectId, memberId, router, isFirstLoad, chatHistory.length]);
+
+  // 새로운 메시지 전송 함수
+  const sendMessage = async () => {
+    if (!userInput.trim() || isLoading) return;
 
     const userMessage: Message = {
       id: Date.now().toString(),
       role: 'user',
-      content: input.trim(),
-      timestamp: new Date(),
+      content: userInput.trim(),
+      timestamp: new Date()
     };
 
-    setMessages(prev => [...prev, userMessage]);
-    setInput("");
+    setChatHistory(prev => [...prev, userMessage]);
+    const currentInput = userInput.trim();
+    setUserInput("");
     setIsLoading(true);
-    setError(null);
 
     try {
-      const response = await fetch('/api/interview', {
+      const response = await fetch(`/api/projects/${projectId}/interview`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          userInput: currentInput,
           projectId,
           memberId,
-          messages: [...messages, userMessage].map(m => ({
-            role: m.role,
-            content: m.content
+          chatHistory: chatHistory.map(msg => ({
+            role: msg.role,
+            content: msg.content
           })),
-          currentStep,
-          interviewData,
-        }),
+          memberProfile
+        })
       });
 
-      if (!response.ok) {
-        throw new Error(`서버 오류: ${response.status}`);
-      }
+      if (!response.ok) throw new Error('서버 오류');
 
       const data = await response.json();
 
-      // AI 응답 처리
-      if (data.error) {
-        throw new Error(data.error);
-      }
-
       // AI 응답 메시지 추가
-      const assistantMessage: Message = {
-        id: Date.now().toString(),
-        role: 'assistant',
-        content: data.message,
-        timestamp: new Date(),
-        isTyping: false,
+      const aiMessage: Message = {
+        id: (Date.now() + 1).toString(),
+        role: 'ai',
+        content: data.response,
+        timestamp: new Date()
       };
 
-      setMessages(prev => [...prev, assistantMessage]);
+      setChatHistory(prev => [...prev, aiMessage]);
 
-      // 상태 업데이트
-      if (data.nextStep) {
-        setCurrentStep(data.nextStep);
+      // 면담 데이터 업데이트
+      if (data.memberProfile) {
+        setMemberProfile(prev => ({ ...prev, ...data.memberProfile }));
       }
-      if (data.interviewData) {
-        setInterviewData(prev => ({ ...prev, ...data.interviewData }));
-      }
-      if (data.isInterviewComplete) {
-        setIsInterviewComplete(true);
-      }
-
-    } catch (error) {
-      console.error('Interview error:', error);
-      setError(error instanceof Error ? error.message : '알 수 없는 오류가 발생했습니다.');
       
-      // 에러 메시지 추가
-      const errorMessage: Message = {
-        id: Date.now().toString(),
-        role: 'assistant',
-        content: '죄송합니다. 일시적인 오류가 발생했습니다. 다시 시도해주세요.',
-        timestamp: new Date(),
-      };
-      setMessages(prev => [...prev, errorMessage]);
+      // 완료 상태 처리
+      if (data.isComplete) {
+        setIsComplete(true);
+        toast.success('면담이 완료되었습니다!');
+        // 2초 후 자동으로 이전 페이지로 이동
+        setTimeout(() => {
+          router.back();
+        }, 2000);
+      }
+
+    } catch {
+      toast.error('오류가 발생했습니다. 다시 시도해주세요.');
     } finally {
       setIsLoading(false);
+      // AI 응답 후 입력창으로 포커스 복귀
+      setTimeout(() => {
+        inputRef.current?.focus();
+      }, 100);
     }
   };
 
-  // 면담 완료 처리
-  const handleCompleteInterview = async () => {
-    try {
-      const response = await fetch('/api/interview/complete', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          projectId,
-          memberId,
-          interviewData,
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error('면담 완료 처리 실패');
-      }
-
-      toast.success("면담이 완료되었습니다!");
-      
-      // 프로젝트 초대코드로 돌아가기
-      const projectResponse = await fetch(`/api/projects/${projectId}`);
-      if (projectResponse.ok) {
-        const projectData = await projectResponse.json();
-        router.push(`/projects/join/${projectData.inviteCode}`);
-      } else {
-        // 프로젝트 정보를 가져올 수 없는 경우 프로젝트 목록으로
-        router.push('/projects');
-      }
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : '면담 완료 중 오류가 발생했습니다.');
+  // Enter 키 처리
+  const handleKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      sendMessage();
     }
   };
 
-  // 뒤로 가기
+  // 뒤로가기
   const handleGoBack = () => {
-    router.push(`/projects/join/${projectId}`);
+    router.back();
   };
-
-  const progress = calculateProgress(interviewData, currentStep);
 
   return (
     <div className="relative min-h-screen w-full bg-zinc-950 font-inter">
@@ -255,14 +216,11 @@ export default function InterviewPage() {
       </div>
 
       <div className="relative z-10 h-screen flex items-center justify-center p-4">
-        <div className="w-full max-w-4xl h-full bg-zinc-900/50 backdrop-blur border border-zinc-800 rounded-lg overflow-hidden flex flex-col">
+        <div className="w-full max-w-5xl h-full bg-zinc-900/50 backdrop-blur border border-zinc-800 rounded-lg overflow-hidden flex flex-col">
+          
           {/* 헤더 */}
-          <ExpandableChatHeader className="flex items-center justify-between p-4 border-b border-zinc-800">
-            <motion.div 
-              initial={{ y: -20, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              className="flex items-center space-x-3"
-            >
+          <div className="flex items-center justify-between p-4 border-b border-zinc-800">
+            <div className="flex items-center space-x-2">
               <Button
                 variant="ghost"
                 size="sm"
@@ -271,175 +229,109 @@ export default function InterviewPage() {
               >
                 <ArrowLeft className="h-4 w-4" />
               </Button>
-              <User className="h-5 w-5 md:h-6 md:w-6 text-blue-500" />
-              <div>
-                <h1 className="text-lg md:text-xl font-semibold text-white">
-                  개인 면담
-                </h1>
-                <p className="text-sm text-zinc-400">팀 구성을 위한 면담 진행</p>
-              </div>
-            </motion.div>
-            <div className="flex items-center space-x-2">
-              <Progress value={progress} className="w-20 md:w-32 h-2" />
-              <Badge variant="secondary" className="text-xs">
-                {Math.round(progress)}%
-              </Badge>
+              <h1 className="text-xl font-bold text-white">
+                개인 면담
+              </h1>
             </div>
-          </ExpandableChatHeader>
+            <Badge variant="secondary" className="text-xs">
+              {isComplete ? '완료' : '진행중'}
+            </Badge>
+          </div>
 
           {/* 채팅 영역 */}
-          <ExpandableChatBody>
-            <ChatMessageList className="h-full">
-            {messages.map((message) => (
-              <ChatBubble
+          <div className="flex-1 overflow-y-auto p-4 space-y-6">
+            {chatHistory.map((message) => (
+              <div
                 key={message.id}
-                variant={message.role === 'user' ? 'sent' : 'received'}
+                className={`flex items-start gap-3 ${
+                  message.role === 'user' ? 'flex-row-reverse' : 'flex-row'
+                }`}
               >
-                <ChatBubbleAvatar
-                  fallback={message.role === 'user' ? 'YOU' : 'AI'}
-                />
-                <ChatBubbleMessage
-                  variant={message.role === 'user' ? 'sent' : 'received'}
-                  isLoading={message.isTyping}
+                <div className="w-8 h-8 rounded-full bg-zinc-700 flex items-center justify-center flex-shrink-0 overflow-hidden">
+                  {message.role === 'user' ? (
+                    session?.user?.avatar ? (
+                      <Image
+                        src={generateAvatarDataUrl(deserializeAvatarConfig(session.user.avatar))}
+                        alt="User avatar"
+                        width={32}
+                        height={32}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <User className="h-4 w-4 text-white" />
+                    )
+                  ) : (
+                    <Bot className="h-4 w-4 text-blue-500" />
+                  )}
+                </div>
+                <div
+                  className={`max-w-5xl px-5 py-4 rounded-2xl whitespace-pre-wrap break-words shadow-lg ${
+                    message.role === 'user'
+                      ? 'bg-blue-600 text-white ml-12'
+                      : 'bg-zinc-800 text-zinc-100 mr-12'
+                  }`}
+                  style={{
+                    fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif',
+                    fontSize: '16px',
+                    lineHeight: '1.7',
+                    fontWeight: '500'
+                  }}
                 >
-                  <div className="whitespace-pre-wrap">
-                    {message.content}
-                  </div>
-                </ChatBubbleMessage>
-              </ChatBubble>
+                  <div dangerouslySetInnerHTML={{
+                    __html: message.content
+                      .replace(/\*\*(.*?)\*\*/g, '<strong class="font-bold">$1</strong>')
+                      .replace(/\n/g, '<br />')
+                  }} />
+                </div>
+              </div>
             ))}
 
-            {/* 로딩 인디케이터 */}
+            {/* 로딩 표시 */}
             {isLoading && (
-              <ChatBubble variant="received">
-                <ChatBubbleAvatar fallback="AI" />
-                <ChatBubbleMessage variant="received" isLoading />
-              </ChatBubble>
+              <div className="flex items-start gap-3">
+                <div className="w-8 h-8 rounded-full bg-zinc-700 flex items-center justify-center">
+                  <Bot className="h-4 w-4 text-blue-500" />
+                </div>
+                <div className="bg-zinc-800 text-zinc-100 px-5 py-4 rounded-2xl mr-12 shadow-lg">
+                  <div className="flex items-center gap-3">
+                    <Loader2 className="h-5 w-5 animate-spin" />
+                    <span>면담관이 생각하고 있어요...</span>
+                  </div>
+                </div>
+              </div>
             )}
-
-            {/* 에러 메시지 */}
-            {error && (
-              <motion.div
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="flex justify-center"
-              >
-                <Card className="border-destructive/50 bg-destructive/10">
-                  <CardContent className="p-4">
-                    <div className="flex items-center gap-2">
-                      <AlertCircle className="h-4 w-4 text-destructive" />
-                      <p className="text-sm text-destructive">{error}</p>
-                    </div>
-                  </CardContent>
-                </Card>
-              </motion.div>
-            )}
-
-            {/* 면담 완료 카드 */}
-            {isInterviewComplete && interviewData && (
-              <motion.div
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ type: "spring", stiffness: 200 }}
-              >
-                <Card className="border-green-500/20 bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-950/20 dark:to-emerald-950/20 shadow-lg">
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2 text-green-700 dark:text-green-300">
-                      <CheckCircle2 className="h-5 w-5" />
-                      면담 완료
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                      <div className="space-y-1">
-                        <span className="font-medium text-muted-foreground">기술 역량</span>
-                        <div className="flex flex-wrap gap-1">
-                          {interviewData.skills?.map((skill, index) => (
-                            <Badge key={index} variant="secondary" className="text-xs">
-                              {skill}
-                            </Badge>
-                          ))}
-                        </div>
-                      </div>
-                      <div className="space-y-1">
-                        <span className="font-medium text-muted-foreground">리더십 레벨</span>
-                        <div className="flex items-center gap-1">
-                          <Star className="h-4 w-4 text-yellow-500" />
-                          <span className="text-base">
-                            {interviewData.leadershipLevel === 'none' && '리더 경험 없음'}
-                            {interviewData.leadershipLevel === 'interested' && '리더 관심 있음'}
-                            {interviewData.leadershipLevel === 'experienced' && '리더 경험 있음'}
-                            {interviewData.leadershipLevel === 'preferred' && '리더 선호'}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                    <Separator />
-                    <Button 
-                      onClick={handleCompleteInterview} 
-                      className="w-full" 
-                      size="lg"
-                    >
-                      <Users className="h-4 w-4 mr-2" />
-                      면담 완료하기
-                    </Button>
-                  </CardContent>
-                </Card>
-              </motion.div>
-            )}
-
+            
+            {/* 오토스크롤 타겟 */}
             <div ref={messagesEndRef} />
-            </ChatMessageList>
-          </ExpandableChatBody>
+          </div>
 
           {/* 입력 영역 */}
-          {!isInterviewComplete && (
-            <ExpandableChatFooter>
-              <motion.div 
-                initial={{ y: 20, opacity: 0 }}
-                animate={{ y: 0, opacity: 1 }}
-                className="p-4"
-              >
-              <form 
-                onSubmit={handleSubmit}
-                className="relative rounded-lg border bg-background focus-within:ring-1 focus-within:ring-ring p-1"
-              >
-                <ChatInput
-                  value={input}
-                  onChange={(e) => setInput(e.target.value)}
+          {!isComplete && (
+            <div className="p-4 border-t border-zinc-800">
+              <div className="flex gap-2">
+                <input
+                  ref={inputRef}
+                  type="text"
+                  value={userInput}
+                  onChange={(e) => setUserInput(e.target.value)}
+                  onKeyDown={handleKeyPress}
                   placeholder="메시지를 입력하세요..."
                   disabled={isLoading}
-                  className="min-h-12 resize-none rounded-lg bg-background border-0 p-3 shadow-none focus-visible:ring-0"
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' && !e.shiftKey) {
-                      e.preventDefault();
-                      handleSubmit(e);
-                    }
-                  }}
+                  className="flex-1 px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-lg text-white placeholder-zinc-400 focus:outline-none focus:border-blue-500 text-base"
                 />
-                <div className="flex items-center p-3 pt-0 justify-end">
-                  <Button 
-                    type="submit" 
-                    disabled={isLoading || !input.trim()} 
-                    size="sm" 
-                    className="ml-auto gap-1.5"
-                  >
-                    {isLoading ? (
-                      <>
-                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                        AI 응답 중...
-                      </>
-                    ) : (
-                      <>
-                        메시지 전송
-                        <Send className="h-3.5 w-3.5" />
-                      </>
-                    )}
-                  </Button>
-                </div>
-              </form>
-              </motion.div>
-            </ExpandableChatFooter>
+                <Button
+                  onClick={sendMessage}
+                  disabled={!userInput.trim() || isLoading}
+                  size="sm"
+                >
+                  {isLoading ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Send className="h-4 w-4" />
+                  )}
+                </Button>
+              </div>
+            </div>
           )}
         </div>
       </div>

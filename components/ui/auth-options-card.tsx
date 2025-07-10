@@ -31,7 +31,7 @@ export const AuthOptionsCard = () => {
         style={{ minWidth: 140, minHeight: 56 }}
         initial={{ opacity: 0, y: 30 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.4, ease: "easeOut", delay: 0.2 }}
+        transition={{ duration: 0.4, ease: [0.25, 0.46, 0.45, 0.94], delay: 0.2 }}
       >
         <GoogleIcon />
         <span>Google</span>
@@ -44,7 +44,7 @@ export const AuthOptionsCard = () => {
         style={{ minWidth: 140, minHeight: 56 }}
         initial={{ opacity: 0, y: 30 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.4, ease: "easeOut", delay: 0.3 }}
+        transition={{ duration: 0.4, ease: [0.25, 0.46, 0.45, 0.94], delay: 0.3 }}
       >
         <KakaoIcon />
         <span>Kakao</span>

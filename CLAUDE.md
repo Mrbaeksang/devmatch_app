@@ -19,31 +19,71 @@
 - ✅ **MUST**: 기존 패턴 준수 (기존 컴포넌트 재사용 우선)
 - ❌ **NEVER**: 빌드 실패 상태로 커밋 금지
 
-### **3. 파일 간 의존성 관리**
-- ✅ **MUST**: `pages.md` 참조하여 파일 관계 파악
-- ✅ **MUST**: 기존 구조 변경 시 영향도 분석
-- ✅ **MUST**: API 라우트 ↔ 페이지 ↔ 타입 간 일관성 유지
+### **3. API 구조 일관성**
+- ✅ **MUST**: 대칭 구조 유지 (`app/projects/[projectId]` ↔ `app/api/projects/[projectId]`)
+- ✅ **MUST**: projectId 기반 URL 사용 (inviteCode 혼재 금지)
+- ❌ **NEVER**: 스파게티 코드나 중복 API 생성 금지
 
 ## 🎯 **DevMatch 특화 규칙**
 
 ### **AI 상담 시스템 (api/chat/route.ts)**
-- ✅ **DO**: ConsultationStep 단계별 강제 제어
-- ✅ **DO**: OpenRouter API 응답 파싱 후 검증
-- ✅ **DO**: 상담 데이터 타입 안정성 확보
+- ✅ **DO**: 데피(Deffy) 6단계 시스템 프롬프트 구조 유지
+- ✅ **DO**: 3-category techStack 구조 지원 (frontend, backend, collaboration)
+- ✅ **DO**: 상담 완료 시 projectId와 inviteCode 모두 반환
 - ❌ **DON'T**: AI에게 상태 전이 제어권 위임 금지
+
+### **면담 시스템 (api/projects/[projectId]/interview/route.ts)**
+- ✅ **DO**: 3-category techStack에서 모든 기술 추출하여 질문
+- ✅ **DO**: 카테고리별 체계적 평가 (Frontend, Backend, Collaboration)
+- ✅ **DO**: 기술별 1~5점 점수 및 워크스타일 수집
+- ❌ **DON'T**: 단순 배열로만 처리하여 1개 기술만 질문하지 말 것
 
 ### **프로젝트 데이터 플로우**
 ```
-ConsultationData (types/chat.ts) → ProjectBlueprint (types/project.ts) → Database
+ConsultationData (types/chat.ts) → 3-category techStack → Database → Interview
 ```
-- ✅ **DO**: 각 단계별 타입 변환 명확히
-- ✅ **DO**: 배열/문자열 타입 충돌 방지 (techStack 주의)
-- ✅ **DO**: 데이터베이스 스키마와 코드 동기화
+- ✅ **DO**: techStack 3-category 구조 일관성 유지
+- ✅ **DO**: 데이터베이스 Json 필드 활용한 유연한 구조
+- ✅ **DO**: 면담 시 모든 카테고리 기술들 체계적으로 평가
 
-### **실시간 업데이트 시스템**
-- ✅ **DO**: 폴링 기반 상태 업데이트 (5초 간격)
-- ✅ **DO**: 프로젝트 상태별 UI 조건부 렌더링
-- ✅ **DO**: 사용자 권한별 기능 제한
+## 🏗️ **현재 프로젝트 구조 (정리 완료)**
+
+### **페이지 구조**
+```
+app/projects/[projectId]/
+├── page.tsx (팀 대기실)
+├── interview/page.tsx (개인 면담)
+└── analysis/page.tsx (팀 분석)
+```
+
+### **API 구조**
+```
+app/api/projects/[projectId]/
+├── route.ts (프로젝트 정보)
+├── interview/route.ts (면담 진행)
+├── join/route.ts (프로젝트 참여)
+└── analyze/route.ts (팀 분석)
+```
+
+### **기술스택 구조**
+```typescript
+techStack: {
+  frontend?: {
+    languages: string[];    // ["JavaScript", "TypeScript"]
+    frameworks: string[];   // ["React", "Next.js"]
+    tools?: string[];       // ["Tailwind CSS", "SCSS"]
+  };
+  backend?: {
+    languages: string[];    // ["Java", "Python", "Node.js"]
+    frameworks: string[];   // ["Spring Boot", "Express", "Django"]
+    tools?: string[];       // ["JPA", "MySQL", "PostgreSQL"]
+  };
+  collaboration: {          // 필수값
+    git: string[];          // ["Git", "GitHub", "GitLab"]
+    tools?: string[];       // ["PR관리", "코드리뷰", "이슈관리"]
+  };
+}
+```
 
 ## 🔧 **기술 스택별 핵심 수칙**
 
@@ -59,7 +99,7 @@ ConsultationData (types/chat.ts) → ProjectBlueprint (types/project.ts) → Dat
 
 ### **Prisma ORM**
 - ✅ **DO**: 스키마 변경 후 `pnpm prisma generate` 실행
-- ✅ **DO**: 관계형 데이터는 `include` 또는 `select` 명시
+- ✅ **DO**: Json 필드 활용한 유연한 데이터 구조
 - ❌ **DON'T**: 트랜잭션 없이 관련 데이터 동시 수정 금지
 
 ### **NextAuth.js**
@@ -69,43 +109,25 @@ ConsultationData (types/chat.ts) → ProjectBlueprint (types/project.ts) → Dat
 
 ## 🛡️ **필수 검증 체크리스트**
 
-### **파일 수정 전 (BEFORE)**
-- [ ] `pages.md` 참조하여 파일 역할 파악
-- [ ] 기존 타입 정의 `types/` 폴더에서 확인
-- [ ] 유사한 기능 구현체 검색
-- [ ] 데이터 플로우 영향도 분석
-
 ### **코드 작성 중 (DURING)**
 - [ ] 모든 변수/함수 타입 정의
 - [ ] 사용하지 않는 임포트 즉시 제거
 - [ ] 기존 컴포넌트 재사용 우선
-- [ ] 에러 핸들링 코드 포함
+- [ ] API 구조 대칭성 확인
+- [ ] 3-category techStack 구조 준수
 
 ### **커밋 전 (AFTER)**
-- [ ] `pnpm lint` 에러 없음
 - [ ] `pnpm typecheck` 에러 없음
+- [ ] `pnpm lint` 에러 없음
 - [ ] `pnpm build` 성공 확인
 - [ ] 런타임 에러 테스트 완료
-
-## ⚡ **성능 최적화 & 디자인 시스템**
-
-### **UI/UX 일관성**
-- **색상**: zinc 컬러 팔레트 통일 사용
-- **레이아웃**: BentoGrid 기반 카드 시스템
-- **애니메이션**: Framer Motion variants 패턴
-- **반응형**: 모바일 우선 (`md:`, `lg:`)
-
-### **성능 최적화**
-- **번들 최적화**: 불필요한 의존성 제거
-- **이미지 최적화**: Next.js Image 컴포넌트 사용
-- **코드 분할**: 동적 import 적극 활용
 
 ## 📖 **개발 명령어**
 ```bash
 pnpm dev              # 개발 서버 실행
 pnpm build            # 프로덕션 빌드
-pnpm lint             # ESLint 검사
 pnpm typecheck        # TypeScript 타입 검사
+pnpm lint             # ESLint 검사
 pnpm prisma generate  # Prisma 클라이언트 생성
 ```
 
@@ -119,7 +141,15 @@ OPENROUTER_API_KEY=   # AI API 키
 DATABASE_URL=         # PostgreSQL 연결
 ```
 
+## 📊 **현재 프로젝트 상태**
+- **구조 정리**: ✅ 완료 (스파게티 코드 해결, 대칭 구조 완성)
+- **기술스택 시스템**: ✅ 완료 (3-category 구조 지원)
+- **API 일관성**: ✅ 완료 (projectId 기반 통합)
+- **타입 안전성**: ✅ 유지
+- **빌드 상태**: ✅ 성공
+- **개발 단계**: Phase E (기능 완성 및 최적화 단계)
+
 ---
 
 **⚠️ 이 수칙을 위반하면 즉시 수정하고, 모든 작업은 이 문서를 기준으로 진행하세요.**
-**📊 현재 상태: Phase D (테스트 및 안정성 개선 단계)**
+**📈 현재 상태: 깔끔한 구조 완성, 3-category 기술스택 시스템 완료**

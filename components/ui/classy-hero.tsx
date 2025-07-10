@@ -1,6 +1,6 @@
 'use client'
 import React, { useState, useRef, useEffect } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
+import { motion, AnimatePresence, Variants } from 'framer-motion'
 import Link from 'next/link'
 import Image from 'next/image'
 import { clsx, type ClassValue } from "clsx"
@@ -167,7 +167,7 @@ interface AnimatedPathProps {
     className?: string;
     duration?: number;
     delay?: number;
-    repeat?: number | boolean;
+    repeat?: number;
     d: string;
     stroke?: string;
     strokeWidth?: number;
@@ -178,7 +178,7 @@ const AnimatedPath = ({
     className = "",
     duration = 2,
     delay = 0,
-    repeat = Infinity,
+    repeat = Number.POSITIVE_INFINITY,
     d,
     stroke = "currentColor",
     strokeWidth = 2,
@@ -203,7 +203,7 @@ const AnimatedPath = ({
                     delay,
                     repeat,
                     repeatType: "reverse",
-                    ease: "easeInOut",
+                    ease: [0.4, 0, 0.2, 1],
                 },
                 opacity: {
                     duration: 0.2,
@@ -241,7 +241,7 @@ const TextRotator = ({
     }, [words.length, interval]);
 
     // Animation variants for letter-by-letter effect
-    const letterVariants = {
+    const letterVariants: Variants = {
         hidden: {
             opacity: 0,
             y: 20,
@@ -267,7 +267,7 @@ const TextRotator = ({
             transition: {
                 delay: i * 0.02,
                 duration: 0.3,
-                ease: "easeInOut"
+                ease: [0.4, 0, 0.2, 1]
             }
         })
     };
@@ -418,7 +418,7 @@ const ButtonRipple = ({
                             scale: 1,
                         }}
                         exit={{ opacity: 0 }}
-                        transition={{ duration: 0.8, ease: "easeOut" }}
+                        transition={{ duration: 0.8, ease: [0.25, 0.46, 0.45, 0.94] }}
                         style={{
                             position: 'absolute',
                             width: ripple.size,
@@ -525,7 +525,7 @@ const HeroBackground = () => {
                     duration: 6,
                     repeat: Infinity,
                     repeatDelay: 8,
-                    ease: "easeInOut"
+                    ease: [0.4, 0, 0.2, 1]
                 }}
             />
 
@@ -793,7 +793,7 @@ const ClassyHero = () => {
                             transition={{
                                 duration: 2,
                                 repeat: Infinity,
-                                ease: "easeInOut"
+                                ease: [0.4, 0, 0.2, 1]
                             }}
                         />
                         <div className="flex items-center relative z-10">
@@ -833,7 +833,7 @@ const ClassyHero = () => {
                                 circle.style.transition = 'all 0.3s ease-out';
 
                                 // Position the ripple
-                                const rect = button.getBoundingClientRect();
+                                // const _rect = button.getBoundingClientRect();
                                 circle.style.left = '0px';
                                 circle.style.top = '0px';
 

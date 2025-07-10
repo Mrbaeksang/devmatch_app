@@ -17,6 +17,13 @@ model User {
   image            String?
   createdAt        DateTime          @default(now())
   updatedAt        DateTime          @updatedAt
+  
+  // 확장된 프로필 정보
+  nickname         String?           @unique  // 사용자 닉네임 (3-15자, 고유값)
+  avatar           String?                    // 아바타 이미지 URL 또는 식별자
+  bio              String?                    // 자기소개 (최대 100자)
+  isCompleted      Boolean           @default(false)  // 프로필 완성 여부
+  
   accounts         Account[]
   sessions         Session[]
   projects         ProjectMember[]
@@ -82,6 +89,7 @@ model Project {
   goal        String   @db.Text
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+  startedAt   DateTime? // 프로젝트 시작 시간 (ACTIVE 상태가 된 시점)
   ownerId     String
   owner       User     @relation("ProjectOwner", fields: [ownerId], references: [id])
 
@@ -96,7 +104,7 @@ model Project {
   consultationData  Json?         // 기존 상담 데이터
   blueprint         Json?         // ProjectBlueprint 저장
   teamAnalysis      Json?         // TeamAnalysis 저장
-  techStack         String[]
+  techStack         Json
   aiAnalysis        Json?
 
   // 관계

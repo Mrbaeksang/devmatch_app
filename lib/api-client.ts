@@ -2,7 +2,8 @@
 // 통합 API 클라이언트 - 모든 API 호출을 표준화하고 에러 처리를 통합 관리
 
 import { ApiResponse, ApiParams } from '@/types/api';
-import { Project, CreateProjectData, UpdateProjectData, TeamMember, ChatMessage } from '@/types/project';
+import { Project, CreateProjectData, UpdateProjectData, TeamMember } from '@/types/project';
+import { ChatMessage } from '@/types/chat';
 import { User, UpdateUserData, UserProfile } from '@/types/user';
 
 /**
@@ -125,8 +126,19 @@ export const projectsApi = {
   /**
    * 프로젝트 목록 조회
    */
-  getProjects: (params?: ApiParams) => 
-    apiClient.get<Project[]>('/projects', params as Record<string, string>),
+  getProjects: (params?: ApiParams) => {
+    const queryParams: Record<string, string> = {};
+    
+    if (params) {
+      Object.entries(params).forEach(([key, value]) => {
+        if (value !== undefined && value !== null) {
+          queryParams[key] = String(value);
+        }
+      });
+    }
+    
+    return apiClient.get<Project[]>('/projects', queryParams);
+  },
 
   /**
    * 프로젝트 생성
@@ -179,8 +191,19 @@ export const projectsApi = {
   /**
    * 채팅 메시지 조회
    */
-  getChatMessages: (projectId: string, params?: { limit?: number; offset?: number }) =>
-    apiClient.get<ChatMessage[]>(`/projects/${projectId}/chat`, params as Record<string, string>),
+  getChatMessages: (projectId: string, params?: { limit?: number; offset?: number }) => {
+    const queryParams: Record<string, string> = {};
+    
+    if (params) {
+      Object.entries(params).forEach(([key, value]) => {
+        if (value !== undefined && value !== null) {
+          queryParams[key] = String(value);
+        }
+      });
+    }
+    
+    return apiClient.get<ChatMessage[]>(`/projects/${projectId}/chat`, queryParams);
+  },
 
   /**
    * 채팅 메시지 전송
@@ -208,8 +231,19 @@ export const usersApi = {
   /**
    * 사용자 검색
    */
-  searchUsers: (query: string, params?: ApiParams) =>
-    apiClient.get<User[]>('/users/search', { query, ...params } as Record<string, string>),
+  searchUsers: (query: string, params?: ApiParams) => {
+    const queryParams: Record<string, string> = { query };
+    
+    if (params) {
+      Object.entries(params).forEach(([key, value]) => {
+        if (value !== undefined && value !== null) {
+          queryParams[key] = String(value);
+        }
+      });
+    }
+    
+    return apiClient.get<User[]>('/users/search', queryParams);
+  },
 
   /**
    * 현재 사용자 정보

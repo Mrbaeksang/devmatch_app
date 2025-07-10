@@ -5,7 +5,7 @@ import { db } from '@/lib/db';
 
 export async function GET(
   req: Request,
-  { params }: { params: { projectId: string } }
+  { params }: { params: Promise<{ projectId: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -13,7 +13,7 @@ export async function GET(
       return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
     }
 
-    const { projectId } = params;
+    const { projectId } = await params;
 
     // 프로젝트 정보 가져오기
     const project = await db.project.findUnique({
@@ -86,7 +86,7 @@ export async function GET(
     return NextResponse.json(
       { 
         message: '프로젝트 정보를 불러오는 중 오류가 발생했습니다.',
-        error: process.env.NODE_ENV === 'development' ? error.message : undefined 
+        error: process.env.NODE_ENV === 'development' ? (error as Error).message : undefined 
       },
       { status: 500 }
     );

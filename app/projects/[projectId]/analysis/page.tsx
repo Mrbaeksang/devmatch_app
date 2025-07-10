@@ -122,11 +122,22 @@ export default function AnalysisPage() {
             consultationCompleted: true,
             interviewStatus: InterviewStatus.COMPLETED,
             memberProfile: {
+              memberId: '1',
+              memberName: '김개발',
+              skillLevel: 'advanced',
+              strongSkills: ['Node.js', 'Express', 'MongoDB', 'AWS'],
+              learningGoals: ['GraphQL', 'Docker'],
+              preferredRole: 'backend',
+              leadershipLevel: 'preferred',
+              leadershipExperience: ['이전 스타트업에서 팀장 경험'],
+              leadershipMotivation: '팀 성장과 기술 도입',
+              workStyle: 'collaborative',
+              projectMotivation: '새로운 기술 도입과 팀 성장',
+              contributions: ['백엔드 아키텍처 설계', '팀 리더십'],
+              // 호환성 필드들
               name: '김개발',
               skills: ['Node.js', 'Express', 'MongoDB', 'AWS'],
               experience: '백엔드 개발 3년',
-              leadershipLevel: 'preferred',
-              workStyle: '체계적이고 계획적인 접근',
               communication: '명확한 의사소통 선호',
               motivation: '새로운 기술 도입과 팀 성장',
               availability: '주중 저녁, 주말 가능',
@@ -135,6 +146,7 @@ export default function AnalysisPage() {
               interviewCompletedAt: new Date().toISOString()
             },
             roleAssignment: {
+              userId: 'user1',
               assignedRole: '팀장 & 백엔드 개발자',
               isLeader: true,
               reasoning: '리더십 경험과 기술 역량을 모두 갖춘 최적의 팀장 후보',
@@ -150,11 +162,22 @@ export default function AnalysisPage() {
             consultationCompleted: true,
             interviewStatus: InterviewStatus.COMPLETED,
             memberProfile: {
+              memberId: '2',
+              memberName: '박프론트',
+              skillLevel: 'intermediate',
+              strongSkills: ['React', 'TypeScript', 'Next.js', 'Tailwind CSS'],
+              learningGoals: ['Three.js', 'D3.js'],
+              preferredRole: 'frontend',
+              leadershipLevel: 'interested',
+              leadershipExperience: ['개인 프로젝트 리드 경험'],
+              leadershipMotivation: '사용자 경험 개선을 위한 리더십',
+              workStyle: 'collaborative',
+              projectMotivation: '사용자 경험 개선',
+              contributions: ['UI/UX 디자인', '프론트엔드 개발'],
+              // 호환성 필드들
               name: '박프론트',
               skills: ['React', 'TypeScript', 'Next.js', 'Tailwind CSS'],
               experience: '프론트엔드 개발 2년',
-              leadershipLevel: 'interested',
-              workStyle: '사용자 중심의 UI/UX 접근',
               communication: '시각적 자료 활용한 소통',
               motivation: '사용자 경험 개선',
               availability: '주중 저녁, 주말 일부 가능',
@@ -163,6 +186,7 @@ export default function AnalysisPage() {
               interviewCompletedAt: new Date().toISOString()
             },
             roleAssignment: {
+              userId: 'user2',
               assignedRole: '프론트엔드 개발자',
               isLeader: false,
               reasoning: '프론트엔드 전문성과 디자인 감각을 갖춘 UI 담당자',
@@ -178,11 +202,22 @@ export default function AnalysisPage() {
             consultationCompleted: true,
             interviewStatus: InterviewStatus.COMPLETED,
             memberProfile: {
+              memberId: '3',
+              memberName: '이백엔드',
+              skillLevel: 'intermediate',
+              strongSkills: ['Python', 'Django', 'PostgreSQL', 'Docker'],
+              learningGoals: ['Kubernetes', 'GraphQL'],
+              preferredRole: 'backend',
+              leadershipLevel: 'experienced',
+              leadershipExperience: ['대학교 동아리 팀장 경험'],
+              leadershipMotivation: '체계적인 프로젝트 관리',
+              workStyle: 'collaborative',
+              projectMotivation: '안정적인 시스템 구축',
+              contributions: ['데이터베이스 설계', '시스템 아키텍처'],
+              // 호환성 필드들
               name: '이백엔드',
               skills: ['Python', 'Django', 'PostgreSQL', 'Docker'],
               experience: '백엔드 개발 1.5년',
-              leadershipLevel: 'experienced',
-              workStyle: '꼼꼼한 코드 리뷰와 테스트',
               communication: '문서화를 통한 체계적 소통',
               motivation: '안정적인 시스템 구축',
               availability: '주중 저녁, 주말 가능',
@@ -191,6 +226,7 @@ export default function AnalysisPage() {
               interviewCompletedAt: new Date().toISOString()
             },
             roleAssignment: {
+              userId: 'user3',
               assignedRole: '백엔드 개발자',
               isLeader: false,
               reasoning: '백엔드 전문성과 체계적 접근으로 안정적인 시스템 구축',
@@ -206,11 +242,22 @@ export default function AnalysisPage() {
             consultationCompleted: true,
             interviewStatus: InterviewStatus.COMPLETED,
             memberProfile: {
+              memberId: '4',
+              memberName: '최테스트',
+              skillLevel: 'intermediate',
+              strongSkills: ['Jest', 'Cypress', 'Selenium', 'AWS'],
+              learningGoals: ['K6', 'Playwright'],
+              preferredRole: 'backend',
+              leadershipLevel: 'none',
+              leadershipExperience: [],
+              leadershipMotivation: '팀원으로서 기여',
+              workStyle: 'collaborative',
+              projectMotivation: '높은 품질의 소프트웨어 제작',
+              contributions: ['테스트 자동화', '품질 보증'],
+              // 호환성 필드들
               name: '최테스트',
               skills: ['Jest', 'Cypress', 'Selenium', 'AWS'],
               experience: '테스트 엔지니어 2년',
-              leadershipLevel: 'none',
-              workStyle: '세밀한 테스트와 품질 관리',
               communication: '이슈 기반 소통',
               motivation: '높은 품질의 소프트웨어 제작',
               availability: '주중 저녁 가능',
@@ -219,6 +266,7 @@ export default function AnalysisPage() {
               interviewCompletedAt: new Date().toISOString()
             },
             roleAssignment: {
+              userId: 'user4',
               assignedRole: 'QA 엔지니어',
               isLeader: false,
               reasoning: '테스트 전문성으로 프로젝트 품질 보장',
@@ -456,11 +504,11 @@ export default function AnalysisPage() {
                   <CardContent>
                     <div className="flex items-center gap-4">
                       <div className="text-4xl font-bold text-green-400">
-                        {project.teamAnalysis.overallScore}
+                        {project.teamAnalysis?.overallScore || 0}
                       </div>
                       <div className="flex-1">
                         <Progress 
-                          value={project.teamAnalysis.overallScore} 
+                          value={project.teamAnalysis?.overallScore || 0} 
                           className="h-3"
                         />
                         <p className="text-sm text-zinc-400 mt-1">
@@ -490,7 +538,7 @@ export default function AnalysisPage() {
                       <div>
                         <h4 className="font-medium text-green-400 mb-2">강점</h4>
                         <ul className="space-y-1">
-                          {project.teamAnalysis.strengths.map((strength, index) => (
+                          {(project.teamAnalysis?.strengths || []).map((strength: string, index: number) => (
                             <li key={index} className="text-sm text-zinc-300 flex items-center gap-2">
                               <CheckCircle2 className="h-3 w-3 text-green-500" />
                               {strength}
@@ -502,7 +550,7 @@ export default function AnalysisPage() {
                       <div>
                         <h4 className="font-medium text-amber-400 mb-2">우려사항</h4>
                         <ul className="space-y-1">
-                          {project.teamAnalysis.concerns.map((concern, index) => (
+                          {(project.teamAnalysis?.concerns || []).map((concern: string, index: number) => (
                             <li key={index} className="text-sm text-zinc-300 flex items-center gap-2">
                               <AlertCircle className="h-3 w-3 text-amber-500" />
                               {concern}
@@ -556,9 +604,9 @@ export default function AnalysisPage() {
                   </CardHeader>
                   <CardContent>
                     <div className="space-y-4">
-                      {project.teamAnalysis.leadershipAnalysis.leadershipScores.map((score, index) => {
+                      {(project.teamAnalysis?.leadershipAnalysis?.leadershipScores || []).map((score: { userId: string; score: number; reasoning: string }, index: number) => {
                         const member = project.members.find(m => m.userId === score.userId);
-                        const isRecommended = score.userId === project.teamAnalysis!.leadershipAnalysis.recommendedLeader;
+                        const isRecommended = score.userId === project.teamAnalysis?.leadershipAnalysis?.recommendedLeader;
                         
                         return (
                           <div key={index} className={`p-4 rounded-lg border ${
@@ -615,7 +663,7 @@ export default function AnalysisPage() {
                           <div className="flex items-start justify-between mb-3">
                             <div className="flex items-center gap-3">
                               <div className="w-10 h-10 bg-zinc-700 rounded-full flex items-center justify-center">
-                                <span className="text-white font-medium">{member.name[0]}</span>
+                                <span className="text-white font-medium">{member.name?.[0] || '?'}</span>
                               </div>
                               <div>
                                 <div className="text-white font-medium">{member.name}</div>
@@ -659,7 +707,7 @@ export default function AnalysisPage() {
                               <div>
                                 <h5 className="text-xs font-medium text-zinc-400 mb-1">주요 책임</h5>
                                 <ul className="text-xs text-zinc-300 space-y-1">
-                                  {member.roleAssignment.responsibilities.slice(0, 2).map((resp, respIndex) => (
+                                  {(member.roleAssignment?.responsibilities || []).slice(0, 2).map((resp: string, respIndex: number) => (
                                     <li key={respIndex} className="flex items-center gap-1">
                                       <UserCheck className="h-2 w-2 text-green-500" />
                                       {resp}

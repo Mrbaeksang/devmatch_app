@@ -184,7 +184,7 @@ const FuzzyText = ({
         }
       };
 
-      (canvas as any).cleanupFuzzyText = cleanup;
+      (canvas as HTMLCanvasElement & { cleanupFuzzyText?: () => void }).cleanupFuzzyText = cleanup;
     };
 
     init();
@@ -192,8 +192,8 @@ const FuzzyText = ({
     return () => {
       isCancelled = true;
       window.cancelAnimationFrame(animationFrameId);
-      if (canvas && (canvas as any).cleanupFuzzyText) {
-        (canvas as any).cleanupFuzzyText();
+      if (canvas && (canvas as HTMLCanvasElement & { cleanupFuzzyText?: () => void }).cleanupFuzzyText) {
+        (canvas as HTMLCanvasElement & { cleanupFuzzyText?: () => void }).cleanupFuzzyText!();
       }
     };
   }, [

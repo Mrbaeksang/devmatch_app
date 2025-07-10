@@ -1,6 +1,8 @@
 // types/project.ts
 // DevMatch 프로젝트 관련 타입 정의 (error.md 설계 기반)
 
+import { ConsultationData, ChatMessage } from '@/types/chat';
+
 /**
  * 프로젝트 상태 열거형 (수정됨)
  */
@@ -32,18 +34,28 @@ export enum InterviewStatus {
 }
 
 /**
- * 팀원 인터페이스
+ * 팀원 인터페이스 (Prisma 스키마와 일치)
  */
 export interface TeamMember {
   id: string;
-  name: string;
-  role?: string;
-  avatar?: string;
-  userId?: string;
-  consultationCompleted: boolean;
+  projectId: string;
+  userId: string;
   joinedAt: Date;
+  consultationCompleted: boolean;
   isActive: boolean;
-  consultationData?: ConsultationData;
+  role?: string | null;
+  consultationData?: unknown;  // Json 타입
+  memberProfile?: unknown;  // Json 타입
+  interviewStatus: InterviewStatus;
+  roleAssignment?: unknown;  // Json 타입
+  user?: {
+    id: string;
+    name: string | null;
+    email?: string | null;
+  };
+  // 호환성을 위한 추가 필드들
+  name?: string;
+  avatar?: string;
 }
 
 /**
@@ -122,42 +134,49 @@ export interface MemberProfile {
   // 프로젝트 관련
   projectMotivation: string;   // 참여 동기
   contributions: string[];     // 기여하고 싶은 부분
+
+  // 호환성을 위한 추가 필드들 (기존 시스템과의 호환성 유지)
+  skills?: string[];
+  experience?: string;
+  communication?: string;
+  motivation?: string;
+  availability?: string;
+  rolePreference?: string;
+  additionalInfo?: string;
+  name?: string;
+  interviewCompletedAt?: string;
 }
 
-/**
- * 상담 데이터 인터페이스
- */
-export interface ConsultationData {
-  userName?: string;
-  projectName?: string;
-  projectGoal?: string;
-  techStack?: string[];
-  mainFeatures?: string[];
-  communicationSkills?: string[];
-  teamMembersCount?: number;
-  aiSuggestedRoles?: AIRole[];
-}
+// ConsultationData는 types/chat.ts에서 import하여 사용
+// 중복 정의 제거됨
 
 /**
- * 프로젝트 인터페이스
+ * 프로젝트 인터페이스 (Prisma 스키마와 일치)
  */
 export interface Project {
   id: string;
   name: string;
   description: string;
+  goal: string;
   status: ProjectStatus;
   progress: number;
   inviteCode: string;
   maxMembers: number;
-  createdBy: string;
+  createdBy?: string;  // ownerId의 별칭
+  ownerId: string;
+  owner?: {
+    id: string;
+    name: string | null;
+    email?: string | null;
+  };
   members: TeamMember[];
   techStack: string[];
-  consultationData?: ConsultationData;
-  aiAnalysis?: {
-    strengths: string[];
-    recommendations: string[];
-    nextSteps: string[];
-  };
+  consultationData?: unknown;  // Json 타입
+  blueprint?: unknown;  // Json 타입
+  teamAnalysis?: unknown;  // Json 타입 
+  aiAnalysis?: unknown;  // Json 타입
+  interviewPhase: InterviewPhase;
+  startedAt?: Date | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -184,13 +203,21 @@ export interface UpdateProjectData {
 }
 
 /**
- * 리더십 분석 (팀장 선정을 위한 AI 분석)
+ * 리더십 분석 (실제 API 응답 구조)
  */
 export interface LeadershipAnalysis {
-  candidates: LeaderCandidate[];
-  selectedLeader: string;
-  selectionReason: string;
-  alternativeLeaders: string[];    // 부팀장 후보
+  recommendedLeader: string;       // 추천 리더 userId
+  leadershipScores: Array<{
+    userId: string;
+    score: number;
+    reasoning: string;
+  }>;
+  
+  // 호환성을 위한 추가 필드들
+  candidates?: LeaderCandidate[];
+  selectedLeader?: string;
+  selectionReason?: string;
+  alternativeLeaders?: string[];
 }
 
 /**
@@ -206,29 +233,39 @@ export interface LeaderCandidate {
 }
 
 /**
- * 팀 종합 분석 결과
+ * 팀 종합 분석 결과 (실제 API 응답 구조)
  */
 export interface TeamAnalysis {
-  projectInfo: ProjectBlueprint;
-  teamMembers: MemberProfile[];
-  
-  // AI 분석 결과
-  roleAssignments: RoleAssignment[];
-  leadershipAnalysis: LeadershipAnalysis;
+  overallScore: number;        // 전체 점수 (0-100)
+  strengths: string[];         // 팀의 강점
+  concerns: string[];          // 우려사항
   recommendations: string[];   // AI 추천사항
-  compatibilityScore: number;  // 팀 호환성 점수
+  leadershipAnalysis: LeadershipAnalysis;
+  
+  // 추가 필드들 (호환성)
+  projectInfo?: ProjectBlueprint;
+  teamMembers?: MemberProfile[];
+  roleAssignments?: RoleAssignment[];
+  compatibilityScore?: number;
 }
 
 /**
- * 역할 배정 결과
+ * 역할 배정 결과 (실제 API 응답 구조)
  */
 export interface RoleAssignment {
-  memberId: string;
-  memberName: string;
-  primaryRole: string;        // 주 역할
+  userId: string;
+  assignedRole: string;       // 배정된 역할
+  isLeader: boolean;          // 팀장 여부
+  reasoning: string;          // 배정 이유
   responsibilities: string[]; // 세부 책임
-  reasonings: string[];      // 배정 이유
-  isTeamLeader: boolean;     // 팀장 여부
+  matchScore: number;         // 적합도 점수 (0-100)
+  
+  // 호환성을 위한 추가 필드들
+  memberId?: string;
+  memberName?: string;
+  primaryRole?: string;
+  reasonings?: string[];
+  isTeamLeader?: boolean;
 }
 
 /**
@@ -263,14 +300,5 @@ export interface ProjectState {
   progress: number;
 }
 
-/**
- * 채팅 메시지 인터페이스
- */
-export interface ChatMessage {
-  id: string;
-  senderId: string;
-  senderName: string;
-  content: string;
-  timestamp: Date;
-  type: 'user' | 'system' | 'ai';
-}
+// 채팅 메시지는 types/chat.ts에서 import하여 사용
+// 중복 정의 제거

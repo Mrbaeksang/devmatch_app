@@ -16,11 +16,18 @@ const ProjectsPage = () => {
   const { data: session, status } = useSession();
   const router = useRouter();
 
-  // 로그인 확인
+  // 로그인 확인 및 프로필 완성 여부 체크
   useEffect(() => {
     if (status === "loading") return; // 로딩 중이면 대기
     if (!session) {
       router.push("/"); // 로그인 안 되어 있으면 홈페이지로
+      return;
+    }
+    
+    // 프로필 완성 여부 확인
+    if (session.user && !session.user.isCompleted) {
+      console.log("프로필 미완성 - 프로필 완성 페이지로 이동");
+      router.push("/auth/complete-profile");
       return;
     }
   }, [session, status, router]);
@@ -43,18 +50,18 @@ const ProjectsPage = () => {
   // 개발용 로그 추가
   console.log('Projects data:', projects);
 
-  const fadeUpVariants = {
-    hidden: { opacity: 0, y: 30 },
-    visible: (i: number) => ({
-      opacity: 1,
-      y: 0,
-      transition: {
-        duration: 0.6,
-        delay: i * 0.2,
-        ease: "easeInOut",
-      },
-    }),
-  };
+  // const fadeUpVariants = {
+  //   hidden: { opacity: 0, y: 30 },
+  //   visible: (i: number) => ({
+  //     opacity: 1,
+  //     y: 0,
+  //     transition: {
+  //       duration: 0.6,
+  //       delay: i * 0.2,
+  //       ease: "easeInOut",
+  //     },
+  //   }),
+  // };
 
   // Bento Grid 아이템들
   const bentoItems = [

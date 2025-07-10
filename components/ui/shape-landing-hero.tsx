@@ -1,6 +1,6 @@
 "use client";
 
-import { motion } from "framer-motion";
+import { motion, Variants } from "framer-motion";
 import { Circle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { AuthOptionsCard } from "./auth-options-card";
@@ -49,7 +49,7 @@ function ElegantShape({
                 transition={{
                     duration: 12,
                     repeat: Number.POSITIVE_INFINITY,
-                    ease: "easeInOut",
+                    ease: [0.4, 0, 0.2, 1],
                 }}
                 style={{
                     width,
@@ -84,7 +84,7 @@ function HeroGeometric({
     title2?: string;
     showAuthButtons?: boolean;
 }) {
-    const fadeUpVariants = {
+    const fadeUpVariants: Variants = {
         hidden: { opacity: 0, y: 30 },
         visible: (i: number) => ({
             opacity: 1,
@@ -92,7 +92,7 @@ function HeroGeometric({
             transition: {
                 duration: 1,
                 delay: 0.5 + i * 0.2,
-                ease: "easeInOut",
+                ease: [0.4, 0, 0.2, 1],
             },
         }),
     };

@@ -5,16 +5,16 @@ import { db } from '@/lib/db';
 
 export async function GET(
   req: Request,
-  { params }: { params: { inviteCode: string } }
+  { params }: { params: Promise<{ projectId: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions);
     
-    const { inviteCode } = params;
+    const { projectId } = await params;
 
-    // 초대 코드로 프로젝트 찾기
+    // 프로젝트 ID로 프로젝트 찾기
     const project = await db.project.findUnique({
-      where: { inviteCode },
+      where: { id: projectId },
       include: {
         owner: {
           select: {
@@ -29,7 +29,9 @@ export async function GET(
               select: {
                 id: true,
                 name: true,
-                email: true
+                email: true,
+                avatar: true,
+                nickname: true
               }
             }
           }
@@ -50,7 +52,8 @@ export async function GET(
     // 팀원 정보 변환
     const members = project.members.map(member => ({
       id: member.id,
-      name: member.user.name,
+      name: member.user.nickname || member.user.name,
+      avatar: member.user.avatar,
       consultationCompleted: member.consultationCompleted,
       joinedAt: member.joinedAt,
       userId: member.user.id,
@@ -82,7 +85,8 @@ export async function GET(
     if (currentUser) {
       currentUserData = {
         id: currentUser.id,
-        name: currentUser.user.name,
+        name: currentUser.user.nickname || currentUser.user.name,
+        avatar: currentUser.user.avatar,
         consultationCompleted: currentUser.consultationCompleted,
         joinedAt: currentUser.joinedAt,
         userId: currentUser.user.id,
@@ -105,7 +109,7 @@ export async function GET(
     return NextResponse.json(
       { 
         message: '프로젝트 정보를 불러오는 중 오류가 발생했습니다.',
-        error: process.env.NODE_ENV === 'development' ? error.message : undefined 
+        error: process.env.NODE_ENV === 'development' ? (error as Error).message : undefined 
       },
       { status: 500 }
     );
@@ -114,7 +118,7 @@ export async function GET(
 
 export async function POST(
   req: Request,
-  { params }: { params: { inviteCode: string } }
+  { params }: { params: Promise<{ projectId: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -122,11 +126,11 @@ export async function POST(
       return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
     }
 
-    const { inviteCode } = params;
+    const { projectId } = await params;
 
-    // 초대 코드로 프로젝트 찾기
+    // 프로젝트 ID로 프로젝트 찾기
     const project = await db.project.findUnique({
-      where: { inviteCode },
+      where: { id: projectId },
       include: {
         members: true
       }
@@ -166,7 +170,7 @@ export async function POST(
     return NextResponse.json(
       { 
         message: '프로젝트 참여 중 오류가 발생했습니다.',
-        error: process.env.NODE_ENV === 'development' ? error.message : undefined 
+        error: process.env.NODE_ENV === 'development' ? (error as Error).message : undefined 
       },
       { status: 500 }
     );

@@ -31,24 +31,31 @@ export const authOptions: NextAuthOptions = {
         session.user.name = user.name;
         session.user.email = user.email;
         session.user.image = user.image;
+        // 프로필 완성 여부 추가
+        session.user.isCompleted = (user as {isCompleted?: boolean}).isCompleted || false;
+        // 아바타 추가
+        session.user.avatar = (user as {avatar?: string}).avatar || undefined;
       }
       return session;
     },
-     async redirect({ url, baseUrl }) {
+    async signIn({ user, account, profile }) {
+      // 로그인 허용
+      return true;
+    },
+    async redirect({ url, baseUrl }) {
       console.log("==============================================");
       console.log("Redirect 콜백 호출됨!");
       console.log("전달된 URL (url):", url);
       console.log("기본 URL (baseUrl):", baseUrl);
       console.log("==============================================");
 
-      // NextAuth.js의 표준 리다이렉트 로직을 따릅니다.
-      // 만약 url이 baseUrl로 시작한다면 그 url로 이동 (보안상 안전한 내부 리다이렉트)
+      // 특정 페이지로의 리다이렉트인 경우 그대로 허용
       if (url.startsWith(baseUrl)) {
         return url;
       }
-      // 그 외의 경우 (외부 URL이거나, 특별한 callbackUrl이 없는 경우)
-      // 무조건 기본 로그인 후 페이지인 /projects로 리다이렉트합니다.
-      return baseUrl + '/projects'; // 명시적으로 경로를 붙여줍니다.
+      
+      // 로그인 후 기본 리다이렉트는 중간 페이지로
+      return baseUrl + '/auth/redirect';
     },
   },
   // 쿠키 설정 추가 (중요!)

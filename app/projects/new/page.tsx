@@ -1,372 +1,321 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
-import { ConsultationData } from "@/types/chat";
+import { useSession } from "next-auth/react";
 
 import { BackgroundPaths } from "@/components/ui/background-paths";
-import { 
-  ChatBubble, 
-  ChatBubbleAvatar, 
-  ChatBubbleMessage 
-} from "@/components/ui/chat-bubble";
-import { ChatInput } from "@/components/ui/chat-input";
-import { ChatMessageList } from "@/components/ui/chat-message-list";
-import {
-  ExpandableChatHeader,
-  ExpandableChatBody,
-  ExpandableChatFooter,
-} from "@/components/ui/expandable-chat";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Progress } from "@/components/ui/progress";
-import { Separator } from "@/components/ui/separator";
-import { ProjectModal, useProjectModal } from "@/components/ui/project-modal";
+import { generateAvatarDataUrl, deserializeAvatarConfig } from "@/lib/avatar";
+import Image from "next/image";
 import { 
   Loader2, 
   Send,
   Sparkles,
-  MessageSquare,
   CheckCircle2,
-  AlertCircle,
-  RefreshCw,
   Bot,
-  Edit
+  User
 } from "lucide-react";
 
-// 상담 단계 정의
-enum ConsultationStep {
-  NAME_COLLECTION = 'NAME_COLLECTION',
-  PROJECT_INFO_COLLECTION = 'PROJECT_INFO_COLLECTION', 
-  ROLE_SUGGESTION = 'ROLE_SUGGESTION',
-  TEAM_STRUCTURE_PROPOSAL = 'TEAM_STRUCTURE_PROPOSAL',
-  SUMMARY_CONFIRMATION = 'SUMMARY_CONFIRMATION',
-  COMPLETED = 'COMPLETED',
-}
-
-
-// 메시지 타입
+// 간단한 메시지 타입
 interface Message {
   id: string;
-  role: 'user' | 'assistant';
+  role: 'user' | 'ai';
   content: string;
   timestamp: Date;
-  isTyping?: boolean;
 }
 
-// 타이핑 애니메이션 컴포넌트 (제거됨 - 사용되지 않음)
+// 성공 모달 컴포넌트
+interface SuccessModalProps {
+  isOpen: boolean;
+  projectData: {
+    inviteCode: string;
+    [key: string]: unknown;
+  };
+  onNavigate: () => void;
+}
 
-// 프로그레스 계산 함수 (8단계로 확장)
-const calculateProgress = (data: ConsultationData, currentStep: ConsultationStep): number => {
-  const totalSteps = 8;
-  let completedSteps = 0;
+function SuccessModal({ isOpen, projectData, onNavigate }: SuccessModalProps) {
+  if (!isOpen) return null;
 
-  // 기본 정보 수집 (6단계)
-  if (data.userName) completedSteps++;
-  if (data.projectName) completedSteps++;
-  if (data.projectGoal) completedSteps++;
-  if (data.techStack && data.techStack.length > 0) completedSteps++;
-  if (data.projectDuration || data.duration) completedSteps++;
-  if (data.teamMembersCount) completedSteps++;
-
-  // 추가 단계 (2단계)
-  if (data.aiSuggestedRoles && data.aiSuggestedRoles.length > 0) completedSteps++; // 7단계: AI 역할 제안
-  if (currentStep === ConsultationStep.COMPLETED) completedSteps++; // 8단계: 최종 완료
-
-  return (completedSteps / totalSteps) * 100;
-};
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+      <motion.div
+        initial={{ opacity: 0, scale: 0.9 }}
+        animate={{ opacity: 1, scale: 1 }}
+        className="bg-zinc-900 border border-zinc-800 rounded-lg p-6 max-w-md w-full mx-4"
+      >
+        <div className="text-center">
+          <CheckCircle2 className="h-16 w-16 text-green-500 mx-auto mb-4" />
+          <h2 className="text-2xl font-bold text-white mb-2">프로젝트 생성 완료!</h2>
+          <p className="text-zinc-400 mb-6">이제 팀원 모집을 시작하세요</p>
+          
+          <div className="bg-zinc-800 rounded-lg p-6 mb-6 text-left space-y-5">
+            <div>
+              <h3 className="font-bold text-white text-xl mb-2">{String(projectData?.name || projectData?.projectName || '')}</h3>
+              <p className="text-white text-base leading-relaxed">{String(projectData?.description || projectData?.projectGoal || '')}</p>
+            </div>
+            
+            <div className="grid grid-cols-2 gap-6">
+              <div>
+                <span className="text-white font-semibold text-base">팀원 수:</span>
+                <span className="text-white ml-2 text-base">{String(projectData?.teamSize || '')}명</span>
+              </div>
+              <div>
+                <span className="text-white font-semibold text-base">기간:</span>
+                <span className="text-white ml-2 text-base">{String(projectData?.duration || '')}</span>
+              </div>
+            </div>
+            
+            {projectData?.teamComposition ? (
+              <div>
+                <span className="text-white font-semibold text-base">역할 구성:</span>
+                <p className="text-white text-base mt-2 leading-relaxed">
+                  {String((projectData.teamComposition as Record<string, unknown>)?.description || '')}
+                </p>
+              </div>
+            ) : null}
+            
+            <div>
+              <span className="text-white font-semibold text-base">기술 스택:</span>
+              <div className="flex flex-wrap gap-2 mt-3">
+                {projectData?.techStack && typeof projectData.techStack === 'object' ? (
+                  <>
+                    {/* Frontend */}
+                    {(projectData.techStack as any)?.frontend && (
+                      <div className="w-full">
+                        <span className="text-blue-400 text-sm font-medium">Frontend:</span>
+                        <div className="flex flex-wrap gap-1 mt-1">
+                          {[
+                            ...((projectData.techStack as any).frontend.languages || []),
+                            ...((projectData.techStack as any).frontend.frameworks || []),
+                            ...((projectData.techStack as any).frontend.tools || [])
+                          ].map((tech: string) => (
+                            <Badge key={tech} variant="secondary" className="text-xs px-2 py-1 bg-blue-600/20 text-blue-300">
+                              {tech}
+                            </Badge>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    
+                    {/* Backend */}
+                    {(projectData.techStack as any)?.backend && (
+                      <div className="w-full">
+                        <span className="text-green-400 text-sm font-medium">Backend:</span>
+                        <div className="flex flex-wrap gap-1 mt-1">
+                          {[
+                            ...((projectData.techStack as any).backend.languages || []),
+                            ...((projectData.techStack as any).backend.frameworks || []),
+                            ...((projectData.techStack as any).backend.tools || [])
+                          ].map((tech: string) => (
+                            <Badge key={tech} variant="secondary" className="text-xs px-2 py-1 bg-green-600/20 text-green-300">
+                              {tech}
+                            </Badge>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    
+                    {/* Collaboration */}
+                    {(projectData.techStack as any)?.collaboration && (
+                      <div className="w-full">
+                        <span className="text-yellow-400 text-sm font-medium">협업:</span>
+                        <div className="flex flex-wrap gap-1 mt-1">
+                          {[
+                            ...((projectData.techStack as any).collaboration.git || []),
+                            ...((projectData.techStack as any).collaboration.tools || [])
+                          ].map((tech: string) => (
+                            <Badge key={tech} variant="secondary" className="text-xs px-2 py-1 bg-yellow-600/20 text-yellow-300">
+                              {tech}
+                            </Badge>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </>
+                ) : null}
+              </div>
+            </div>
+          </div>
+          
+          <Button 
+            onClick={onNavigate} 
+            className="w-full text-lg font-bold py-4 bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-700 hover:to-blue-600 transition-all duration-200 transform hover:scale-[1.02]" 
+            size="lg"
+          >
+            **🚀 팀원 모집 페이지로 이동**
+          </Button>
+        </div>
+      </motion.div>
+    </div>
+  );
+}
 
 export default function NewProjectPage() {
   const router = useRouter();
-  const [messages, setMessages] = useState<Message[]>([
+  const { data: session } = useSession();
+  
+  // 데피 시스템 기반 상태 관리
+  const [userInput, setUserInput] = useState("");
+  const [chatHistory, setChatHistory] = useState<Message[]>([
     {
       id: '1',
-      role: 'assistant',
-      content: '👋 안녕하세요! AI 프로젝트 매니저입니다. 먼저 제가 뭐라고 불러드리면 될까요?',
-      timestamp: new Date(),
+      role: 'ai',
+      content: '안녕하세요! DevMatch에 오신 것을 환영합니다. 저는 당신의 아이디어를 구체적인 \'프로젝트 청사진\'으로 만들어드릴 AI, **데피(Deffy)**라고 해요. 함께 멋진 프로젝트를 설계해볼까요? 우선, 어떤 프로젝트를 만들고 싶으신지 편하게 말씀해주세요!',
+      timestamp: new Date()
     }
   ]);
-  const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [currentStep, setCurrentStep] = useState<ConsultationStep>(ConsultationStep.NAME_COLLECTION);
-  const [consultationData, setConsultationData] = useState<ConsultationData>({});
-  const [isConsultationComplete, setIsConsultationComplete] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [createdProject, setCreatedProject] = useState<{ inviteCode: string } | null>(null);
-  const [isCreatingProject, setIsCreatingProject] = useState(false);
+  const [collectedData, setCollectedData] = useState({
+    projectName: '',
+    projectGoal: '',
+    teamSize: 0,
+    techStack: {
+      frontend: {
+        languages: [] as string[],
+        frameworks: [] as string[],
+        tools: [] as string[]
+      },
+      backend: {
+        languages: [] as string[],
+        frameworks: [] as string[],
+        tools: [] as string[]
+      },
+      collaboration: {
+        git: [] as string[],
+        tools: [] as string[]
+      }
+    },
+    duration: ''
+  });
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [projectData, setProjectData] = useState<{
+    inviteCode: string;
+    techStack?: {
+      frontend?: {
+        languages: string[];
+        frameworks: string[];
+        tools?: string[];
+      };
+      backend?: {
+        languages: string[];
+        frameworks: string[];
+        tools?: string[];
+      };
+      collaboration: {
+        git: string[];
+        tools?: string[];
+      };
+    };
+    [key: string]: unknown;
+  } | null>(null);
+  const [isComplete, setIsComplete] = useState(false);
   
-  // 새로운 역할 제안 관련 상태
-  const [showRoleSuggestion, setShowRoleSuggestion] = useState(false);
-  const [isEditingRoles, setIsEditingRoles] = useState(false);
-  const [roleEditInput, setRoleEditInput] = useState("");
-  
+  // 오토스크롤용 ref
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const { isOpen: isModalOpen, openModal, closeModal } = useProjectModal();
+  const inputRef = useRef<HTMLInputElement>(null);
 
-  // 자동 스크롤
-  const scrollToBottom = useCallback(() => {
+  // 채팅 히스토리 변경 시 자동 스크롤
+  useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [chatHistory]);
+
+  // 컴포넌트 마운트 시 입력창 포커스 (지연)
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      inputRef.current?.focus();
+    }, 1000); // 1초 후 포커스
+    
+    return () => clearTimeout(timer);
   }, []);
 
-  useEffect(() => {
-    scrollToBottom();
-  }, [scrollToBottom]);
-
-  // 메시지 전송 처리
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!input.trim() || isLoading) return;
+  // 새로운 메시지 전송 함수
+  const sendMessage = async () => {
+    if (!userInput.trim() || isLoading) return;
 
     const userMessage: Message = {
       id: Date.now().toString(),
       role: 'user',
-      content: input.trim(),
-      timestamp: new Date(),
+      content: userInput.trim(),
+      timestamp: new Date()
     };
 
-    setMessages(prev => [...prev, userMessage]);
-    setInput("");
+    setChatHistory(prev => [...prev, userMessage]);
+    const currentInput = userInput.trim();
+    setUserInput("");
     setIsLoading(true);
-    setError(null);
 
     try {
       const response = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          messages: [...messages, userMessage].map(m => ({
-            role: m.role,
-            content: m.content
-          })),
-          currentStep,
-          consultationData,
-        }),
+          userInput: currentInput,
+          collectedData,
+          chatHistory: [...chatHistory, userMessage].map(msg => ({
+            role: msg.role,
+            content: msg.content
+          }))
+        })
       });
 
-      if (!response.ok) {
-        throw new Error(`서버 오류: ${response.status}`);
-      }
+      if (!response.ok) throw new Error('서버 오류');
 
       const data = await response.json();
-
-      // AI 응답 처리
-      if (data.error) {
-        throw new Error(data.error);
-      }
 
       // AI 응답 메시지 추가
-      const assistantMessage: Message = {
-        id: Date.now().toString(),
-        role: 'assistant',
-        content: data.message,
-        timestamp: new Date(),
-        isTyping: false,
+      const aiMessage: Message = {
+        id: (Date.now() + 1).toString(),
+        role: 'ai',
+        content: data.response,
+        timestamp: new Date()
       };
 
-      setMessages(prev => [...prev, assistantMessage]);
+      setChatHistory(prev => [...prev, aiMessage]);
 
-      // 상태 업데이트
-      if (data.nextStep) {
-        setCurrentStep(data.nextStep);
-        
-        // 역할 제안 단계 처리
-        if (data.nextStep === ConsultationStep.ROLE_SUGGESTION) {
-          setShowRoleSuggestion(true);
+      // 데피 시스템 기반 처리
+      if (data.projectCreated) {
+        setProjectData(data.finalData);
+        setShowSuccessModal(true);
+      } else {
+        // 데이터 저장 (항상)
+        if (data.dataToSave) {
+          setCollectedData(prev => ({ ...prev, ...data.dataToSave }));
         }
-      }
-      if (data.consultationData) {
-        setConsultationData(prev => ({ ...prev, ...data.consultationData }));
-      }
-      if (data.isConsultationComplete) {
-        setIsConsultationComplete(true);
-        setShowRoleSuggestion(false);
+        
+        // 완료 상태 처리
+        setIsComplete(data.isComplete || false);
       }
 
-    } catch (error) {
-      console.error('Chat error:', error);
-      setError(error instanceof Error ? error.message : '알 수 없는 오류가 발생했습니다.');
-      
-      // 에러 메시지 추가
-      const errorMessage: Message = {
-        id: Date.now().toString(),
-        role: 'assistant',
-        content: '죄송합니다. 일시적인 오류가 발생했습니다. 다시 시도해주세요.',
-        timestamp: new Date(),
-      };
-      setMessages(prev => [...prev, errorMessage]);
+    } catch {
+      toast.error('오류가 발생했습니다. 다시 시도해주세요.');
     } finally {
       setIsLoading(false);
+      // AI 응답 후 입력창으로 포커스 복귀
+      setTimeout(() => {
+        inputRef.current?.focus();
+      }, 100);
     }
   };
 
-  // 타이핑 완료 처리 (개발용 로그 추가)
-  const handleTypingComplete = useCallback((messageId: string) => {
-    console.log('Typing complete for message:', messageId);
-    setMessages(prev => prev.map(msg => 
-      msg.id === messageId ? { ...msg, isTyping: false } : msg
-    ));
-  }, []);
-
-  // 재시도 버튼
-  const handleRetry = () => {
-    setError(null);
-    // 마지막 사용자 메시지 찾기
-    const lastUserMessage = [...messages].reverse().find(m => m.role === 'user');
-    if (lastUserMessage) {
-      setInput(lastUserMessage.content);
-      // 마지막 사용자 메시지와 그 이후 메시지 제거
-      const lastUserIndex = messages.findIndex(m => m.id === lastUserMessage.id);
-      setMessages(messages.slice(0, lastUserIndex));
+  // 성공 모달에서 이동
+  const handleNavigate = () => {
+    if (projectData?.projectId) {
+      router.push(`/projects/${projectData.projectId}`);
     }
   };
 
-  // 역할 제안 승인 처리
-  const handleApproveRoles = async () => {
-    setCurrentStep(ConsultationStep.COMPLETED);
-    setIsConsultationComplete(true);
-    setShowRoleSuggestion(false);
-    
-    // 승인 메시지 추가
-    const approvalMessage: Message = {
-      id: Date.now().toString(),
-      role: 'assistant',
-      content: '역할 제안이 승인되었습니다! 프로젝트 생성을 완료하겠습니다.',
-      timestamp: new Date(),
-    };
-    setMessages(prev => [...prev, approvalMessage]);
-  };
-
-  // 역할 제안 수정 요청
-  const handleEditRoles = () => {
-    setIsEditingRoles(true);
-    setRoleEditInput("");
-  };
-
-  // 수정 요청 전송
-  const handleSendEditRequest = async () => {
-    if (!roleEditInput.trim()) return;
-    
-    setIsEditingRoles(false);
-    setShowRoleSuggestion(false);
-    
-    // 사용자 수정 요청 메시지 추가
-    const userMessage: Message = {
-      id: Date.now().toString(),
-      role: 'user',
-      content: roleEditInput,
-      timestamp: new Date(),
-    };
-    setMessages(prev => [...prev, userMessage]);
-    
-    // AI에게 수정 요청 전송
-    setIsLoading(true);
-    try {
-      const response = await fetch('/api/chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          messages: [...messages, userMessage].map(m => ({
-            role: m.role,
-            content: m.content
-          })),
-          currentStep: ConsultationStep.ROLE_SUGGESTION,
-          consultationData,
-          isEditMode: true,
-        }),
-      });
-
-      if (!response.ok) throw new Error(`서버 오류: ${response.status}`);
-      
-      const data = await response.json();
-      
-      if (data.error) {
-        throw new Error(data.error);
-      }
-
-      const assistantMessage: Message = {
-        id: Date.now().toString(),
-        role: 'assistant',
-        content: data.message,
-        timestamp: new Date(),
-      };
-
-      setMessages(prev => [...prev, assistantMessage]);
-      
-      if (data.consultationData) {
-        setConsultationData(prev => ({ ...prev, ...data.consultationData }));
-      }
-      
-      setShowRoleSuggestion(true);
-      
-    } catch (error) {
-      setError(error instanceof Error ? error.message : '수정 요청 중 오류가 발생했습니다.');
-    } finally {
-      setIsLoading(false);
+  // Enter 키 처리
+  const handleKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      sendMessage();
     }
   };
-
-  // 프로젝트 생성 모달 열기
-  const handleShowProjectModal = () => {
-    openModal();
-  };
-
-  // 실제 프로젝트 생성 API 호출
-  const handleConfirmCreateProject = async () => {
-    setIsCreatingProject(true);
-    try {
-      // ProjectBlueprint 데이터 생성
-      const projectBlueprint = {
-        creatorName: consultationData.userName || 'Unknown',
-        projectName: consultationData.projectName || '새 프로젝트',
-        projectDescription: consultationData.projectGoal || '프로젝트 목표',
-        techStack: Array.isArray(consultationData.techStack) ? consultationData.techStack : (consultationData.techStack ? [consultationData.techStack] : []),
-        projectType: 'web-application',
-        complexity: 'intermediate' as const,
-        duration: consultationData.duration || consultationData.projectDuration || '',
-        requirements: [],
-        goals: consultationData.projectGoal ? [consultationData.projectGoal] : [],
-        teamSize: consultationData.teamMembersCount || 4,
-        preferredRoles: [],
-        aiSuggestedRoles: (consultationData.aiSuggestedRoles || []).map((role: { role: string; count: number; note?: string; roleName?: string; description?: string; requirements?: string[]; isLeader?: boolean }) => ({
-          roleName: role.role || role.roleName || '',
-          count: role.count || 1,
-          description: role.note || role.description || '',
-          requirements: role.requirements || [],
-          isLeader: role.note?.includes('팀장') || role.note?.includes('리더') || false,
-        })),
-      };
-
-      const response = await fetch('/api/projects/initial-setup', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          projectName: consultationData.projectName || '새 프로젝트',
-          projectGoal: consultationData.projectGoal || '프로젝트 목표',
-          consultationData: consultationData,
-          projectBlueprint: projectBlueprint,
-        }),
-      });
-
-      if (!response.ok) throw new Error('프로젝트 생성 실패');
-
-      const newProject = await response.json();
-      setCreatedProject(newProject);
-      console.log('Project created:', newProject);
-      toast.success("프로젝트가 생성되었습니다!");
-      
-      // 팀원 모집 페이지로 이동
-      router.push(`/projects/join/${newProject.inviteCode}`);
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : '프로젝트 생성 중 오류가 발생했습니다.');
-    } finally {
-      setIsCreatingProject(false);
-    }
-  };
-
-  const progress = calculateProgress(consultationData, currentStep);
 
   return (
     <div className="relative min-h-screen w-full bg-zinc-950 font-inter">
@@ -376,350 +325,131 @@ export default function NewProjectPage() {
       </div>
 
       <div className="relative z-10 h-screen flex items-center justify-center p-4">
-        <div className="w-full max-w-4xl h-full bg-zinc-900/50 backdrop-blur border border-zinc-800 rounded-lg overflow-hidden flex flex-col">
-          {/* 헤더 - ExpandableChat 스타일 */}
-          <ExpandableChatHeader className="flex items-center justify-between p-4 border-b border-zinc-800">
-            <motion.div 
-              initial={{ y: -20, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              className="flex items-center space-x-2"
-            >
-              <Sparkles className="h-5 w-5 md:h-6 md:w-6 text-blue-500 animate-pulse" />
-              <h1 className="text-lg md:text-xl font-semibold text-white">
-                AI 프로젝트 컨설팅
-              </h1>
-            </motion.div>
+        <div className="w-full max-w-5xl h-full bg-zinc-900/50 backdrop-blur border border-zinc-800 rounded-lg overflow-hidden flex flex-col">
+          
+          {/* 헤더 */}
+          <div className="flex items-center justify-between p-4 border-b border-zinc-800">
             <div className="flex items-center space-x-2">
-              <Progress value={progress} className="w-20 md:w-32 h-2" />
-              <Badge variant="secondary" className="text-xs">
-                {Math.round(progress)}%
-              </Badge>
+              <Sparkles className="h-6 w-6 text-blue-500 animate-pulse" />
+              <h1 className="text-xl font-bold text-white" style={{
+                fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif'
+              }}>
+                AI 프로젝트 생성
+              </h1>
             </div>
-          </ExpandableChatHeader>
+            <Badge variant="secondary" className="text-xs">
+              {isComplete ? '완료' : '진행중'}
+            </Badge>
+          </div>
 
-          {/* 채팅 영역 - ExpandableChat Body */}
-          <ExpandableChatBody>
-            <ChatMessageList className="h-full">
-            {messages.map((message) => (
-              <ChatBubble
+          {/* 채팅 영역 */}
+          <div className="flex-1 overflow-y-auto p-4 space-y-6">
+            {chatHistory.map((message) => (
+              <div
                 key={message.id}
-                variant={message.role === 'user' ? 'sent' : 'received'}
+                className={`flex items-start gap-3 ${
+                  message.role === 'user' ? 'flex-row-reverse' : 'flex-row'
+                }`}
               >
-                <ChatBubbleAvatar
-                  src={message.role === 'user' 
-                    ? undefined 
-                    : undefined
-                  }
-                  fallback={message.role === 'user' ? 'YOU' : 'AI'}
-                />
-                <ChatBubbleMessage
-                  variant={message.role === 'user' ? 'sent' : 'received'}
-                  isLoading={message.isTyping}
+                <div className="w-8 h-8 rounded-full bg-zinc-700 flex items-center justify-center flex-shrink-0 overflow-hidden">
+                  {message.role === 'user' ? (
+                    session?.user?.avatar ? (
+                      <Image
+                        src={generateAvatarDataUrl(deserializeAvatarConfig(session.user.avatar))}
+                        alt="User avatar"
+                        width={32}
+                        height={32}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <User className="h-4 w-4 text-white" />
+                    )
+                  ) : (
+                    <Bot className="h-4 w-4 text-blue-500" />
+                  )}
+                </div>
+                <div
+                  className={`max-w-5xl px-5 py-4 rounded-2xl whitespace-pre-wrap break-words shadow-lg ${
+                    message.role === 'user'
+                      ? 'bg-blue-600 text-white ml-12'
+                      : 'bg-zinc-800 text-zinc-100 mr-12'
+                  }`}
+                  style={{
+                    fontFamily: '-apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, \"Noto Sans\", sans-serif',
+                    fontSize: '16px',
+                    lineHeight: '1.7',
+                    fontWeight: '500'
+                  }}
                 >
-                  <div className="whitespace-pre-wrap">
-                    {message.content}
-                  </div>
-                </ChatBubbleMessage>
-              </ChatBubble>
+                  <div dangerouslySetInnerHTML={{
+                    __html: message.content
+                      .replace(/\*\*(.*?)\*\*/g, '<strong class="font-bold">$1</strong>')
+                      .replace(/\n/g, '<br />')
+                  }} />
+                </div>
+              </div>
             ))}
 
-            {/* 로딩 인디케이터 */}
+            {/* 로딩 표시 */}
             {isLoading && (
-              <ChatBubble variant="received">
-                <ChatBubbleAvatar fallback="AI" />
-                <ChatBubbleMessage variant="received" isLoading />
-              </ChatBubble>
-            )}
-
-
-            {/* 에러 메시지 */}
-            {error && (
-              <motion.div
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="flex justify-center"
-              >
-                <Card className="border-destructive/50 bg-destructive/10">
-                  <CardContent className="p-4">
-                    <div className="flex items-center gap-2">
-                      <AlertCircle className="h-4 w-4 text-destructive" />
-                      <p className="text-sm text-destructive">{error}</p>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={handleRetry}
-                        className="ml-2"
-                      >
-                        <RefreshCw className="h-3 w-3 mr-1" />
-                        재시도
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              </motion.div>
-            )}
-
-            {/* AI 역할 제안 승인 카드 */}
-            {showRoleSuggestion && consultationData?.aiSuggestedRoles && (
-              <motion.div
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ type: "spring", stiffness: 200 }}
-              >
-                <Card className="border-blue-500/20 bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-950/20 dark:to-indigo-950/20 shadow-lg">
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2 text-blue-700 dark:text-blue-300">
-                      <Bot className="h-5 w-5" />
-                      AI 역할 제안
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div className="text-sm text-muted-foreground">
-                      {consultationData.projectName} 프로젝트에 적합한 역할 구조를 제안합니다:
-                    </div>
-                    
-                    <div className="space-y-3">
-                      {consultationData.aiSuggestedRoles.map((role, index) => (
-                        <div key={index} className="flex items-center justify-between p-3 bg-white/50 dark:bg-zinc-800/50 rounded-lg">
-                          <div className="flex-1">
-                            <div className="flex items-center gap-2">
-                              <span className="font-medium">{role.role}</span>
-                              <Badge variant="secondary">{role.count}명</Badge>
-                              {role.note && <Badge variant="outline">팀장</Badge>}
-                            </div>
-                            {role.note && (
-                              <p className="text-sm text-muted-foreground mt-1">{role.note}</p>
-                            )}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-
-                    <div className="flex gap-2">
-                      <Button 
-                        onClick={handleApproveRoles}
-                        className="flex-1"
-                        size="lg"
-                      >
-                        <CheckCircle2 className="h-4 w-4 mr-2" />
-                        이대로 진행
-                      </Button>
-                      <Button 
-                        onClick={handleEditRoles}
-                        variant="outline"
-                        size="lg"
-                      >
-                        수정하기
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              </motion.div>
-            )}
-
-            {/* 역할 수정 입력 카드 */}
-            {isEditingRoles && (
-              <motion.div
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ type: "spring", stiffness: 200 }}
-              >
-                <Card className="border-amber-500/20 bg-gradient-to-br from-amber-50 to-yellow-50 dark:from-amber-950/20 dark:to-yellow-950/20 shadow-lg">
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2 text-amber-700 dark:text-amber-300">
-                      <Edit className="h-5 w-5" />
-                      역할 구조 수정
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div className="text-sm text-muted-foreground">
-                      어떤 부분을 수정하고 싶으신가요? 구체적으로 말씀해주세요.
-                    </div>
-                    
-                    <textarea
-                      value={roleEditInput}
-                      onChange={(e) => setRoleEditInput(e.target.value)}
-                      placeholder="예: 백엔드 개발자를 2명으로 줄이고 싶어요"
-                      className="w-full min-h-20 p-3 rounded-lg border bg-background"
-                      disabled={isLoading}
-                    />
-
-                    <div className="flex gap-2">
-                      <Button 
-                        onClick={handleSendEditRequest}
-                        disabled={!roleEditInput.trim() || isLoading}
-                        className="flex-1"
-                      >
-                        {isLoading ? (
-                          <>
-                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                            수정 중...
-                          </>
-                        ) : (
-                          <>
-                            <Send className="h-4 w-4 mr-2" />
-                            수정 요청
-                          </>
-                        )}
-                      </Button>
-                      <Button 
-                        onClick={() => setIsEditingRoles(false)}
-                        variant="outline"
-                        disabled={isLoading}
-                      >
-                        취소
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              </motion.div>
-            )}
-
-            {/* 프로젝트 생성 완료 카드 */}
-            {isConsultationComplete && consultationData && (
-              <motion.div
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ type: "spring", stiffness: 200 }}
-              >
-                <Card className="border-green-500/20 bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-950/20 dark:to-emerald-950/20 shadow-lg">
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2 text-green-700 dark:text-green-300">
-                      <CheckCircle2 className="h-5 w-5" />
-                      프로젝트 정보 수집 완료
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                      <div className="space-y-1">
-                        <span className="font-medium text-muted-foreground">프로젝트명</span>
-                        <p className="text-base font-semibold">{consultationData.projectName}</p>
-                      </div>
-                      <div className="space-y-1">
-                        <span className="font-medium text-muted-foreground">목표</span>
-                        <p className="text-base">{consultationData.projectGoal}</p>
-                      </div>
-                      {consultationData.techStack && Array.isArray(consultationData.techStack) && (
-                        <div className="space-y-1 md:col-span-2">
-                          <span className="font-medium text-muted-foreground">기술 스택</span>
-                          <div className="flex flex-wrap gap-2 mt-1">
-                            {consultationData.techStack.map((tech) => (
-                              <Badge key={tech} variant="secondary">{tech}</Badge>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                    <Separator />
-                    <Button 
-                      onClick={handleShowProjectModal} 
-                      className="w-full" 
-                      size="lg"
-                    >
-                      <MessageSquare className="h-4 w-4 mr-2" />
-                      프로젝트 생성하기
-                    </Button>
-                  </CardContent>
-                </Card>
-              </motion.div>
-            )}
-
-            <div ref={messagesEndRef} />
-            </ChatMessageList>
-          </ExpandableChatBody>
-
-          {/* 입력 영역 - demo.tsx 스타일 */}
-          {!isConsultationComplete && !showRoleSuggestion && !isEditingRoles && (
-            <ExpandableChatFooter>
-              <motion.div 
-                initial={{ y: 20, opacity: 0 }}
-                animate={{ y: 0, opacity: 1 }}
-                className="p-4"
-              >
-              <form 
-                onSubmit={handleSubmit}
-                className="relative rounded-lg border bg-background focus-within:ring-1 focus-within:ring-ring p-1"
-              >
-                <ChatInput
-                  value={input}
-                  onChange={(e) => setInput(e.target.value)}
-                  placeholder="메시지를 입력하세요..."
-                  disabled={isLoading}
-                  className="min-h-12 resize-none rounded-lg bg-background border-0 p-3 shadow-none focus-visible:ring-0"
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' && !e.shiftKey) {
-                      e.preventDefault();
-                      handleSubmit(e);
-                    }
-                  }}
-                />
-                <div className="flex items-center p-3 pt-0 justify-end">
-                  <Button 
-                    type="submit" 
-                    disabled={isLoading || !input.trim()} 
-                    size="sm" 
-                    className="ml-auto gap-1.5"
-                  >
-                    {isLoading ? (
-                      <>
-                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                        AI 응답 중...
-                      </>
-                    ) : (
-                      <>
-                        메시지 전송
-                        <Send className="h-3.5 w-3.5" />
-                      </>
-                    )}
-                  </Button>
+              <div className="flex items-start gap-3">
+                <div className="w-8 h-8 rounded-full bg-zinc-700 flex items-center justify-center">
+                  <Bot className="h-4 w-4 text-blue-500" />
                 </div>
-              </form>
-              </motion.div>
-            </ExpandableChatFooter>
-          )}
+                <div className="bg-zinc-800 text-zinc-100 px-5 py-4 rounded-2xl mr-12 shadow-lg" style={{
+                  fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif',
+                  fontSize: '16px',
+                  fontWeight: '500'
+                }}>
+                  <div className="flex items-center gap-3">
+                    <Loader2 className="h-5 w-5 animate-spin" />
+                    <span>데피가 생각하고 있어요...</span>
+                  </div>
+                </div>
+              </div>
+            )}
+            
+            {/* 오토스크롤 타겟 */}
+            <div ref={messagesEndRef} />
+          </div>
+
+          {/* 입력 영역 */}
+          <div className="p-4 border-t border-zinc-800">
+            <div className="flex gap-2">
+              <input
+                ref={inputRef}
+                type="text"
+                value={userInput}
+                onChange={(e) => setUserInput(e.target.value)}
+                onKeyDown={handleKeyPress}
+                placeholder="메시지를 입력하세요..."
+                disabled={isLoading}
+                className="flex-1 px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-lg text-white placeholder-zinc-400 focus:outline-none focus:border-blue-500 text-base"
+              />
+              <Button
+                onClick={sendMessage}
+                disabled={!userInput.trim() || isLoading}
+                size="sm"
+              >
+                {isLoading ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Send className="h-4 w-4" />
+                )}
+              </Button>
+            </div>
+          </div>
         </div>
       </div>
 
-      {/* 프로젝트 생성 확인 모달 */}
-      <ProjectModal
-        isOpen={isModalOpen}
-        onClose={closeModal}
-        title={`🚀 ${consultationData.projectName || '새 프로젝트'} 생성하기`}
-        description="AI가 분석한 프로젝트 정보를 확인하고 팀원을 모집해보세요!"
-        infoCards={[
-          {
-            icon: "👥",
-            label: "팀원 수",
-            value: `${consultationData.teamMembersCount || 4}명`
-          },
-          {
-            icon: "⏰",
-            label: "예상 기간",
-            value: consultationData.projectDuration || consultationData.duration || "미정"
-          },
-          {
-            icon: "🛠️",
-            label: "기술 스택",
-            value: Array.isArray(consultationData.techStack) 
-              ? consultationData.techStack.slice(0, 3).join(", ")
-              : consultationData.techStack || "미정"
-          },
-          {
-            icon: "🎯",
-            label: "프로젝트 목표",
-            value: consultationData.projectGoal?.slice(0, 20) + "..." || "목표 설정 중"
-          }
-        ]}
-        primaryAction={{
-          label: isCreatingProject ? "생성 중..." : "프로젝트 생성 및 팀원 모집",
-          onClick: handleConfirmCreateProject,
-          loading: isCreatingProject
-        }}
-        secondaryAction={{
-          label: "취소",
-          onClick: () => closeModal()
-        }}
-      />
+      {/* 성공 모달 */}
+      {projectData && (
+        <SuccessModal
+          isOpen={showSuccessModal}
+          projectData={projectData}
+          onNavigate={handleNavigate}
+        />
+      )}
     </div>
   );
 }

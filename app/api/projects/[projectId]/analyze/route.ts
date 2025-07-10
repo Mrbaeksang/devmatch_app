@@ -123,7 +123,7 @@ const parseAnalysisResponse = (content: string): AIAnalysisResponse => {
 
 export async function POST(
   req: Request,
-  { params }: { params: { projectId: string } }
+  { params }: { params: Promise<{ projectId: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -131,7 +131,7 @@ export async function POST(
       return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
     }
 
-    const { projectId } = params;
+    const { projectId } = await params;
 
     // 프로젝트 정보 가져오기
     const project = await db.project.findUnique({
@@ -160,10 +160,34 @@ export async function POST(
       }, { status: 400 });
     }
 
-    // 멤버 프로필 추출
+    // 멤버 프로필 추출 및 타입 변환
     const memberProfiles: MemberProfile[] = project.members
       .filter(member => member.memberProfile)
-      .map(member => member.memberProfile as MemberProfile);
+      .map(member => {
+        const profile = member.memberProfile as Record<string, unknown>;
+        return {
+          memberId: member.user.id,
+          memberName: member.user.name || '익명',
+          skillLevel: profile.skillLevel as 'beginner' | 'intermediate' | 'advanced' || 'intermediate',
+          strongSkills: Array.isArray(profile.strongSkills) ? profile.strongSkills as string[] : [],
+          learningGoals: Array.isArray(profile.learningGoals) ? profile.learningGoals as string[] : [],
+          preferredRole: profile.preferredRole as 'frontend' | 'backend' | 'fullstack' | 'leader' || 'fullstack',
+          leadershipLevel: profile.leadershipLevel as 'none' | 'interested' | 'experienced' | 'preferred' || 'none',
+          leadershipExperience: Array.isArray(profile.leadershipExperience) ? profile.leadershipExperience as string[] : [],
+          leadershipMotivation: profile.leadershipMotivation as string || '',
+          workStyle: profile.workStyle as 'individual' | 'collaborative' | 'mixed' || 'collaborative',
+          projectMotivation: profile.projectMotivation as string || '',
+          contributions: Array.isArray(profile.contributions) ? profile.contributions as string[] : [],
+          // 호환성을 위한 추가 필드들
+          skills: Array.isArray(profile.skills) ? profile.skills as string[] : [],
+          experience: profile.experience as string || '',
+          communication: profile.communication as string || '',
+          motivation: profile.motivation as string || '',
+          availability: profile.availability as string || '',
+          rolePreference: profile.rolePreference as string || '',
+          additionalInfo: profile.additionalInfo as string || ''
+        } as MemberProfile;
+      });
 
     if (memberProfiles.length === 0) {
       return NextResponse.json({ 
@@ -187,7 +211,15 @@ export async function POST(
       },
     });
 
-    const systemPrompt = getAnalysisPrompt(project, memberProfiles);
+    const systemPrompt = getAnalysisPrompt({
+      name: project.name,
+      goal: project.goal,
+      techStack: project.techStack,
+      maxMembers: project.maxMembers,
+      blueprint: project.blueprint ? {
+        aiSuggestedRoles: (project.blueprint as Record<string, unknown>)?.aiSuggestedRoles as Array<{ roleName: string; count: number; description: string }> || []
+      } : undefined
+    }, memberProfiles);
 
     console.log('AI 분석 시작:', {
       projectId,
@@ -241,13 +273,13 @@ export async function POST(
 
     // 역할 배정 데이터 매핑 (userId 추가)
     const roleAssignmentsWithUserId = analysisResult.roleAssignments.map(assignment => {
-      const member = project.members.find(m => m.user.id === assignment.userId);
+      const member = project.members.find(m => m.user?.id === assignment.userId);
       if (!member) {
         throw new Error(`사용자 ID ${assignment.userId}를 찾을 수 없습니다.`);
       }
       return {
         ...assignment,
-        userId: member.user.id
+        userId: member.user!.id
       };
     });
 
@@ -255,7 +287,7 @@ export async function POST(
     await db.project.update({
       where: { id: projectId },
       data: {
-        teamAnalysis: analysisResult.teamAnalysis,
+        teamAnalysis: JSON.parse(JSON.stringify(analysisResult.teamAnalysis)),
         status: 'ACTIVE',
         interviewPhase: 'COMPLETED'
       }
@@ -264,12 +296,12 @@ export async function POST(
     // 각 멤버에게 역할 배정 저장
     await Promise.all(
       roleAssignmentsWithUserId.map(async (assignment) => {
-        const member = project.members.find(m => m.user.id === assignment.userId);
+        const member = project.members.find(m => m.user?.id === assignment.userId);
         if (member) {
           await db.projectMember.update({
             where: { id: member.id },
             data: {
-              roleAssignment: assignment
+              roleAssignment: JSON.parse(JSON.stringify(assignment))
             }
           });
         }
@@ -279,7 +311,7 @@ export async function POST(
     console.log('팀 분석 완료:', {
       projectId,
       overallScore: analysisResult.teamAnalysis.overallScore,
-      recommendedLeader: analysisResult.teamAnalysis.leadershipAnalysis.recommendedLeader,
+      recommendedLeader: analysisResult.teamAnalysis.leadershipAnalysis?.recommendedLeader,
       roleAssignments: roleAssignmentsWithUserId.length
     });
 
@@ -310,7 +342,7 @@ export async function POST(
     return NextResponse.json(
       { 
         message: errorMessage,
-        error: process.env.NODE_ENV === 'development' ? error.message : undefined 
+        error: process.env.NODE_ENV === 'development' ? (error as Error).message : undefined 
       },
       { status: 500 }
     );
