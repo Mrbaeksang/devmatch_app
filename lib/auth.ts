@@ -33,6 +33,8 @@ export const authOptions: NextAuthOptions = {
         session.user.image = user.image;
         // 프로필 완성 여부 추가
         session.user.isCompleted = (user as {isCompleted?: boolean}).isCompleted || false;
+        // 닉네임 추가
+        session.user.nickname = (user as {nickname?: string}).nickname || undefined;
         // 아바타 추가
         session.user.avatar = (user as {avatar?: string}).avatar || undefined;
       }

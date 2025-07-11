@@ -167,9 +167,11 @@ export default function CompleteProfilePage() {
       if (response.ok) {
         toast.success('프로필이 완성되었습니다!');
         
-        // 세션 업데이트 및 리다이렉션
-        await fetch('/api/auth/session?update=true');
-        window.location.href = '/projects';
+        // 세션 업데이트를 위해 하드 리로드
+        // database strategy 사용 시 세션이 자동으로 업데이트됨
+        setTimeout(() => {
+          window.location.href = '/projects';
+        }, 500);
       } else {
         const error = await response.json();
         toast.error(error.message || '프로필 저장 중 오류가 발생했습니다.');
