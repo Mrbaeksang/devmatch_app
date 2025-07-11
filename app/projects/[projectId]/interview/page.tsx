@@ -43,6 +43,7 @@ export default function InterviewPage() {
   const [isComplete, setIsComplete] = useState(false);
   const [showCompletionModal, setShowCompletionModal] = useState(false);
   const [countdown, setCountdown] = useState(5);
+  const [isAlreadyCompleted, setIsAlreadyCompleted] = useState(false);
   const [isFirstLoad, setIsFirstLoad] = useState(true);
   
   // 오토스크롤용 ref
@@ -76,7 +77,22 @@ export default function InterviewPage() {
           
           if (currentMember?.interviewStatus === 'COMPLETED') {
             setIsComplete(true);
-            toast.error('이미 설문을 완료하셨습니다!');
+            setIsAlreadyCompleted(true);
+            setShowCompletionModal(true);
+            setCountdown(3); // 재진입 시 3초
+            
+            // 3초 카운트다운 시작
+            const timer = setInterval(() => {
+              setCountdown((prev) => {
+                if (prev <= 1) {
+                  clearInterval(timer);
+                  router.push(`/projects/${projectId}?refresh=${Date.now()}`);
+                  return 0;
+                }
+                return prev - 1;
+              });
+            }, 1000);
+            
             return;
           }
           
@@ -176,25 +192,21 @@ export default function InterviewPage() {
       // 완료 상태 처리
       if (data.isComplete) {
         setIsComplete(true);
-        toast.success('상담완료되었습니다!');
         
-        // 5초 후 모달 표시
-        setTimeout(() => {
-          setShowCompletionModal(true);
-          
-          // 카운트다운 시작
-          const timer = setInterval(() => {
-            setCountdown((prev) => {
-              if (prev <= 1) {
-                clearInterval(timer);
-                router.push(`/projects/${projectId}?refresh=${Date.now()}`);
-                return 0;
-              }
-              return prev - 1;
-            });
-          }, 1000);
-          
-        }, 5000);
+        // 즉시 모달 표시
+        setShowCompletionModal(true);
+        
+        // 카운트다운 시작 (5초)
+        const timer = setInterval(() => {
+          setCountdown((prev) => {
+            if (prev <= 1) {
+              clearInterval(timer);
+              router.push(`/projects/${projectId}?refresh=${Date.now()}`);
+              return 0;
+            }
+            return prev - 1;
+          });
+        }, 1000);
       }
 
     } catch {
@@ -377,9 +389,11 @@ export default function InterviewPage() {
           <div className="bg-zinc-900 border border-zinc-700 rounded-lg p-6 max-w-md mx-4">
             <div className="text-center">
               <div className="text-green-500 text-2xl mb-3">✅</div>
-              <h3 className="text-white font-bold text-lg mb-2">면담이 완료되었습니다!</h3>
+              <h3 className="text-white font-bold text-lg mb-2">
+                {isAlreadyCompleted ? '이미 완료된 면담입니다' : '1:1 면담이 끝나셨습니다'}
+              </h3>
               <p className="text-zinc-400 mb-4">
-                {countdown}초 후 자동으로 팀원모집 페이지로 이동합니다.
+                {countdown}초 후 자동으로 대기실로 이동합니다.
               </p>
               <div className="flex gap-3">
                 <Button
