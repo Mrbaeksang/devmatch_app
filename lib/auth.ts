@@ -31,12 +31,11 @@ export const authOptions: NextAuthOptions = {
         session.user.name = user.name;
         session.user.email = user.email;
         session.user.image = user.image;
-        // 프로필 완성 여부 추가
-        session.user.isCompleted = (user as {isCompleted?: boolean}).isCompleted || false;
-        // 닉네임 추가
-        session.user.nickname = (user as {nickname?: string}).nickname || undefined;
-        // 아바타 추가
-        session.user.avatar = (user as {avatar?: string}).avatar || undefined;
+        // 프로필 정보 추가 (안전한 접근)
+        const userRecord = user as any; // Prisma User 모델
+        session.user.isCompleted = userRecord.isCompleted || false;
+        session.user.nickname = userRecord.nickname || undefined;
+        session.user.avatar = userRecord.avatar || undefined;
       }
       return session;
     },

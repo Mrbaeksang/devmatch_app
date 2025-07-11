@@ -184,7 +184,7 @@ const ProjectsPage = () => {
                 새로고침
               </Button>
               <Button
-                onClick={() => router.push('/projects/new')}
+                onClick={() => router.push('/projects/create')}
                 className="bg-blue-600 hover:bg-blue-700"
               >
                 <Plus className="h-4 w-4 mr-2" />
@@ -220,7 +220,7 @@ const ProjectsPage = () => {
                   <p className="text-zinc-400 mb-6">새로운 프로젝트를 시작하거나 기존 프로젝트에 참여해보세요.</p>
                   <div className="flex items-center justify-center gap-4">
                     <Button
-                      onClick={() => router.push('/projects/new')}
+                      onClick={() => router.push('/projects/create')}
                       className="bg-blue-600 hover:bg-blue-700"
                     >
                       <Plus className="h-4 w-4 mr-2" />

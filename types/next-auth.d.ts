@@ -10,6 +10,7 @@ declare module 'next-auth' {
       id: string
       isCompleted: boolean
       avatar?: string
+      nickname?: string
     }
   }
 }
