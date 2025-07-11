@@ -41,6 +41,8 @@ export default function InterviewPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [memberProfile, setMemberProfile] = useState({});
   const [isComplete, setIsComplete] = useState(false);
+  const [showCompletionModal, setShowCompletionModal] = useState(false);
+  const [countdown, setCountdown] = useState(5);
   const [isFirstLoad, setIsFirstLoad] = useState(true);
   
   // 오토스크롤용 ref
@@ -73,10 +75,8 @@ export default function InterviewPage() {
           );
           
           if (currentMember?.interviewStatus === 'COMPLETED') {
-            toast.error('이미 면담을 완료하셨습니다!');
-            setTimeout(() => {
-              router.push(`/projects/${projectId}`);
-            }, 1500);
+            setIsComplete(true);
+            toast.error('이미 설문을 완료하셨습니다!');
             return;
           }
           
@@ -176,8 +176,25 @@ export default function InterviewPage() {
       // 완료 상태 처리
       if (data.isComplete) {
         setIsComplete(true);
-        toast.success('면담이 완료되었습니다!');
-        // 자동 리다이렉트 제거 - 사용자가 직접 확인 후 이동하도록 변경
+        toast.success('상담완료되었습니다!');
+        
+        // 5초 후 모달 표시
+        setTimeout(() => {
+          setShowCompletionModal(true);
+          
+          // 카운트다운 시작
+          const timer = setInterval(() => {
+            setCountdown((prev) => {
+              if (prev <= 1) {
+                clearInterval(timer);
+                router.push(`/projects/${projectId}?refresh=${Date.now()}`);
+                return 0;
+              }
+              return prev - 1;
+            });
+          }, 1000);
+          
+        }, 5000);
       }
 
     } catch {
@@ -337,22 +354,55 @@ export default function InterviewPage() {
             <div className="p-6 border-t border-zinc-800 bg-green-500/5">
               <div className="text-center">
                 <div className="text-green-500 text-xl mb-3">✅</div>
-                <h3 className="text-white font-bold text-lg mb-2">면담이 완료되었습니다!</h3>
+                <h3 className="text-white font-bold text-lg mb-2">이미 상담완료했습니다</h3>
                 <p className="text-zinc-400 mb-4">
-                  수집된 정보를 바탕으로 최적의 역할 분배가 진행됩니다.
+                  이미 설문을 완료하셨습니다. 팀원 모집 페이지로 돌아가세요.
                 </p>
                 <Button 
                   onClick={handleGoBack}
                   className="w-full text-lg font-bold py-3 bg-gradient-to-r from-green-600 to-green-500 hover:from-green-700 hover:to-green-600 transition-all duration-200"
                 >
                   <ArrowLeft className="w-5 h-5 mr-2" />
-                  프로젝트로 돌아가기
+                  팀원 모집으로 돌아가기
                 </Button>
               </div>
             </div>
           )}
         </div>
       </div>
+
+      {/* 완료 후 자동 이동 모달 */}
+      {showCompletionModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-zinc-900 border border-zinc-700 rounded-lg p-6 max-w-md mx-4">
+            <div className="text-center">
+              <div className="text-green-500 text-2xl mb-3">✅</div>
+              <h3 className="text-white font-bold text-lg mb-2">면담이 완료되었습니다!</h3>
+              <p className="text-zinc-400 mb-4">
+                {countdown}초 후 자동으로 팀원모집 페이지로 이동합니다.
+              </p>
+              <div className="flex gap-3">
+                <Button
+                  onClick={() => {
+                    setShowCompletionModal(false);
+                    router.push(`/projects/${projectId}?refresh=${Date.now()}`);
+                  }}
+                  className="flex-1 bg-green-600 hover:bg-green-700"
+                >
+                  지금 이동하기
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => setShowCompletionModal(false)}
+                  className="flex-1"
+                >
+                  닫기
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
