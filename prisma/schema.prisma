@@ -83,15 +83,16 @@ model Role {
 }
 
 model ProjectMember {
-  id              String          @id @default(cuid())
-  projectId       String
-  userId          String
-  joinedAt        DateTime        @default(now())
-  role            String?
-  memberProfile   Json?
-  interviewStatus InterviewStatus @default(PENDING)
-  project         Project         @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  user            User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id                String          @id @default(cuid())
+  projectId         String
+  userId            String
+  joinedAt          DateTime        @default(now())
+  role              String?
+  memberProfile     Json?
+  interviewStatus   InterviewStatus @default(PENDING)
+  agreedToAnalysis  Boolean         @default(false)
+  project           Project         @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  user              User            @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([projectId, userId])
 }

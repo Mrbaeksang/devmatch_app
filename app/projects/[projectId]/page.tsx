@@ -40,6 +40,7 @@ interface TeamMember {
   userId?: string;
   interviewStatus: InterviewStatus;
   canStartInterview: boolean;
+  agreedToAnalysis?: boolean;
   user: {
     id: string;
     name: string;
@@ -57,6 +58,7 @@ interface Project {
   inviteCode: string;
   teamSize: number;     // maxMembers → teamSize
   blueprint?: ProjectBlueprint;  // 타입 안정성 개선
+  teamAnalysis?: unknown;  // 팀 분석 데이터
   members: TeamMember[];
   createdAt: Date;
 }
@@ -74,6 +76,7 @@ export default function ProjectPage() {
   const [error, setError] = useState<string | null>(null);
   const [joiningProject, setJoiningProject] = useState(false);
   const [inviteUrl, setInviteUrl] = useState('');
+  const [agreeingToAnalysis, setAgreeingToAnalysis] = useState(false);
 
   // 자동 새로고침을 위한 인터벌
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
@@ -184,6 +187,40 @@ export default function ProjectPage() {
     }
   };
 
+  // 분석 동의하기
+  const agreeToAnalysis = async () => {
+    if (!project || agreeingToAnalysis) return;
+    
+    setAgreeingToAnalysis(true);
+    try {
+      const response = await fetch(`/api/projects/${projectId}/agree-analysis`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || '분석 동의 중 오류가 발생했습니다.');
+      }
+      
+      const result = await response.json();
+      
+      if (result.allAgreed) {
+        toast.success('모든 팀원이 동의하여 분석을 시작합니다!');
+      } else {
+        toast.success(`분석 동의 완료! (${result.agreedCount}/${result.totalCount}명 동의)`);
+      }
+      
+      // 프로젝트 정보 새로고침
+      await fetchProject();
+      
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : '분석 동의 중 오류가 발생했습니다.');
+    } finally {
+      setAgreeingToAnalysis(false);
+    }
+  };
+
   // 진행률 계산 (면담 완료 기준)
   const calculateProgress = () => {
     if (!project || project.members.length === 0) return 0;
@@ -283,6 +320,8 @@ export default function ProjectPage() {
   const interviewCompletedMembers = project.members.filter(m => m.interviewStatus === InterviewStatus.COMPLETED).length;
   const isUserInProject = project.members.some(m => m.user.id === currentUser?.user.id);
   const allInterviewCompleted = interviewCompletedMembers === project.teamSize;
+  const agreedMembers = project.members.filter(m => m.agreedToAnalysis).length;
+  const userHasAgreed = currentUser?.agreedToAnalysis || false;
 
   return (
     <div className="relative min-h-screen w-full bg-zinc-950 font-inter">
@@ -525,13 +564,56 @@ export default function ProjectPage() {
                         }
                       </p>
                       {allInterviewCompleted && (
-                        <Button 
-                          onClick={() => router.push(`/projects/${project.id}/analysis`)}
-                          className="w-full mb-4 text-lg font-bold py-4 bg-gradient-to-r from-green-600 to-green-500 hover:from-green-700 hover:to-green-600 transition-all duration-200 transform hover:scale-[1.02]"
-                        >
-                          <CheckCircle2 className="w-5 h-5 mr-2" />
-                          🎯 프로젝트 최종 분석 시작
-                        </Button>
+                        <>
+                          {project.status === ProjectStatus.ANALYZING ? (
+                            <div className="mb-4">
+                              <div className="flex items-center justify-center gap-2 mb-2">
+                                <Loader2 className="w-5 h-5 animate-spin text-blue-500" />
+                                <span className="text-white font-medium">분석 중...</span>
+                              </div>
+                              <p className="text-sm text-zinc-400">
+                                AI가 팀 구성을 분석하고 있습니다.
+                              </p>
+                            </div>
+                          ) : project.status === ProjectStatus.ACTIVE && project.teamAnalysis ? (
+                            <Button 
+                              onClick={() => router.push(`/projects/${project.id}/analysis`)}
+                              className="w-full mb-4 text-lg font-bold py-4 bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-700 hover:to-blue-600 transition-all duration-200 transform hover:scale-[1.02]"
+                            >
+                              <CheckCircle2 className="w-5 h-5 mr-2" />
+                              📊 분석 결과 확인하기
+                            </Button>
+                          ) : (
+                            <div className="mb-4">
+                              <Button 
+                                onClick={agreeToAnalysis}
+                                disabled={userHasAgreed || agreeingToAnalysis}
+                                className="w-full text-lg font-bold py-4 bg-gradient-to-r from-green-600 to-green-500 hover:from-green-700 hover:to-green-600 transition-all duration-200 transform hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed"
+                              >
+                                {agreeingToAnalysis ? (
+                                  <>
+                                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                    동의 처리 중...
+                                  </>
+                                ) : userHasAgreed ? (
+                                  <>
+                                    <CheckCircle2 className="w-4 h-4 mr-2" />
+                                    분석 동의 완료
+                                  </>
+                                ) : (
+                                  <>
+                                    <CheckCircle2 className="w-5 h-5 mr-2" />
+                                    🎯 프로젝트 분석 시작하기
+                                  </>
+                                )}
+                              </Button>
+                              <div className="text-sm text-zinc-400 mt-2">
+                                <p>분석 동의 현황: {agreedMembers}/{project.teamSize}명</p>
+                                <p className="text-xs mt-1">모든 팀원이 동의해야 분석이 시작됩니다.</p>
+                              </div>
+                            </div>
+                          )}
+                        </>
                       )}
                       <div className="flex items-center justify-center gap-2 text-sm text-zinc-500">
                         <RefreshCw className="w-4 h-4 animate-spin" />

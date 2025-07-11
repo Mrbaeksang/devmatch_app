@@ -3,7 +3,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { motion } from "framer-motion";
-import { toast } from "sonner";
 import { useSession } from "next-auth/react";
 
 import { BackgroundPaths } from "@/components/ui/background-paths";
@@ -14,18 +13,16 @@ import { Separator } from "@/components/ui/separator";
 import { Progress } from "@/components/ui/progress";
 import { 
   Loader2, 
-  Users,
   CheckCircle2,
   AlertCircle,
   Star,
   Crown,
   TrendingUp,
-  Target,
   ArrowLeft,
   Sparkles,
   UserCheck,
-  Award,
-  Brain
+  Brain,
+  MessageSquare
 } from "lucide-react";
 
 import { 
@@ -64,298 +61,109 @@ interface ProjectExtended {
 export default function AnalysisPage() {
   const params = useParams();
   const router = useRouter();
-  const { data: session } = useSession();
-  console.log('Session data:', session); // 개발용 로그
+  useSession();
   
   const projectId = params.projectId as string;
 
   const [loading, setLoading] = useState(true);
   const [project, setProject] = useState<ProjectExtended | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [analysisComplete, setAnalysisComplete] = useState(false);
+  
+  // 자동 새로고침을 위한 인터벌
+  const [intervalId, setIntervalId] = useState<NodeJS.Timeout | null>(null);
 
   // 프로젝트 데이터 가져오기
   const fetchProject = useCallback(async () => {
     try {
-      // TODO: 실제 API 호출로 대체
-      // 현재는 임시 데이터 사용
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      const response = await fetch(`/api/projects/${projectId}`);
       
-      // 임시 프로젝트 데이터 (분석 완료 상태)
-      const mockProject: ProjectExtended = {
-        id: projectId,
-        name: 'DevMatch AI 플랫폼',
-        description: 'AI 기반 팀 빌딩 플랫폼 개발',
-        status: ProjectStatus.ACTIVE,
-        inviteCode: 'ABC123',
-        teamSize: 4,
-        blueprint: {
-          aiSuggestedRoles: [
-            { roleName: '백엔드 개발자', count: 2, description: 'API 및 데이터베이스 설계' },
-            { roleName: '프론트엔드 개발자', count: 1, description: 'React 기반 UI 개발' },
-            { roleName: '팀장', count: 1, description: '프로젝트 리더십 및 관리' }
-          ]
-        },
-        teamAnalysis: {
-          overallScore: 85,
-          strengths: ['다양한 기술 스택', '높은 협업 의지', '균형잡힌 경험 수준'],
-          concerns: ['시간 조율 필요', '리더십 역할 경합'],
-          recommendations: ['주간 정기 미팅 권장', '역할별 책임 명확화'],
-          leadershipAnalysis: {
-            recommendedLeader: 'user1',
-            leadershipScores: [
-              { userId: 'user1', score: 90, reasoning: '풍부한 프로젝트 경험과 리더십 스킬' },
-              { userId: 'user2', score: 70, reasoning: '기술적 역량 우수, 리더십 관심 있음' },
-              { userId: 'user3', score: 60, reasoning: '협업 능력 좋으나 리더 경험 부족' },
-              { userId: 'user4', score: 55, reasoning: '개인 작업 선호, 리더십 관심 낮음' }
-            ]
-          }
-        },
-        members: [
-          {
-            id: '1',
-            name: '김개발',
-            interviewStatus: InterviewStatus.COMPLETED,
-            memberProfile: {
-              memberId: '1',
-              memberName: '김개발',
-              skillLevel: 'advanced',
-              strongSkills: ['Node.js', 'Express', 'MongoDB', 'AWS'],
-              learningGoals: ['GraphQL', 'Docker'],
-              preferredRole: 'backend',
-              leadershipLevel: 'preferred',
-              leadershipExperience: ['이전 스타트업에서 팀장 경험'],
-              leadershipMotivation: '팀 성장과 기술 도입',
-              workStyle: 'collaborative',
-              projectMotivation: '새로운 기술 도입과 팀 성장',
-              contributions: ['백엔드 아키텍처 설계', '팀 리더십'],
-              // 호환성 필드들
-              name: '김개발',
-              skills: ['Node.js', 'Express', 'MongoDB', 'AWS'],
-              experience: '백엔드 개발 3년',
-              communication: '명확한 의사소통 선호',
-              motivation: '새로운 기술 도입과 팀 성장',
-              availability: '주중 저녁, 주말 가능',
-              rolePreference: '백엔드 개발 및 팀장 역할',
-              additionalInfo: '이전 스타트업에서 팀장 경험 있음',
-              interviewCompletedAt: new Date().toISOString()
-            },
-            roleAssignment: {
-              userId: 'user1',
-              assignedRole: '팀장 & 백엔드 개발자',
-              isLeader: true,
-              reasoning: '리더십 경험과 기술 역량을 모두 갖춘 최적의 팀장 후보',
-              responsibilities: ['프로젝트 일정 관리', '백엔드 아키텍처 설계', '팀원 코칭'],
-              matchScore: 95
-            },
-            joinedAt: new Date(),
-            userId: 'user1'
-          },
-          {
-            id: '2',
-            name: '박프론트',
-            interviewStatus: InterviewStatus.COMPLETED,
-            memberProfile: {
-              memberId: '2',
-              memberName: '박프론트',
-              skillLevel: 'intermediate',
-              strongSkills: ['React', 'TypeScript', 'Next.js', 'Tailwind CSS'],
-              learningGoals: ['Three.js', 'D3.js'],
-              preferredRole: 'frontend',
-              leadershipLevel: 'interested',
-              leadershipExperience: ['개인 프로젝트 리드 경험'],
-              leadershipMotivation: '사용자 경험 개선을 위한 리더십',
-              workStyle: 'collaborative',
-              projectMotivation: '사용자 경험 개선',
-              contributions: ['UI/UX 디자인', '프론트엔드 개발'],
-              // 호환성 필드들
-              name: '박프론트',
-              skills: ['React', 'TypeScript', 'Next.js', 'Tailwind CSS'],
-              experience: '프론트엔드 개발 2년',
-              communication: '시각적 자료 활용한 소통',
-              motivation: '사용자 경험 개선',
-              availability: '주중 저녁, 주말 일부 가능',
-              rolePreference: '프론트엔드 개발',
-              additionalInfo: '디자인 툴 사용 가능',
-              interviewCompletedAt: new Date().toISOString()
-            },
-            roleAssignment: {
-              userId: 'user2',
-              assignedRole: '프론트엔드 개발자',
-              isLeader: false,
-              reasoning: '프론트엔드 전문성과 디자인 감각을 갖춘 UI 담당자',
-              responsibilities: ['React 컴포넌트 개발', 'UI/UX 구현', '반응형 디자인'],
-              matchScore: 92
-            },
-            joinedAt: new Date(),
-            userId: 'user2'
-          },
-          {
-            id: '3',
-            name: '이백엔드',
-            interviewStatus: InterviewStatus.COMPLETED,
-            memberProfile: {
-              memberId: '3',
-              memberName: '이백엔드',
-              skillLevel: 'intermediate',
-              strongSkills: ['Python', 'Django', 'PostgreSQL', 'Docker'],
-              learningGoals: ['Kubernetes', 'GraphQL'],
-              preferredRole: 'backend',
-              leadershipLevel: 'experienced',
-              leadershipExperience: ['대학교 동아리 팀장 경험'],
-              leadershipMotivation: '체계적인 프로젝트 관리',
-              workStyle: 'collaborative',
-              projectMotivation: '안정적인 시스템 구축',
-              contributions: ['데이터베이스 설계', '시스템 아키텍처'],
-              // 호환성 필드들
-              name: '이백엔드',
-              skills: ['Python', 'Django', 'PostgreSQL', 'Docker'],
-              experience: '백엔드 개발 1.5년',
-              communication: '문서화를 통한 체계적 소통',
-              motivation: '안정적인 시스템 구축',
-              availability: '주중 저녁, 주말 가능',
-              rolePreference: '백엔드 개발',
-              additionalInfo: '대학교 동아리 팀장 경험',
-              interviewCompletedAt: new Date().toISOString()
-            },
-            roleAssignment: {
-              userId: 'user3',
-              assignedRole: '백엔드 개발자',
-              isLeader: false,
-              reasoning: '백엔드 전문성과 체계적 접근으로 안정적인 시스템 구축',
-              responsibilities: ['데이터베이스 설계', 'API 개발', '시스템 최적화'],
-              matchScore: 88
-            },
-            joinedAt: new Date(),
-            userId: 'user3'
-          },
-          {
-            id: '4',
-            name: '최테스트',
-            interviewStatus: InterviewStatus.COMPLETED,
-            memberProfile: {
-              memberId: '4',
-              memberName: '최테스트',
-              skillLevel: 'intermediate',
-              strongSkills: ['Jest', 'Cypress', 'Selenium', 'AWS'],
-              learningGoals: ['K6', 'Playwright'],
-              preferredRole: 'backend',
-              leadershipLevel: 'none',
-              leadershipExperience: [],
-              leadershipMotivation: '팀원으로서 기여',
-              workStyle: 'collaborative',
-              projectMotivation: '높은 품질의 소프트웨어 제작',
-              contributions: ['테스트 자동화', '품질 보증'],
-              // 호환성 필드들
-              name: '최테스트',
-              skills: ['Jest', 'Cypress', 'Selenium', 'AWS'],
-              experience: '테스트 엔지니어 2년',
-              communication: '이슈 기반 소통',
-              motivation: '높은 품질의 소프트웨어 제작',
-              availability: '주중 저녁 가능',
-              rolePreference: 'QA 및 테스트',
-              additionalInfo: '자동화 테스트 전문',
-              interviewCompletedAt: new Date().toISOString()
-            },
-            roleAssignment: {
-              userId: 'user4',
-              assignedRole: 'QA 엔지니어',
-              isLeader: false,
-              reasoning: '테스트 전문성으로 프로젝트 품질 보장',
-              responsibilities: ['테스트 계획 수립', '자동화 테스트 구현', '품질 관리'],
-              matchScore: 90
-            },
-            joinedAt: new Date(),
-            userId: 'user4'
-          }
-        ],
-        createdAt: new Date(),
+      if (!response.ok) {
+        throw new Error('프로젝트를 찾을 수 없습니다.');
+      }
+      
+      const data = await response.json();
+      
+      // 타입 변환 및 데이터 매핑
+      const projectData: ProjectExtended = {
+        id: data.id,
+        name: data.name,
+        description: data.description,
+        status: data.status,
+        inviteCode: data.inviteCode,
+        teamSize: data.teamSize,
+        blueprint: data.blueprint,
+        teamAnalysis: data.teamAnalysis,
+        members: data.members?.map((member: {
+          id: string;
+          user?: {
+            id?: string;
+            name?: string;
+            nickname?: string;
+          };
+          interviewStatus: InterviewStatus;
+          memberProfile?: unknown;
+          role?: string;
+          joinedAt: string;
+        }) => ({
+          id: member.id,
+          name: member.user?.nickname || member.user?.name || '알 수 없음',
+          interviewStatus: member.interviewStatus,
+          memberProfile: member.memberProfile,
+          roleAssignment: data.teamAnalysis ? {
+            userId: member.user?.id,
+            assignedRole: member.role || '미정',
+            isLeader: member.role?.includes('팀장') || false,
+            reasoning: '',
+            responsibilities: [],
+            matchScore: 0
+          } : undefined,
+          joinedAt: new Date(member.joinedAt),
+          userId: member.user?.id
+        })) || [],
+        createdAt: new Date(data.createdAt)
       };
-
-      setProject(mockProject);
-      setAnalysisComplete(true);
+      
+      setProject(projectData);
+      
+      // 분석 중인 경우 계속 폴링
+      if (data.status === ProjectStatus.ANALYZING) {
+        if (!intervalId) {
+          const id = setInterval(() => {
+            fetchProject();
+          }, 3000); // 3초마다 확인
+          setIntervalId(id);
+        }
+      } else if (intervalId) {
+        // 분석 완료 시 폴링 중지
+        clearInterval(intervalId);
+        setIntervalId(null);
+      }
       
     } catch (error) {
       console.error('Error fetching project:', error);
-      setError('프로젝트 정보를 불러오는 중 오류가 발생했습니다.');
+      setError(error instanceof Error ? error.message : '프로젝트 정보를 불러오는 중 오류가 발생했습니다.');
     } finally {
       setLoading(false);
     }
-  }, [projectId]);
+  }, [projectId, intervalId]);
 
   // 초기 데이터 로드
   useEffect(() => {
     if (projectId) {
       fetchProject();
     }
-  }, [projectId, fetchProject]);
-
-  // 분석 시작
-  const startAnalysis = async () => {
-    setIsAnalyzing(true);
-    try {
-      const response = await fetch(`/api/projects/${projectId}/analyze`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-      });
-
-      if (!response.ok) {
-        throw new Error('분석 시작 실패');
+    
+    // 클린업
+    return () => {
+      if (intervalId) {
+        clearInterval(intervalId);
       }
+    };
+  }, [projectId, fetchProject, intervalId]);
 
-      const result = await response.json();
-      console.log('Analysis result:', result); // 개발용 로그
-      
-      // 분석 완료 후 프로젝트 데이터 새로고침
-      await fetchProject();
-      setAnalysisComplete(true);
-      toast.success('팀 분석이 완료되었습니다!');
-      
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : '분석 중 오류가 발생했습니다.');
-    } finally {
-      setIsAnalyzing(false);
-    }
-  };
-
-  // 프로젝트 시작
-  const startProject = async () => {
-    try {
-      const response = await fetch(`/api/projects/${projectId}/start`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-      });
-
-      if (!response.ok) {
-        throw new Error('프로젝트 시작 실패');
-      }
-
-      toast.success('프로젝트가 시작되었습니다!');
-      router.push(`/projects/${projectId}`);
-      
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : '프로젝트 시작 중 오류가 발생했습니다.');
-    }
-  };
-
-  // 뒤로 가기
-  const handleGoBack = () => {
-    router.push(`/projects/join/${project?.inviteCode}`);
-  };
-
-  // 리더십 레벨 표시
-  const getLeadershipBadge = (level: string) => {
-    switch (level) {
-      case 'preferred':
-        return <Badge className="bg-yellow-600"><Crown className="w-3 h-3 mr-1" />리더 선호</Badge>;
-      case 'experienced':
-        return <Badge className="bg-blue-600"><Award className="w-3 h-3 mr-1" />리더 경험</Badge>;
-      case 'interested':
-        return <Badge className="bg-green-600"><Star className="w-3 h-3 mr-1" />리더 관심</Badge>;
-      default:
-        return <Badge variant="outline">팀원</Badge>;
-    }
+  // 프로젝트 채팅으로 이동
+  const goToProjectChat = () => {
+    router.push(`/projects/${projectId}/chat`);
   };
 
   // 로딩 상태
@@ -368,7 +176,7 @@ export default function AnalysisPage() {
         <div className="relative z-10 h-screen flex items-center justify-center">
           <div className="flex items-center gap-3">
             <Loader2 className="h-6 w-6 animate-spin text-blue-500" />
-            <p className="text-white">분석 결과 로딩 중...</p>
+            <p className="text-white">프로젝트 정보를 불러오는 중...</p>
           </div>
         </div>
       </div>
@@ -392,8 +200,8 @@ export default function AnalysisPage() {
               <p className="text-zinc-400">
                 {error || '프로젝트 정보를 불러올 수 없습니다.'}
               </p>
-              <Button onClick={() => router.push('/projects')} className="w-full">
-                프로젝트 목록으로 돌아가기
+              <Button onClick={() => router.back()} className="w-full">
+                돌아가기
               </Button>
             </CardContent>
           </Card>
@@ -402,6 +210,85 @@ export default function AnalysisPage() {
     );
   }
 
+  // 분석 중 상태
+  if (project.status === ProjectStatus.ANALYZING) {
+    return (
+      <div className="relative min-h-screen w-full bg-zinc-950 font-inter">
+        <div className="absolute inset-0">
+          <BackgroundPaths title="" />
+        </div>
+        <div className="relative z-10 h-screen flex items-center justify-center p-4">
+          <Card className="w-full max-w-2xl bg-zinc-900/50 backdrop-blur border-zinc-800">
+            <CardHeader className="text-center">
+              <Brain className="h-16 w-16 text-blue-500 mx-auto mb-4 animate-pulse" />
+              <CardTitle className="text-3xl text-white mb-2">AI가 팀을 분석하고 있습니다</CardTitle>
+              <p className="text-zinc-400">
+                팀원들의 기술 스택과 경험을 바탕으로 최적의 역할 분배를 계산중입니다...
+              </p>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <div className="flex items-center justify-center gap-3">
+                  <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
+                  <span className="text-lg text-white">분석 진행 중...</span>
+                </div>
+                <div className="bg-zinc-800/50 rounded-lg p-4 space-y-2">
+                  <div className="flex items-center gap-2 text-zinc-300">
+                    <CheckCircle2 className="h-5 w-5 text-green-500" />
+                    <span>모든 팀원 면담 데이터 수집 완료</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-zinc-300">
+                    <CheckCircle2 className="h-5 w-5 text-green-500" />
+                    <span>팀원 기술 스택 분석 완료</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-zinc-400">
+                    <Loader2 className="h-5 w-5 animate-spin" />
+                    <span>최적 역할 분배 계산 중...</span>
+                  </div>
+                </div>
+                <p className="text-center text-sm text-zinc-500">
+                  분석은 보통 1-2분 정도 소요됩니다
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
+  }
+
+  // 분석 결과가 없는 경우
+  if (!project.teamAnalysis) {
+    return (
+      <div className="relative min-h-screen w-full bg-zinc-950 font-inter">
+        <div className="absolute inset-0">
+          <BackgroundPaths title="" />
+        </div>
+        <div className="relative z-10 h-screen flex items-center justify-center p-4">
+          <Card className="w-full max-w-md bg-zinc-900/50 backdrop-blur border-zinc-800">
+            <CardHeader className="text-center">
+              <AlertCircle className="h-12 w-12 text-amber-500 mx-auto mb-4" />
+              <CardTitle className="text-2xl text-white">분석 결과 없음</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4 text-center">
+              <p className="text-zinc-400">
+                아직 팀 분석이 완료되지 않았습니다.
+              </p>
+              <Button onClick={() => router.push(`/projects/${projectId}`)} className="w-full">
+                팀 대기실로 돌아가기
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
+  }
+
+  const analysis = project.teamAnalysis;
+  const leaderInfo = project.members.find(m => 
+    m.userId === analysis.leadershipAnalysis?.recommendedLeader
+  );
+
   return (
     <div className="relative min-h-screen w-full bg-zinc-950 font-inter">
       {/* Background */}
@@ -409,340 +296,217 @@ export default function AnalysisPage() {
         <BackgroundPaths title="" />
       </div>
 
-      <div className="relative z-10 min-h-screen p-4">
-        <div className="max-w-6xl mx-auto">
+      <div className="relative z-10 min-h-screen">
+        <div className="container mx-auto px-4 py-8 max-w-6xl">
           {/* 헤더 */}
-          <motion.div
+          <motion.div 
             initial={{ y: -20, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
-            className="flex items-center justify-between mb-6"
+            className="mb-8"
           >
-            <div className="flex items-center gap-4">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={handleGoBack}
-                className="text-zinc-400 hover:text-white"
-              >
-                <ArrowLeft className="h-4 w-4" />
-              </Button>
-              <div className="flex items-center gap-3">
-                <Brain className="h-8 w-8 text-purple-500" />
-                <div>
-                  <h1 className="text-2xl font-bold text-white">{project.name}</h1>
-                  <p className="text-zinc-400">팀 구성 분석 결과</p>
-                </div>
+            <Button
+              onClick={() => router.push(`/projects/${projectId}`)}
+              variant="ghost"
+              className="mb-4 text-zinc-400 hover:text-white"
+            >
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              팀 대기실로 돌아가기
+            </Button>
+            
+            <div className="flex items-center justify-between">
+              <div>
+                <h1 className="text-3xl font-bold text-white mb-2">{project.name}</h1>
+                <p className="text-zinc-400">{project.description}</p>
               </div>
-            </div>
-            <div className="flex items-center gap-2">
-              <Badge variant="secondary" className="bg-purple-600">
-                {analysisComplete ? '분석 완료' : '분석 대기'}
+              <Badge variant="default" className="text-lg px-4 py-2">
+                <CheckCircle2 className="w-5 h-5 mr-2" />
+                분석 완료
               </Badge>
             </div>
           </motion.div>
 
-          {/* 분석 시작 카드 */}
-          {!analysisComplete && (
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="mb-6"
-            >
-              <Card className="border-purple-500/20 bg-purple-500/5">
-                <CardContent className="p-6 text-center">
-                  <Sparkles className="h-12 w-12 text-purple-500 mx-auto mb-4" />
-                  <h3 className="text-white font-semibold mb-2">팀 분석 시작</h3>
-                  <p className="text-zinc-400 mb-4">
-                    모든 팀원의 면담이 완료되었습니다. AI가 최적의 팀 구성을 분석하겠습니다.
+          {/* 종합 점수 카드 */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.1 }}
+            className="mb-8"
+          >
+            <Card className="border-blue-500/20 bg-gradient-to-br from-blue-500/10 to-purple-500/10">
+              <CardContent className="p-8">
+                <div className="text-center">
+                  <div className="inline-flex items-center justify-center w-32 h-32 mb-4 rounded-full bg-gradient-to-br from-blue-500 to-purple-500">
+                    <span className="text-4xl font-bold text-white">
+                      {analysis.overallScore}점
+                    </span>
+                  </div>
+                  <h2 className="text-2xl font-bold text-white mb-2">팀 종합 점수</h2>
+                  <p className="text-zinc-300">
+                    AI가 분석한 팀의 전반적인 조화도와 성공 가능성입니다
                   </p>
-                  <Button 
-                    onClick={startAnalysis}
-                    disabled={isAnalyzing}
-                    className="w-full max-w-md"
-                    size="lg"
-                  >
-                    {isAnalyzing ? (
-                      <>
-                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                        분석 중...
-                      </>
-                    ) : (
-                      <>
-                        <Brain className="h-4 w-4 mr-2" />
-                        팀 분석 시작하기
-                      </>
-                    )}
-                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+            {/* 팀 강점 */}
+            <motion.div
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.2 }}
+            >
+              <Card className="h-full border-green-500/20 bg-green-500/5">
+                <CardHeader>
+                  <CardTitle className="text-white flex items-center gap-2">
+                    <TrendingUp className="h-5 w-5 text-green-500" />
+                    팀의 강점
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <ul className="space-y-3">
+                    {analysis.strengths.map((strength, index) => (
+                      <li key={index} className="flex items-start gap-3">
+                        <CheckCircle2 className="h-5 w-5 text-green-500 mt-0.5 flex-shrink-0" />
+                        <span className="text-zinc-300">{strength}</span>
+                      </li>
+                    ))}
+                  </ul>
                 </CardContent>
               </Card>
             </motion.div>
-          )}
 
-          {/* 분석 결과 */}
-          {analysisComplete && project.teamAnalysis && (
-            <div className="space-y-6">
-              {/* 전체 점수 */}
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.1 }}
-              >
-                <Card className="border-green-500/20 bg-green-500/5">
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2 text-green-400">
-                      <TrendingUp className="h-5 w-5" />
-                      팀 매칭 점수
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
+            {/* 개선 필요사항 */}
+            <motion.div
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.3 }}
+            >
+              <Card className="h-full border-amber-500/20 bg-amber-500/5">
+                <CardHeader>
+                  <CardTitle className="text-white flex items-center gap-2">
+                    <AlertCircle className="h-5 w-5 text-amber-500" />
+                    개선 필요사항
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <ul className="space-y-3">
+                    {analysis.concerns.map((concern, index) => (
+                      <li key={index} className="flex items-start gap-3">
+                        <AlertCircle className="h-5 w-5 text-amber-500 mt-0.5 flex-shrink-0" />
+                        <span className="text-zinc-300">{concern}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </CardContent>
+              </Card>
+            </motion.div>
+          </div>
+
+          {/* AI 권장사항 */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.4 }}
+            className="mb-8"
+          >
+            <Card className="border-purple-500/20 bg-purple-500/5">
+              <CardHeader>
+                <CardTitle className="text-white flex items-center gap-2">
+                  <Sparkles className="h-5 w-5 text-purple-500" />
+                  AI 권장사항
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ul className="space-y-3">
+                  {analysis.recommendations.map((recommendation, index) => (
+                    <li key={index} className="flex items-start gap-3">
+                      <Star className="h-5 w-5 text-purple-500 mt-0.5 flex-shrink-0" />
+                      <span className="text-zinc-300">{recommendation}</span>
+                    </li>
+                  ))}
+                </ul>
+              </CardContent>
+            </Card>
+          </motion.div>
+
+          {/* 리더십 분석 */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.5 }}
+            className="mb-8"
+          >
+            <Card className="border-yellow-500/20 bg-gradient-to-br from-yellow-500/10 to-orange-500/10">
+              <CardHeader>
+                <CardTitle className="text-white flex items-center gap-2">
+                  <Crown className="h-6 w-6 text-yellow-500" />
+                  추천 팀장
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {leaderInfo && (
+                  <div className="space-y-4">
                     <div className="flex items-center gap-4">
-                      <div className="text-4xl font-bold text-green-400">
-                        {project.teamAnalysis?.overallScore || 0}
+                      <div className="w-16 h-16 bg-gradient-to-br from-yellow-500 to-orange-500 rounded-full flex items-center justify-center">
+                        <UserCheck className="w-8 h-8 text-white" />
                       </div>
-                      <div className="flex-1">
-                        <Progress 
-                          value={project.teamAnalysis?.overallScore || 0} 
-                          className="h-3"
-                        />
-                        <p className="text-sm text-zinc-400 mt-1">
-                          매우 우수한 팀 구성입니다!
-                        </p>
+                      <div>
+                        <h3 className="text-xl font-bold text-white">{leaderInfo.name}</h3>
+                        <p className="text-zinc-400">프로젝트 리더로 추천됨</p>
                       </div>
                     </div>
-                  </CardContent>
-                </Card>
-              </motion.div>
-
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                {/* 강점 & 우려사항 */}
-                <motion.div
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: 0.2 }}
-                >
-                  <Card className="border-zinc-700/50 bg-zinc-800/30">
-                    <CardHeader>
-                      <CardTitle className="flex items-center gap-2 text-blue-400">
-                        <CheckCircle2 className="h-5 w-5" />
-                        팀 강점 & 우려사항
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                      <div>
-                        <h4 className="font-medium text-green-400 mb-2">강점</h4>
-                        <ul className="space-y-1">
-                          {(project.teamAnalysis?.strengths || []).map((strength: string, index: number) => (
-                            <li key={index} className="text-sm text-zinc-300 flex items-center gap-2">
-                              <CheckCircle2 className="h-3 w-3 text-green-500" />
-                              {strength}
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                      <Separator />
-                      <div>
-                        <h4 className="font-medium text-amber-400 mb-2">우려사항</h4>
-                        <ul className="space-y-1">
-                          {(project.teamAnalysis?.concerns || []).map((concern: string, index: number) => (
-                            <li key={index} className="text-sm text-zinc-300 flex items-center gap-2">
-                              <AlertCircle className="h-3 w-3 text-amber-500" />
-                              {concern}
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </motion.div>
-
-                {/* 권장사항 */}
-                <motion.div
-                  initial={{ opacity: 0, x: 20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: 0.3 }}
-                >
-                  <Card className="border-zinc-700/50 bg-zinc-800/30">
-                    <CardHeader>
-                      <CardTitle className="flex items-center gap-2 text-purple-400">
-                        <Target className="h-5 w-5" />
-                        권장사항
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <ul className="space-y-2">
-                        {project.teamAnalysis.recommendations.map((rec, index) => (
-                          <li key={index} className="text-sm text-zinc-300 flex items-start gap-2">
-                            <Star className="h-3 w-3 text-purple-500 mt-0.5" />
-                            {rec}
-                          </li>
-                        ))}
-                      </ul>
-                    </CardContent>
-                  </Card>
-                </motion.div>
-              </div>
-
-              {/* 리더십 분석 */}
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.4 }}
-              >
-                <Card className="border-yellow-500/20 bg-yellow-500/5">
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2 text-yellow-400">
-                      <Crown className="h-5 w-5" />
-                      리더십 분석
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-4">
-                      {(project.teamAnalysis?.leadershipAnalysis?.leadershipScores || []).map((score: { userId: string; score: number; reasoning: string }, index: number) => {
-                        const member = project.members.find(m => m.userId === score.userId);
-                        const isRecommended = score.userId === project.teamAnalysis?.leadershipAnalysis?.recommendedLeader;
-                        
-                        return (
-                          <div key={index} className={`p-4 rounded-lg border ${
-                            isRecommended ? 'border-yellow-500/30 bg-yellow-500/10' : 'border-zinc-700/50 bg-zinc-800/30'
-                          }`}>
-                            <div className="flex items-center justify-between mb-2">
-                              <div className="flex items-center gap-3">
-                                <div className="w-8 h-8 bg-zinc-700 rounded-full flex items-center justify-center">
-                                  <span className="text-white font-medium text-sm">
-                                    {member?.name?.[0] || '?'}
-                                  </span>
-                                </div>
-                                <div>
-                                  <span className="text-white font-medium">{member?.name || '알 수 없음'}</span>
-                                  {isRecommended && (
-                                    <Badge className="ml-2 bg-yellow-600">
-                                      <Crown className="w-3 h-3 mr-1" />
-                                      추천 리더
-                                    </Badge>
+                    
+                    <Separator className="bg-zinc-800" />
+                    
+                    <div>
+                      <h4 className="text-sm font-semibold text-zinc-400 mb-3">리더십 평가</h4>
+                      <div className="space-y-3">
+                        {analysis.leadershipAnalysis?.leadershipScores.map((score) => {
+                          const member = project.members.find(m => m.userId === score.userId);
+                          return (
+                            <div key={score.userId} className="space-y-2">
+                              <div className="flex items-center justify-between">
+                                <span className="text-zinc-300">
+                                  {member?.name || '알 수 없음'}
+                                  {score.userId === analysis.leadershipAnalysis?.recommendedLeader && (
+                                    <Crown className="inline-block w-4 h-4 ml-2 text-yellow-500" />
                                   )}
-                                </div>
+                                </span>
+                                <span className="text-zinc-400">{score.score}점</span>
                               </div>
-                              <div className="text-right">
-                                <div className="text-lg font-bold text-yellow-400">{score.score}</div>
-                                <div className="text-xs text-zinc-400">점수</div>
-                              </div>
+                              <Progress value={score.score} className="h-2" />
+                              <p className="text-xs text-zinc-500">{score.reasoning}</p>
                             </div>
-                            <p className="text-sm text-zinc-300">{score.reasoning}</p>
-                          </div>
-                        );
-                      })}
+                          );
+                        })}
+                      </div>
                     </div>
-                  </CardContent>
-                </Card>
-              </motion.div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </motion.div>
 
-              {/* 팀원 역할 배정 */}
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.5 }}
-              >
-                <Card className="border-zinc-700/50 bg-zinc-800/30">
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2 text-blue-400">
-                      <Users className="h-5 w-5" />
-                      팀원 역할 배정
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {project.members.map((member, index) => (
-                        <div key={index} className="p-4 bg-zinc-800/50 rounded-lg">
-                          <div className="flex items-start justify-between mb-3">
-                            <div className="flex items-center gap-3">
-                              <div className="w-10 h-10 bg-zinc-700 rounded-full flex items-center justify-center">
-                                <span className="text-white font-medium">{member.name?.[0] || '?'}</span>
-                              </div>
-                              <div>
-                                <div className="text-white font-medium">{member.name}</div>
-                                <div className="text-sm text-zinc-400">
-                                  {member.roleAssignment?.assignedRole || '역할 미정'}
-                                </div>
-                              </div>
-                            </div>
-                            <div className="text-right">
-                              <div className="text-lg font-bold text-blue-400">
-                                {member.roleAssignment?.matchScore || 0}
-                              </div>
-                              <div className="text-xs text-zinc-400">적합도</div>
-                            </div>
-                          </div>
-                          
-                          <div className="space-y-2">
-                            <div className="flex items-center gap-2">
-                              {getLeadershipBadge(member.memberProfile?.leadershipLevel || 'none')}
-                              {member.roleAssignment?.isLeader && (
-                                <Badge className="bg-yellow-600">
-                                  <Crown className="w-3 h-3 mr-1" />
-                                  팀장
-                                </Badge>
-                              )}
-                            </div>
-                            
-                            <div className="flex flex-wrap gap-1">
-                              {member.memberProfile?.skills?.slice(0, 3).map((skill, skillIndex) => (
-                                <Badge key={skillIndex} variant="outline" className="text-xs">
-                                  {skill}
-                                </Badge>
-                              ))}
-                            </div>
-                            
-                            <p className="text-sm text-zinc-300">
-                              {member.roleAssignment?.reasoning || '역할 분석 중...'}
-                            </p>
-                            
-                            {member.roleAssignment?.responsibilities && (
-                              <div>
-                                <h5 className="text-xs font-medium text-zinc-400 mb-1">주요 책임</h5>
-                                <ul className="text-xs text-zinc-300 space-y-1">
-                                  {(member.roleAssignment?.responsibilities || []).slice(0, 2).map((resp: string, respIndex: number) => (
-                                    <li key={respIndex} className="flex items-center gap-1">
-                                      <UserCheck className="h-2 w-2 text-green-500" />
-                                      {resp}
-                                    </li>
-                                  ))}
-                                </ul>
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </CardContent>
-                </Card>
-              </motion.div>
-
-              {/* 프로젝트 시작 버튼 */}
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.6 }}
-              >
-                <Card className="border-green-500/20 bg-green-500/5">
-                  <CardContent className="p-6 text-center">
-                    <CheckCircle2 className="h-12 w-12 text-green-500 mx-auto mb-4" />
-                    <h3 className="text-white font-semibold mb-2">팀 구성 완료!</h3>
-                    <p className="text-zinc-400 mb-4">
-                      최적의 팀 구성이 완료되었습니다. 이제 프로젝트를 시작할 수 있습니다.
-                    </p>
-                    <Button 
-                      onClick={startProject}
-                      className="w-full max-w-md"
-                      size="lg"
-                    >
-                      <Target className="h-4 w-4 mr-2" />
-                      프로젝트 시작하기
-                    </Button>
-                  </CardContent>
-                </Card>
-              </motion.div>
-            </div>
-          )}
+          {/* 프로젝트 시작 버튼 */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.6 }}
+            className="text-center"
+          >
+            <Button
+              onClick={goToProjectChat}
+              size="lg"
+              className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-8 py-6 text-lg font-bold"
+            >
+              <MessageSquare className="w-6 h-6 mr-3" />
+              팀 채팅방으로 이동하기
+            </Button>
+            <p className="text-sm text-zinc-500 mt-4">
+              이제 팀원들과 함께 프로젝트를 시작할 수 있습니다!
+            </p>
+          </motion.div>
         </div>
       </div>
     </div>

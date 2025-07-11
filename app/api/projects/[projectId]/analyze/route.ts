@@ -126,9 +126,15 @@ export async function POST(
   { params }: { params: Promise<{ projectId: string }> }
 ) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user?.id) {
-      return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
+    // 내부 요청인지 확인 (선택사항)
+    const isInternalRequest = req.headers.get('X-Internal-Request') === 'true';
+    
+    // 내부 요청이 아닌 경우 세션 확인
+    if (!isInternalRequest) {
+      const session = await getServerSession(authOptions);
+      if (!session?.user?.id) {
+        return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
+      }
     }
 
     const { projectId } = await params;
@@ -307,6 +313,20 @@ export async function POST(
         }
       })
     );
+
+    // 시스템 메시지 추가 - 프로젝트 시작
+    const leaderMember = project.members.find(
+      m => m.user?.id === analysisResult.teamAnalysis.leadershipAnalysis?.recommendedLeader
+    );
+    const leaderName = leaderMember?.user?.nickname || leaderMember?.user?.name || '팀장';
+    
+    await db.chatMessage.create({
+      data: {
+        projectId,
+        content: `🚀 프로젝트가 시작되었습니다! ${leaderName}님이 팀장으로 선정되었습니다.`,
+        type: 'SYSTEM'
+      }
+    });
 
     console.log('팀 분석 완료:', {
       projectId,

@@ -80,7 +80,7 @@ export default function CompleteProfilePage() {
   };
 
   // 닉네임 중복 체크
-  const checkNicknameAvailability = async (nickname: string) => {
+  const checkNicknameAvailability = useCallback(async (nickname: string) => {
     if (!nickname || validateNickname(nickname)) {
       setNicknameAvailable(null);
       return;
@@ -101,7 +101,7 @@ export default function CompleteProfilePage() {
     } finally {
       setIsCheckingNickname(false);
     }
-  };
+  }, []);
 
   // 닉네임 변경 핸들러 (메모이제이션)
   const handleNicknameChange = useCallback((value: string) => {
@@ -119,7 +119,8 @@ export default function CompleteProfilePage() {
     
     // 디바운스로 중복 체크
     if (!error) {
-      setTimeout(() => checkNicknameAvailability(value), 500);
+      const timeoutId = setTimeout(() => checkNicknameAvailability(value), 500);
+      return () => clearTimeout(timeoutId);
     }
   }, [checkNicknameAvailability]);
 

@@ -183,7 +183,8 @@ export default function ProjectChatPage() {
 
   // 팀장 여부 확인
   const isLeader = (memberId: string) => {
-    return project?.teamAnalysis?.leadershipAnalysis?.recommendedLeader === memberId;
+    if (!project?.teamAnalysis?.leadershipAnalysis?.recommendedLeader) return false;
+    return project.teamAnalysis.leadershipAnalysis.recommendedLeader === memberId;
   };
 
   // 로딩 상태
@@ -314,49 +315,68 @@ export default function ProjectChatPage() {
                   </div>
                 </div>
               ) : (
-                messages.map((message) => (
-                  <motion.div
-                    key={message.id}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="flex items-start gap-3"
-                  >
-                    {/* 아바타 */}
-                    <div className="w-8 h-8 bg-zinc-700 rounded-full flex items-center justify-center overflow-hidden flex-shrink-0">
-                      {message.user?.avatar ? (
-                        <Image
-                          src={generateAvatarDataUrl(deserializeAvatarConfig(message.user.avatar))}
-                          alt={`${message.user.name} avatar`}
-                          width={32}
-                          height={32}
-                          className="w-full h-full object-cover"
-                        />
-                      ) : (
-                        <span className="text-white font-medium text-sm">
-                          {message.user?.name?.[0] || message.user?.nickname?.[0] || '?'}
-                        </span>
-                      )}
-                    </div>
+                messages.map((message) => {
+                  // 시스템 메시지 처리
+                  if (message.type === 'SYSTEM') {
+                    return (
+                      <motion.div
+                        key={message.id}
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="flex justify-center my-4"
+                      >
+                        <div className="bg-zinc-800/30 rounded-full px-4 py-2 text-sm text-zinc-400">
+                          {message.content}
+                        </div>
+                      </motion.div>
+                    );
+                  }
 
-                    {/* 메시지 내용 */}
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className="text-white font-medium text-sm">
-                          {message.user?.nickname || message.user?.name || '알 수 없음'}
-                        </span>
-                        {message.user && isLeader(message.user.id) && (
-                          <Crown className="w-3 h-3 text-yellow-500" />
+                  // 일반 사용자 메시지
+                  return (
+                    <motion.div
+                      key={message.id}
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="flex items-start gap-3"
+                    >
+                      {/* 아바타 */}
+                      <div className="w-8 h-8 bg-zinc-700 rounded-full flex items-center justify-center overflow-hidden flex-shrink-0">
+                        {message.user?.avatar ? (
+                          <Image
+                            src={generateAvatarDataUrl(deserializeAvatarConfig(message.user.avatar))}
+                            alt={`${message.user.name} avatar`}
+                            width={32}
+                            height={32}
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <span className="text-white font-medium text-sm">
+                            {message.user?.name?.[0] || message.user?.nickname?.[0] || '?'}
+                          </span>
                         )}
-                        <span className="text-zinc-500 text-xs">
-                          {new Date(message.createdAt).toLocaleTimeString()}
-                        </span>
                       </div>
-                      <div className="bg-zinc-800/50 rounded-lg p-3">
-                        <p className="text-zinc-200 text-sm break-words">{message.content}</p>
+
+                      {/* 메시지 내용 */}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="text-white font-medium text-sm">
+                            {message.user?.nickname || message.user?.name || '알 수 없음'}
+                          </span>
+                          {message.user && isLeader(message.user.id) && (
+                            <Crown className="w-3 h-3 text-yellow-500" />
+                          )}
+                          <span className="text-zinc-500 text-xs">
+                            {new Date(message.createdAt).toLocaleTimeString()}
+                          </span>
+                        </div>
+                        <div className="bg-zinc-800/50 rounded-lg p-3">
+                          <p className="text-zinc-200 text-sm break-words">{message.content}</p>
+                        </div>
                       </div>
-                    </div>
-                  </motion.div>
-                ))
+                    </motion.div>
+                  );
+                })
               )}
               <div ref={messagesEndRef} />
             </div>
@@ -418,7 +438,10 @@ export default function ProjectChatPage() {
                         {member.user.nickname || member.user.name}
                       </span>
                       {isLeader(member.user.id) && (
-                        <Crown className="w-3 h-3 text-yellow-500 flex-shrink-0" />
+                        <Badge variant="default" className="ml-1 h-5 px-1.5 bg-yellow-600 hover:bg-yellow-600">
+                          <Crown className="w-3 h-3 mr-0.5" />
+                          <span className="text-xs">팀장</span>
+                        </Badge>
                       )}
                     </div>
                     {member.role && (

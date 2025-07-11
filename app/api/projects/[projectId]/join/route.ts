@@ -142,13 +142,33 @@ export async function POST(
     }
 
     // 멤버 추가
-    await db.projectMember.create({
+    const newMember = await db.projectMember.create({
       data: {
         projectId: project.id,
         userId: session.user.id,
         interviewStatus: 'PENDING'
+      },
+      include: {
+        user: {
+          select: {
+            name: true,
+            nickname: true
+          }
+        }
       }
     });
+
+    // 프로젝트가 ACTIVE 상태인 경우 시스템 메시지 추가
+    if (project.status === 'ACTIVE') {
+      const memberName = newMember.user.nickname || newMember.user.name;
+      await db.chatMessage.create({
+        data: {
+          projectId: project.id,
+          content: `${memberName}님이 팀에 참여했습니다! 🎉`,
+          type: 'SYSTEM'
+        }
+      });
+    }
 
     return NextResponse.json({ message: '프로젝트에 참여했습니다.' });
 

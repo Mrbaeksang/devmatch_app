@@ -19,16 +19,27 @@ export async function GET(
     const limit = parseInt(url.searchParams.get('limit') || '50');
     const offset = parseInt(url.searchParams.get('offset') || '0');
 
-    // 프로젝트 접근 권한 확인
-    const projectMember = await db.projectMember.findFirst({
-      where: {
-        projectId,
-        userId: session.user.id
+    // 프로젝트 접근 권한 및 상태 확인
+    const project = await db.project.findUnique({
+      where: { id: projectId },
+      include: {
+        members: {
+          where: { userId: session.user.id }
+        }
       }
     });
 
-    if (!projectMember) {
+    if (!project) {
+      return NextResponse.json({ error: '프로젝트를 찾을 수 없습니다.' }, { status: 404 });
+    }
+
+    if (project.members.length === 0) {
       return NextResponse.json({ error: '프로젝트 접근 권한이 없습니다.' }, { status: 403 });
+    }
+
+    // ACTIVE 상태가 아닌 경우 채팅 사용 불가
+    if (project.status !== 'ACTIVE') {
+      return NextResponse.json({ error: '프로젝트가 활성화 상태가 아닙니다.' }, { status: 403 });
     }
 
     // 채팅 메시지 조회
@@ -85,16 +96,27 @@ export async function POST(
       return NextResponse.json({ error: '메시지 내용이 필요합니다.' }, { status: 400 });
     }
 
-    // 프로젝트 접근 권한 확인
-    const projectMember = await db.projectMember.findFirst({
-      where: {
-        projectId,
-        userId: session.user.id
+    // 프로젝트 접근 권한 및 상태 확인
+    const project = await db.project.findUnique({
+      where: { id: projectId },
+      include: {
+        members: {
+          where: { userId: session.user.id }
+        }
       }
     });
 
-    if (!projectMember) {
+    if (!project) {
+      return NextResponse.json({ error: '프로젝트를 찾을 수 없습니다.' }, { status: 404 });
+    }
+
+    if (project.members.length === 0) {
       return NextResponse.json({ error: '프로젝트 접근 권한이 없습니다.' }, { status: 403 });
+    }
+
+    // ACTIVE 상태가 아닌 경우 채팅 사용 불가
+    if (project.status !== 'ACTIVE') {
+      return NextResponse.json({ error: '프로젝트가 활성화 상태가 아닙니다.' }, { status: 403 });
     }
 
     // 메시지 생성
