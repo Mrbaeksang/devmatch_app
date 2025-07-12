@@ -84,7 +84,7 @@ echo "✅ 개발 로그 업데이트 완료"
 
 # 자동 커밋 실행
 echo "📋 자동 커밋 실행 중..."
-./hooks/auto-commit.sh "${TASK_NAME}" "${TASK_DESCRIPTION}"
+./scripts/workflows/auto-commit.sh "${TASK_NAME}" "${TASK_DESCRIPTION}"
 
 echo ""
 echo "🎉 ${TASK_TYPE^^} 작업 완료!"
