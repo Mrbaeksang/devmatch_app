@@ -11,6 +11,14 @@
     "onStart": {
       "command": "./scripts/dev-check.sh",
       "description": "Claude 시작 시 개발 환경 상태 확인"
+    },
+    "onExit": {
+      "command": "./scripts/workflows/session-summary.sh",
+      "description": "Claude 종료 시 세션 요약 생성"
+    },
+    "beforeCommit": {
+      "command": "./scripts/workflows/pre-commit-check.sh",
+      "description": "Git 커밋 전 최종 검증"
     }
   }
 }
