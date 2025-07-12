@@ -1,0 +1,16 @@
+{
+  "hooks": {
+    "beforeToolUse": {
+      "command": "./scripts/workflows/pre-action-check.sh",
+      "description": "작업 전 코드 품질 및 환경 검사"
+    },
+    "afterToolUse": {
+      "command": "./scripts/workflows/post-action-log.sh",
+      "description": "작업 후 자동 로깅 및 상태 업데이트"
+    },
+    "onStart": {
+      "command": "./scripts/dev-check.sh",
+      "description": "Claude 시작 시 개발 환경 상태 확인"
+    }
+  }
+}
