@@ -46,6 +46,26 @@ const createInterviewPrompt = (
 ): string => {
   const isFirstTurn = !conversationHistory || conversationHistory.length === 0;
   
+  // 프로젝트의 모든 기술 추출
+  const techStackArray: string[] = [];
+  if (projectInfo.techStackStructure) {
+    const ts = projectInfo.techStackStructure;
+    if (ts.frontend) {
+      if (ts.frontend.languages) techStackArray.push(...ts.frontend.languages);
+      if (ts.frontend.frameworks) techStackArray.push(...ts.frontend.frameworks);
+      if (ts.frontend.tools) techStackArray.push(...ts.frontend.tools);
+    }
+    if (ts.backend) {
+      if (ts.backend.languages) techStackArray.push(...ts.backend.languages);
+      if (ts.backend.frameworks) techStackArray.push(...ts.backend.frameworks);
+      if (ts.backend.tools) techStackArray.push(...ts.backend.tools);
+    }
+    if (ts.collaboration) {
+      if (ts.collaboration.git) techStackArray.push(...ts.collaboration.git);
+      if (ts.collaboration.tools) techStackArray.push(...ts.collaboration.tools);
+    }
+  }
+  
   return `
 **1. 너의 역할 (Persona & Goal):**
 당신은 DevMatch의 AI 면담관 **인터뷰어(Interviewer)**입니다. 당신의 이름은 'Interview'와 'Expert'의 의미를 담고 있습니다. 당신의 임무는 ${memberInfo.name}님과의 대화를 통해, **"${projectInfo.name}" 프로젝트의 성공적인 역할분배를 위한 정확한 개인 정보**를 수집하는 것입니다. 친절하고, 전문적이며, 때로는 격려하는 면담 전문가처럼 행동하세요.
@@ -53,10 +73,12 @@ const createInterviewPrompt = (
 **2. 최종 목표 (The Final Output):**
 면담의 최종 목표는 아래 JSON 구조를 완벽하게 채우는 것입니다. 모든 필수 정보가 수집되면 isComplete를 true로 설정하고 memberProfile을 채워서 응답해야 합니다.
 
-- skillScores: { "기술명": 점수(1~5) } (최소 1개 기술)
+**필수 수집 정보:**
+- skillScores: { "기술명": 점수(1~5) } **→ 프로젝트의 모든 기술(${techStackArray.join(', ')})에 대해 반드시 점수 수집**
 - workStyles: ["스타일1", "스타일2"] (최소 2개 스타일)
 
 **3. 대화 원칙 (Conversation Principles):**
+- **🚨 언어 규칙 (절대 준수)**: 반드시 한국어와 영어만 사용하세요. 한자, 일본어, 중국어, 기타 언어 절대 금지. 자연스러운 한국어 문장으로만 응답하세요.
 - **중요: 절대 사용자에게 JSON 형태로 직접 보여주지 마세요. 항상 자연스러운 대화로 응답하세요.**
 - **목표 지향적 면담:** 당신의 유일한 임무는 최종 목표 JSON의 빈칸을 채우는 것입니다. '현재 수집된 정보'를 보고, 아직 채워지지 않은 정보를 자연스럽게 질문하세요. 정해진 순서는 없습니다.
 - **정보 저장 필수:** 사용자가 제공한 모든 정보를 즉시 memberProfile에 저장하세요. 예시:
@@ -98,7 +120,7 @@ const createInterviewPrompt = (
    - **2점**: 문법과 개념 이해, 튜토리얼 따라하기 가능 (초급자)
    - **1점**: 들어본 적 있거나 방금 시작한 수준 (입문자)
 4. **워크스타일 파악:** 최소 2개의 워크스타일을 수집하세요. 옵션: ["개인집중형", "협업소통형", "문제해결형", "체계관리형", "창의주도형", "리더십형", "서포트형", "학습지향형"]
-5. **완료 조건 확인:** 기술 점수 최소 1개, 워크스타일 최소 2개가 수집되면 면담을 완료하세요.
+5. **완료 조건 확인:** **프로젝트의 모든 기술(${techStackArray.join(', ')})에 대한 점수와 워크스타일 최소 2개가 모두 수집되어야만** 면담을 완료하세요.
 6. **최종 확인:** 모든 정보가 수집되면, "수집된 정보로 최적의 역할분배를 진행하겠습니다!" 라고 말하며 isComplete: true와 memberProfile을 포함해 응답하세요.
 
 **5. 너에게 주어지는 정보 (Input Context):**
@@ -186,42 +208,12 @@ export async function POST(req: Request) {
       },
     });
 
-    // 프로젝트 정보 구성 (3-category 구조 지원)
-    let techStackArray: string[] = [];
-    
-    // 새로운 3-category 구조에서 기술스택 추출
-    if (project.techStack && typeof project.techStack === 'object') {
-      const techStackObj = project.techStack as TechStackStructure;
-      
-      // Frontend 기술들
-      if (techStackObj.frontend) {
-        if (techStackObj.frontend.languages) techStackArray.push(...techStackObj.frontend.languages);
-        if (techStackObj.frontend.frameworks) techStackArray.push(...techStackObj.frontend.frameworks);
-        if (techStackObj.frontend.tools) techStackArray.push(...techStackObj.frontend.tools);
-      }
-      
-      // Backend 기술들
-      if (techStackObj.backend) {
-        if (techStackObj.backend.languages) techStackArray.push(...techStackObj.backend.languages);
-        if (techStackObj.backend.frameworks) techStackArray.push(...techStackObj.backend.frameworks);
-        if (techStackObj.backend.tools) techStackArray.push(...techStackObj.backend.tools);
-      }
-      
-      // Collaboration 기술들
-      if (techStackObj.collaboration) {
-        if (techStackObj.collaboration.git) techStackArray.push(...techStackObj.collaboration.git);
-        if (techStackObj.collaboration.tools) techStackArray.push(...techStackObj.collaboration.tools);
-      }
-    } else if (Array.isArray(project.techStack)) {
-      // 기존 배열 형태 지원
-      techStackArray = project.techStack;
-    }
-
+    // 프로젝트 정보 구성
     const projectInfo = {
       name: project.name,
       goal: project.description,
-      techStack: techStackArray,
-      techStackStructure: project.techStack as TechStackStructure // 타입 안정성 개선
+      techStack: project.techStack,
+      techStackStructure: project.techStack as TechStackStructure
     };
 
     // 멤버 정보 구성
@@ -234,7 +226,7 @@ export async function POST(req: Request) {
 
     // AI 응답 생성
     const result = await generateText({
-      model: openrouter('deepseek/deepseek-chat:free'),
+      model: openrouter('meta-llama/llama-3.3-70b-instruct'),
       messages: [{ role: 'user', content: prompt }],
       temperature: 0.7,
       maxTokens: 1000,

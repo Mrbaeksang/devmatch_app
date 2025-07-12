@@ -1,0 +1,42 @@
+{
+  "typescript.preferences.importModuleSpecifier": "relative",
+  "typescript.suggest.autoImports": true,
+  "typescript.updateImportsOnFileMove.enabled": "always",
+  "editor.formatOnSave": true,
+  "editor.codeActionsOnSave": {
+    "source.fixAll.eslint": "explicit",
+    "source.organizeImports": "explicit"
+  },
+  "eslint.workingDirectories": ["."],
+  "eslint.format.enable": true,
+  "files.associations": {
+    "*.mdx": "mdx"
+  },
+  "emmet.includeLanguages": {
+    "typescript": "html",
+    "typescriptreact": "html"
+  },
+  "tailwindCSS.includeLanguages": {
+    "typescript": "html",
+    "typescriptreact": "html"
+  },
+  "claude.mcpServers": {
+    "github": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-github"]
+    },
+    "puppeteer": {
+      "command": "npx", 
+      "args": ["-y", "@modelcontextprotocol/server-puppeteer"]
+    }
+  },
+  "claude.hooks": {
+    "beforeToolUse": [
+      {
+        "name": "lint-before-commit",
+        "command": "pnpm lint --fix",
+        "when": "tool.name === 'Bash' && tool.parameters.command?.includes('git commit')"
+      }
+    ]
+  }
+}

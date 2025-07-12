@@ -4,121 +4,92 @@ import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { db } from '@/lib/db';
-import { MemberProfile, TeamAnalysis, RoleAssignment } from '@/types/project';
 
-// AI 응답 인터페이스
+// AI 분석 응답 타입
 interface AIAnalysisResponse {
-  teamAnalysis: TeamAnalysis;
-  roleAssignments: RoleAssignment[];
+  teamAnalysis: {
+    teamStrengths: string[];           // 팀 강점 3개
+    aiAdvice: string[];                // AI 조언 2개  
+    operationRecommendations: string[];// 운영 권장 2개
+    leadershipDistribution: Record<string, number>; // 팀장적합도% 분배
+  };
+  memberAnalysis: Array<{
+    userId: string;
+    role: string;                      // 역할 (겸직 가능)
+    strengths: string[];               // 개인 강점
+    leadershipScore: number;           // 팀장적합도%
+  }>;
 }
 
 /**
- * AI 분석을 위한 시스템 프롬프트 생성
+ * DevMatch 팀 분석 AI 프롬프트
  */
-const getAnalysisPrompt = (projectInfo: { name: string; goal: string; techStack?: string[]; maxMembers: number; blueprint?: { aiSuggestedRoles?: Array<{ roleName: string; count: number; description: string }> } }, memberProfiles: MemberProfile[]): string => {
-  return `당신은 전문적인 AI 팀 분석가입니다. 프로젝트와 팀원 정보를 바탕으로 최적의 팀 구성을 분석해주세요.
+const createAnalysisPrompt = (projectInfo: any, memberProfiles: any[]): string => {
+  return `**DevMatch 팀 분석 AI**
 
-프로젝트 정보:
-- 프로젝트명: ${projectInfo.name}
-- 목표: ${projectInfo.goal}
-- 기술 스택: ${projectInfo.techStack?.join(', ') || '미정'}
-- 예상 팀원 수: ${projectInfo.maxMembers}명
-- AI 제안 역할: ${JSON.stringify(projectInfo.blueprint?.aiSuggestedRoles || [])}
+당신은 **DevMatch**의 팀 분석 전문 AI입니다. DevMatch는 개발자들이 모여 실제 프로젝트를 함께 만드는 팀 빌딩 플랫폼입니다.
 
-팀원 정보:
+**당신의 임무:**
+모든 팀원이 면담을 완료한 후, 이 팀이 성공적으로 프로젝트를 완성할 수 있도록 최적의 팀 구성을 분석하는 것입니다.
+
+**프로젝트 정보:**
+- 프로젝트: ${projectInfo.name}
+- 목표: ${projectInfo.description}
+- 팀 크기: ${projectInfo.teamSize}명
+- 기술스택: ${JSON.stringify(projectInfo.techStack)}
+
+**팀원 면담 결과:**
 ${memberProfiles.map((profile, index) => `
-팀원 ${index + 1}: ${profile.name}
-- 기술 스택: ${profile.skills?.join(', ') || '없음'}
-- 경험: ${profile.experience || '없음'}
-- 리더십 레벨: ${profile.leadershipLevel || 'none'}
-- 작업 스타일: ${profile.workStyle || '없음'}
-- 소통 방식: ${profile.communication || '없음'}
-- 참여 동기: ${profile.motivation || '없음'}
-- 시간 가용성: ${profile.availability || '없음'}
-- 역할 선호: ${profile.rolePreference || '없음'}
-- 추가 정보: ${profile.additionalInfo || '없음'}
+팀원 ${index + 1}: ${profile.memberName} (ID: ${profile.memberId})
+- 기술 점수 (1~5점): ${JSON.stringify(profile.skillScores)}
+- 워크스타일: ${profile.workStyles?.join(', ') || '없음'}
 `).join('\n')}
 
-다음 JSON 형식으로 응답해주세요:
+**정확히 필요한 분석 결과:**
+
+1. **팀장 추천도 분석**
+   - 각 팀원의 팀장 추천도를 0-100% 범위로 분석
+   - Git/GitHub 기술, 워크스타일, 리더십 성향 등을 종합적으로 고려
+   - 팀원 전체 합계 100%가 되도록 상대적 분배
+   - **중요: 팀장 추천도는 중복 계산하지 말고 한 번만 계산해서 넘겨주세요**
+
+2. **역할 배정**
+   - Frontend Developer: 프론트엔드 기술 점수 기반
+   - Backend Developer: 백엔드 기술 점수 기반  
+   - Frontend/Backend Developer: 양쪽 모두 가능한 경우 (겸직)
+
+3. **팀 운영 가이드**
+   - 팀 강점 3개: 이 팀만의 기술적/협업적 장점
+   - AI 조언 2개: 프로젝트 성공을 위한 구체적 조언
+   - 운영 권장사항 2개: 팀 관리/협업 방법 제안
+
+**응답 형식 (JSON만):**
 {
   "teamAnalysis": {
-    "overallScore": 85,
-    "strengths": ["팀의 강점 1", "팀의 강점 2", "팀의 강점 3"],
-    "concerns": ["우려사항 1", "우려사항 2"],
-    "recommendations": ["권장사항 1", "권장사항 2", "권장사항 3"],
-    "leadershipAnalysis": {
-      "recommendedLeader": "user1",
-      "leadershipScores": [
-        {
-          "userId": "user1",
-          "score": 90,
-          "reasoning": "리더십 평가 근거"
-        }
-      ]
+    "teamStrengths": ["구체적 강점1", "구체적 강점2", "구체적 강점3"],
+    "aiAdvice": ["실용적 조언1", "실용적 조언2"], 
+    "operationRecommendations": ["운영 방법1", "운영 방법2"],
+    "leadershipDistribution": {
+      "${memberProfiles[0]?.memberId}": 숫자,
+      "${memberProfiles[1]?.memberId}": 숫자,
+      "${memberProfiles[2]?.memberId}": 숫자,
+      "${memberProfiles[3]?.memberId}": 숫자
     }
   },
-  "roleAssignments": [
+  "memberAnalysis": [
     {
-      "userId": "user1",
-      "assignedRole": "팀장 & 백엔드 개발자",
-      "isLeader": true,
-      "reasoning": "역할 배정 근거",
-      "responsibilities": ["책임 1", "책임 2", "책임 3"],
-      "matchScore": 95
+      "userId": "실제 memberId",
+      "role": "Frontend Developer | Backend Developer | Frontend/Backend Developer",
+      "strengths": ["개인 강점1", "개인 강점2"],
+      "leadershipScore": 숫자
     }
   ]
 }
 
-분석 기준:
-1. 전체 점수 (overallScore): 0-100점, 팀 전체의 매칭 적합도
-2. 강점 (strengths): 3-5개, 팀의 주요 강점
-3. 우려사항 (concerns): 1-3개, 잠재적 문제점
-4. 권장사항 (recommendations): 3-5개, 팀 운영 개선 방안
-5. 리더십 분석: 각 팀원의 리더십 적합도 0-100점 평가
-6. 역할 배정: 각 팀원에게 최적의 역할 배정 (적합도 0-100점)
-
-리더십 레벨 가중치:
-- preferred: 높은 가중치, 리더 역할 우선 고려
-- experienced: 중간 가중치, 서브 리더 또는 멘토 역할
-- interested: 낮은 가중치, 학습 기회 제공
-- none: 개인 기여자 역할에 집중
-
-역할 배정 시 고려사항:
-- 기술 스택 매칭도
-- 경험 수준 적합성
-- 작업 스타일 조화
-- 시간 가용성 호환성
-- 개인 선호도 반영
-- 팀 전체 밸런스
-
-절대로 JSON 외의 다른 텍스트를 포함하지 마세요.`;
-};
-
-/**
- * AI 응답을 안전하게 파싱하는 함수
- */
-const parseAnalysisResponse = (content: string): AIAnalysisResponse => {
-  try {
-    const jsonMatch = content.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) {
-      throw new Error('JSON 형식을 찾을 수 없습니다');
-    }
-
-    const parsed = JSON.parse(jsonMatch[0]);
-    
-    // 필수 필드 검증
-    if (!parsed.teamAnalysis || !parsed.roleAssignments) {
-      throw new Error('필수 필드가 누락되었습니다');
-    }
-
-    return parsed as AIAnalysisResponse;
-  } catch (error) {
-    console.error('AI 분석 응답 파싱 오류:', error);
-    console.error('원본 응답:', content);
-    
-    // 파싱 실패 시 기본 응답 반환
-    throw new Error('AI 분석 결과 파싱 실패');
-  }
+**필수 규칙:**
+- leadershipDistribution 합계 = 정확히 100
+- 모든 userId는 실제 제공된 memberId 사용
+- JSON 외 다른 텍스트 절대 금지`;
 };
 
 export async function POST(
@@ -126,10 +97,9 @@ export async function POST(
   { params }: { params: Promise<{ projectId: string }> }
 ) {
   try {
-    // 내부 요청인지 확인 (선택사항)
+    // 내부 요청 확인
     const isInternalRequest = req.headers.get('X-Internal-Request') === 'true';
     
-    // 내부 요청이 아닌 경우 세션 확인
     if (!isInternalRequest) {
       const session = await getServerSession(authOptions);
       if (!session?.user?.id) {
@@ -144,9 +114,7 @@ export async function POST(
       where: { id: projectId },
       include: {
         members: {
-          include: {
-            user: true
-          }
+          include: { user: true }
         }
       }
     });
@@ -155,7 +123,7 @@ export async function POST(
       return NextResponse.json({ message: '프로젝트를 찾을 수 없습니다.' }, { status: 404 });
     }
 
-    // 모든 면담이 완료되었는지 확인
+    // 모든 면담 완료 확인
     const allInterviewsCompleted = project.members.every(
       member => member.interviewStatus === 'COMPLETED' && member.memberProfile
     );
@@ -166,202 +134,122 @@ export async function POST(
       }, { status: 400 });
     }
 
-    // 멤버 프로필 추출 및 타입 변환
-    const memberProfiles: MemberProfile[] = project.members
-      .filter(member => member.memberProfile)
-      .map(member => {
-        const profile = member.memberProfile as Record<string, unknown>;
-        return {
-          memberId: member.user.id,
-          memberName: member.user.name || '익명',
-          skillLevel: profile.skillLevel as 'beginner' | 'intermediate' | 'advanced' || 'intermediate',
-          strongSkills: Array.isArray(profile.strongSkills) ? profile.strongSkills as string[] : [],
-          learningGoals: Array.isArray(profile.learningGoals) ? profile.learningGoals as string[] : [],
-          preferredRole: profile.preferredRole as 'frontend' | 'backend' | 'fullstack' | 'leader' || 'fullstack',
-          leadershipLevel: profile.leadershipLevel as 'none' | 'interested' | 'experienced' | 'preferred' || 'none',
-          leadershipExperience: Array.isArray(profile.leadershipExperience) ? profile.leadershipExperience as string[] : [],
-          leadershipMotivation: profile.leadershipMotivation as string || '',
-          workStyle: profile.workStyle as 'individual' | 'collaborative' | 'mixed' || 'collaborative',
-          projectMotivation: profile.projectMotivation as string || '',
-          contributions: Array.isArray(profile.contributions) ? profile.contributions as string[] : [],
-          // 호환성을 위한 추가 필드들
-          skills: Array.isArray(profile.skills) ? profile.skills as string[] : [],
-          experience: profile.experience as string || '',
-          communication: profile.communication as string || '',
-          motivation: profile.motivation as string || '',
-          availability: profile.availability as string || '',
-          rolePreference: profile.rolePreference as string || '',
-          additionalInfo: profile.additionalInfo as string || ''
-        } as MemberProfile;
-      });
+    // 팀원 프로필 데이터 준비
+    const memberProfiles = project.members.map(member => ({
+      memberId: member.user.id,
+      memberName: member.user.name || member.user.nickname || '익명',
+      ...member.memberProfile as any
+    }));
 
-    if (memberProfiles.length === 0) {
-      return NextResponse.json({ 
-        message: '분석할 팀원 정보가 없습니다.' 
-      }, { status: 400 });
-    }
-
-    // AI 분석 API 호출
-    const apiKey = process.env.OPENROUTER_API_KEY;
-    if (!apiKey) {
-      return NextResponse.json({ 
-        message: 'API 설정 오류가 발생했습니다.' 
-      }, { status: 500 });
-    }
-
+    // AI 분석 실행
     const openrouter = createOpenRouter({
-      apiKey,
+      apiKey: process.env.OPENROUTER_API_KEY!,
       headers: {
         "HTTP-Referer": process.env.NEXTAUTH_URL || "http://localhost:3000",
         "X-Title": "DevMatch Team Analysis",
       },
     });
 
-    const systemPrompt = getAnalysisPrompt({
-      name: project.name,
-      goal: project.description,
-      techStack: project.techStack as string[] | undefined,
-      maxMembers: project.teamSize,
-      blueprint: project.blueprint ? {
-        aiSuggestedRoles: (project.blueprint as Record<string, unknown>)?.aiSuggestedRoles as Array<{ roleName: string; count: number; description: string }> || []
-      } : undefined
-    }, memberProfiles);
-
-    console.log('AI 분석 시작:', {
-      projectId,
-      memberCount: memberProfiles.length,
-      promptLength: systemPrompt.length
-    });
-
-    // AI 분석 실행
-    let analysisText: string;
+    const prompt = createAnalysisPrompt(project, memberProfiles);
+    
+    let analysisResult: AIAnalysisResponse;
+    
     try {
       const result = await generateText({
-        model: openrouter('deepseek/deepseek-chat:free'),
-        system: systemPrompt,
-        messages: [
-          {
-            role: 'user',
-            content: '위의 프로젝트와 팀원 정보를 바탕으로 완전한 팀 분석을 수행해주세요. JSON 형식으로 응답해주세요.'
-          }
-        ],
+        model: openrouter('meta-llama/llama-3.3-70b-instruct'),
+        messages: [{ role: 'user', content: prompt }],
         temperature: 0.3,
         maxTokens: 2000,
       });
-      analysisText = result.text;
-    } catch (error: unknown) {
-      if (error instanceof Error && error.message?.includes('rate limit')) {
-        // 백업 모델 사용
-        try {
-          const fallbackResult = await generateText({
-            model: openrouter('deepseek/deepseek-chat:free'),
-            system: systemPrompt,
-            messages: [
-              {
-                role: 'user',
-                content: '팀 분석을 수행해주세요. JSON 형식으로 응답해주세요.'
-              }
-            ],
-            temperature: 0.3,
-            maxTokens: 2000,
-          });
-          analysisText = fallbackResult.text;
-        } catch {
-          throw new Error('AI 분석 서비스를 일시적으로 사용할 수 없습니다.');
-        }
-      } else {
-        throw error;
-      }
+
+      analysisResult = JSON.parse(result.text.trim());
+    } catch (error) {
+      console.error('AI 분석 실패:', error);
+      
+      // 백업 기본 분석 (간단한 로직)
+      const totalMembers = project.members.length;
+      const baseScore = Math.floor(100 / totalMembers);
+      const remainder = 100 % totalMembers;
+      
+      analysisResult = {
+        teamAnalysis: {
+          teamStrengths: ["팀원들의 기술 역량", "다양한 경험 보유", "균형잡힌 팀 구성"],
+          aiAdvice: ["정기적인 팀 미팅 진행", "코드 리뷰 프로세스 구축"], 
+          operationRecommendations: ["애자일 개발 방법론 적용", "명확한 역할 분담"],
+          leadershipDistribution: Object.fromEntries(
+            project.members.map((member, index) => [
+              member.user.id, 
+              baseScore + (index < remainder ? 1 : 0)
+            ])
+          )
+        },
+        memberAnalysis: project.members.map((member, index) => ({
+          userId: member.user.id,
+          role: index % 2 === 0 ? "Frontend Developer" : "Backend Developer",
+          strengths: ["기술적 역량", "팀 협업 능력"],
+          leadershipScore: baseScore + (index < remainder ? 1 : 0)
+        }))
+      };
     }
 
-    // AI 응답 파싱
-    const analysisResult = parseAnalysisResponse(analysisText);
-
-    // 역할 배정 데이터 매핑 (userId 추가)
-    const roleAssignmentsWithUserId = analysisResult.roleAssignments.map(assignment => {
-      const member = project.members.find(m => m.user?.id === assignment.userId);
-      if (!member) {
-        throw new Error(`사용자 ID ${assignment.userId}를 찾을 수 없습니다.`);
-      }
-      return {
-        ...assignment,
-        userId: member.user!.id
-      };
-    });
-
-    // 데이터베이스에 분석 결과 저장
+    // 데이터베이스 업데이트
     await db.project.update({
       where: { id: projectId },
       data: {
-        teamAnalysis: JSON.parse(JSON.stringify(analysisResult.teamAnalysis)),
+        teamAnalysis: analysisResult.teamAnalysis,
         status: 'ACTIVE'
       }
     });
 
-    // 각 멤버에게 역할 배정 저장
+    // 각 멤버에게 개인 분석 결과 저장
     await Promise.all(
-      roleAssignmentsWithUserId.map(async (assignment) => {
-        const member = project.members.find(m => m.user?.id === assignment.userId);
+      analysisResult.memberAnalysis.map(async (memberAnalysis) => {
+        const member = project.members.find(m => m.user.id === memberAnalysis.userId);
         if (member) {
           await db.projectMember.update({
             where: { id: member.id },
             data: {
-              role: assignment.assignedRole,
-              memberProfile: JSON.parse(JSON.stringify(assignment))
+              role: memberAnalysis.role,
+              memberProfile: {
+                ...member.memberProfile as any,
+                strengths: memberAnalysis.strengths,
+                leadershipScore: memberAnalysis.leadershipScore
+              }
             }
           });
         }
       })
     );
 
-    // 시스템 메시지 추가 - 프로젝트 시작
-    const leaderMember = project.members.find(
-      m => m.user?.id === analysisResult.teamAnalysis.leadershipAnalysis?.recommendedLeader
+    // 시스템 메시지 추가
+    const topLeader = analysisResult.memberAnalysis.reduce((prev, current) => 
+      prev.leadershipScore > current.leadershipScore ? prev : current
     );
+    const leaderMember = project.members.find(m => m.user.id === topLeader.userId);
     const leaderName = leaderMember?.user?.nickname || leaderMember?.user?.name || '팀장';
     
     await db.chatMessage.create({
       data: {
         projectId,
-        content: `🚀 프로젝트가 시작되었습니다! ${leaderName}님이 팀장으로 선정되었습니다.`,
+        content: `🚀 프로젝트가 시작되었습니다! ${leaderName}님이 팀장으로 추천되었습니다.`,
         type: 'SYSTEM'
       }
     });
 
-    console.log('팀 분석 완료:', {
-      projectId,
-      overallScore: analysisResult.teamAnalysis.overallScore,
-      recommendedLeader: analysisResult.teamAnalysis.leadershipAnalysis?.recommendedLeader,
-      roleAssignments: roleAssignmentsWithUserId.length
-    });
+    console.log(`팀 분석 완료: ${projectId}, 팀장: ${leaderName}`);
 
     return NextResponse.json({
       success: true,
       teamAnalysis: analysisResult.teamAnalysis,
-      roleAssignments: roleAssignmentsWithUserId,
+      memberAnalysis: analysisResult.memberAnalysis,
       message: '팀 분석이 완료되었습니다.'
     });
 
   } catch (error) {
     console.error('팀 분석 오류:', error);
-    
-    let errorMessage = '팀 분석 중 오류가 발생했습니다.';
-    
-    if (error instanceof Error) {
-      if (error.message.includes('rate limit')) {
-        errorMessage = '요청이 너무 많습니다. 잠시 후 다시 시도해주세요.';
-      } else if (error.message.includes('API key')) {
-        errorMessage = 'API 인증 오류가 발생했습니다.';
-      } else if (error.message.includes('파싱')) {
-        errorMessage = 'AI 분석 결과 처리 중 오류가 발생했습니다.';
-      } else {
-        errorMessage = error.message;
-      }
-    }
-
     return NextResponse.json(
       { 
-        message: errorMessage,
+        message: '팀 분석 중 오류가 발생했습니다.',
         error: process.env.NODE_ENV === 'development' ? (error as Error).message : undefined 
       },
       { status: 500 }

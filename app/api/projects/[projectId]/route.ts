@@ -62,6 +62,7 @@ export async function GET(
         joinedAt: member.joinedAt,
         user: member.user,
         memberProfile: member.memberProfile,
+        agreedToAnalysis: member.agreedToAnalysis,
         canStartInterview: member.interviewStatus === 'PENDING'
       })),
       blueprint: project.blueprint,

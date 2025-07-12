@@ -38,9 +38,10 @@ interface TeamMember {
   avatar?: string;
   joinedAt: Date;
   userId?: string;
+  role?: string;
   interviewStatus: InterviewStatus;
   canStartInterview: boolean;
-  agreedToAnalysis?: boolean;
+  agreedToAnalysis: boolean;
   user: {
     id: string;
     name: string;
@@ -77,6 +78,13 @@ export default function ProjectPage() {
   const [joiningProject, setJoiningProject] = useState(false);
   const [inviteUrl, setInviteUrl] = useState('');
   const [agreeingToAnalysis, setAgreeingToAnalysis] = useState(false);
+  
+  // 테스트용 상태
+  const [addingUserIndex, setAddingUserIndex] = useState<number | null>(null);
+  const [completingUserName, setCompletingUserName] = useState<string | null>(null);
+  const [resettingUserName, setResettingUserName] = useState<string | null>(null);
+  const [agreeingUserName, setAgreeingUserName] = useState<string | null>(null);
+  const [triggeringAnalysis, setTriggeringAnalysis] = useState(false);
 
   // 자동 새로고침을 위한 인터벌
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
@@ -184,6 +192,163 @@ export default function ProjectPage() {
     // currentUser가 있으면 바로 면담으로
     if (currentUser?.id) {
       startInterview(currentUser.id);
+    }
+  };
+
+
+  // 테스트용 사용자 1명 추가
+  const addSingleTestUser = async (index: number) => {
+    if (!project) return;
+    
+    setAddingUserIndex(index);
+    try {
+      const response = await fetch('/api/test/add-single-dummy-user', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ projectId: project.id, userIndex: index })
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || '테스트 사용자 추가 중 오류가 발생했습니다.');
+      }
+      
+      const result = await response.json();
+      toast.success(result.message || '테스트 사용자가 추가되었습니다!');
+      
+      // 프로젝트 정보 새로고침
+      await fetchProject();
+      
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : '테스트 사용자 추가 중 오류가 발생했습니다.');
+    } finally {
+      setAddingUserIndex(null);
+    }
+  };
+
+  // 테스트용 개별 면담 완료
+  const completeSingleTestInterview = async (userName: string) => {
+    if (!project) return;
+    
+    setCompletingUserName(userName);
+    try {
+      const response = await fetch('/api/test/complete-single-interview', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ projectId: project.id, userName })
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || '면담 완료 중 오류가 발생했습니다.');
+      }
+      
+      const result = await response.json();
+      toast.success(result.message || '면담이 완료되었습니다!');
+      
+      // 프로젝트 정보 새로고침
+      await fetchProject();
+      
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : '면담 완료 중 오류가 발생했습니다.');
+    } finally {
+      setCompletingUserName(null);
+    }
+  };
+
+  // 테스트용 개별 면담 초기화
+  const resetSingleTestInterview = async (userName: string) => {
+    if (!project) return;
+    
+    setResettingUserName(userName);
+    try {
+      const response = await fetch('/api/test/reset-single-interview', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ projectId: project.id, userName })
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || '면담 초기화 중 오류가 발생했습니다.');
+      }
+      
+      const result = await response.json();
+      toast.success(result.message || '면담이 초기화되었습니다!');
+      
+      // 프로젝트 정보 새로고침
+      await fetchProject();
+      
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : '면담 초기화 중 오류가 발생했습니다.');
+    } finally {
+      setResettingUserName(null);
+    }
+  };
+
+
+  // 테스트용 개별 분석 동의
+  const agreeSingleTestAnalysis = async (userName: string) => {
+    if (!project || agreeingUserName) return;
+    
+    setAgreeingUserName(userName);
+    try {
+      const response = await fetch('/api/test/agree-analysis-single', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ projectId: project.id, userName })
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || '분석 동의 중 오류가 발생했습니다.');
+      }
+      
+      const result = await response.json();
+      
+      if (result.allAgreed) {
+        toast.success('모든 팀원이 동의하여 분석을 시작합니다!');
+      } else {
+        toast.success(`${result.message} (${result.agreedCount}/${result.totalCount}명 동의)`);
+      }
+      
+      // 프로젝트 정보 새로고침
+      await fetchProject();
+      
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : '분석 동의 중 오류가 발생했습니다.');
+    } finally {
+      setAgreeingUserName(null);
+    }
+  };
+
+  // 테스트용 수동 분석 트리거
+  const triggerAnalysis = async () => {
+    if (!project || triggeringAnalysis) return;
+    
+    setTriggeringAnalysis(true);
+    try {
+      const response = await fetch('/api/test/trigger-analysis', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ projectId: project.id })
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || '분석 트리거 중 오류가 발생했습니다.');
+      }
+      
+      const result = await response.json();
+      toast.success(result.message || '팀 분석이 완료되었습니다!');
+      
+      // 프로젝트 정보 새로고침
+      await fetchProject();
+      
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : '분석 트리거 중 오류가 발생했습니다.');
+    } finally {
+      setTriggeringAnalysis(false);
     }
   };
 
@@ -639,6 +804,194 @@ export default function ProjectPage() {
               </motion.div>
             </div>
           </ExpandableChatBody>
+
+          {/* 개발 테스트 도구 (개발 환경에서만 표시) */}
+          {process.env.NODE_ENV === 'development' && project && (
+            <div className="p-4 border-t border-zinc-800 bg-zinc-900/50">
+              <div className="text-sm text-zinc-400 mb-3 flex items-center gap-2">
+                <AlertCircle className="w-4 h-4" />
+                <span>개발 테스트 도구 (개발 환경에서만 표시)</span>
+              </div>
+              <div className="flex flex-col gap-3">
+                {/* 팀원 추가 섹션 */}
+                <div>
+                  <p className="text-xs text-zinc-400 mb-2">팀원 추가:</p>
+                  <div className="grid grid-cols-3 gap-2">
+                    {['김프론트', '박백엔드', '이풀스택'].map((name, index) => {
+                      const isAlreadyInTeam = project.members.some(m => 
+                        m.user.name === name || m.user.nickname?.includes(name.replace('김', '').replace('박', '').replace('이', '').toLowerCase())
+                      );
+                      const isTeamFull = project.members.length >= project.teamSize;
+                      
+                      return (
+                        <Button
+                          key={index}
+                          onClick={() => addSingleTestUser(index)}
+                          disabled={addingUserIndex === index || isAlreadyInTeam || isTeamFull}
+                          size="sm"
+                          variant="outline"
+                          className="border-blue-500/20 text-blue-400 hover:bg-blue-500/10 text-xs"
+                        >
+                          {addingUserIndex === index ? (
+                            <Loader2 className="w-3 h-3 animate-spin" />
+                          ) : isAlreadyInTeam ? (
+                            <CheckCircle2 className="w-3 h-3" />
+                          ) : (
+                            <UserPlus className="w-3 h-3" />
+                          )}
+                          <span className="ml-1 truncate">
+                            {name}
+                          </span>
+                        </Button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* 면담 관리 섹션 */}
+                <div>
+                  <p className="text-xs text-zinc-400 mb-2">면담 관리:</p>
+                  <div className="space-y-2">
+                    {['김프론트', '박백엔드', '이풀스택'].map((name) => {
+                      const member = project.members.find(m => m.user.name === name);
+                      if (!member) return null;
+                      
+                      const isCompleted = member.interviewStatus === 'COMPLETED';
+                      
+                      return (
+                        <div key={name} className="flex items-center gap-2">
+                          <span className="text-xs text-zinc-300 w-16">{name}:</span>
+                          {isCompleted ? (
+                            <Button
+                              onClick={() => resetSingleTestInterview(name)}
+                              disabled={resettingUserName === name}
+                              size="sm"
+                              variant="outline"
+                              className="flex-1 border-red-500/20 text-red-400 hover:bg-red-500/10 text-xs"
+                            >
+                              {resettingUserName === name ? (
+                                <Loader2 className="w-3 h-3 animate-spin" />
+                              ) : (
+                                <RefreshCw className="w-3 h-3" />
+                              )}
+                              <span className="ml-1">면담 초기화</span>
+                            </Button>
+                          ) : (
+                            <Button
+                              onClick={() => completeSingleTestInterview(name)}
+                              disabled={completingUserName === name}
+                              size="sm"
+                              variant="outline"
+                              className="flex-1 border-green-500/20 text-green-400 hover:bg-green-500/10 text-xs"
+                            >
+                              {completingUserName === name ? (
+                                <Loader2 className="w-3 h-3 animate-spin" />
+                              ) : (
+                                <CheckCircle2 className="w-3 h-3" />
+                              )}
+                              <span className="ml-1">면담 완료</span>
+                            </Button>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* 분석 동의 섹션 */}
+                {allInterviewCompleted && (
+                  <div>
+                    <p className="text-xs text-zinc-400 mb-2">분석 동의:</p>
+                    <div className="space-y-2">
+                      {project.members.map((member) => {
+                        const name = member.user.name || member.user.nickname || '익명';
+                        const isOwner = member.role === 'owner';
+                        const hasAgreed = member.agreedToAnalysis;
+                        
+                        return (
+                          <div key={member.id} className="flex items-center gap-2">
+                            <span className="text-xs text-zinc-300 w-16">
+                              {name}{isOwner && ' (나)'}:
+                            </span>
+                            {hasAgreed ? (
+                              <div className="flex-1 px-2 py-1 bg-green-500/10 border border-green-500/20 rounded text-xs text-green-400">
+                                ✅ 분석 동의 완료
+                              </div>
+                            ) : isOwner ? (
+                              <Button
+                                onClick={agreeToAnalysis}
+                                disabled={agreeingToAnalysis}
+                                size="sm"
+                                variant="outline"
+                                className="flex-1 border-blue-500/20 text-blue-400 hover:bg-blue-500/10 text-xs"
+                              >
+                                {agreeingToAnalysis ? (
+                                  <Loader2 className="w-3 h-3 animate-spin" />
+                                ) : (
+                                  <CheckCircle2 className="w-3 h-3" />
+                                )}
+                                <span className="ml-1">분석 동의</span>
+                              </Button>
+                            ) : (
+                              <Button
+                                onClick={() => agreeSingleTestAnalysis(name)}
+                                disabled={agreeingUserName === name}
+                                size="sm"
+                                variant="outline"
+                                className="flex-1 border-purple-500/20 text-purple-400 hover:bg-purple-500/10 text-xs"
+                              >
+                                {agreeingUserName === name ? (
+                                  <Loader2 className="w-3 h-3 animate-spin" />
+                                ) : (
+                                  <CheckCircle2 className="w-3 h-3" />
+                                )}
+                                <span className="ml-1">분석 동의</span>
+                              </Button>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {/* 수동 분석 트리거 (ANALYZING 상태일 때만) */}
+                {project.status === 'ANALYZING' && (
+                  <div>
+                    <p className="text-xs text-zinc-400 mb-2">분석 상태:</p>
+                    <Button
+                      onClick={triggerAnalysis}
+                      disabled={triggeringAnalysis}
+                      size="sm"
+                      variant="outline"
+                      className="w-full border-orange-500/20 text-orange-400 hover:bg-orange-500/10"
+                    >
+                      {triggeringAnalysis ? (
+                        <>
+                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                          분석 처리 중...
+                        </>
+                      ) : (
+                        <>
+                          <RefreshCw className="w-4 h-4 mr-2" />
+                          🚀 수동 분석 완료 처리
+                        </>
+                      )}
+                    </Button>
+                    <p className="text-xs text-zinc-600 mt-1">분석이 멈춘 경우 수동으로 완료 처리</p>
+                  </div>
+                )}
+                
+                <div className="text-xs text-zinc-500 mt-1 border-t border-zinc-700 pt-2">
+                  <div className="flex justify-between items-center">
+                    <span>• 팀원 상태: {project.members.length}/{project.teamSize}명</span>
+                    <span>• 면담 완료: {project.members.filter(m => m.interviewStatus === 'COMPLETED').length}명</span>
+                  </div>
+                  <p className="mt-1 text-zinc-600">💡 면담 완료 시 프로젝트 기술스택에 맞춰 자동으로 점수가 생성됩니다</p>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* 하단 초대링크 */}
           <ExpandableChatFooter>

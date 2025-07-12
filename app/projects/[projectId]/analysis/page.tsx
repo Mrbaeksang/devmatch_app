@@ -9,7 +9,6 @@ import { BackgroundPaths } from "@/components/ui/background-paths";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
 import { Progress } from "@/components/ui/progress";
 import { 
   Loader2, 
@@ -22,29 +21,33 @@ import {
   Sparkles,
   UserCheck,
   Brain,
-  MessageSquare
+  MessageSquare,
+  Users
 } from "lucide-react";
 
 import { 
   ProjectStatus, 
   InterviewStatus, 
-  MemberProfile, 
-  TeamAnalysis, 
-  RoleAssignment
+  TeamAnalysis
 } from "@/types/project";
 
-// 팀원 정보 (확장됨)
+// 팀원 정보 (새로운 구조)
 interface TeamMemberExtended {
   id: string;
   name: string;
+  userId: string;
   interviewStatus: InterviewStatus;
-  memberProfile?: MemberProfile;
-  roleAssignment?: RoleAssignment;
+  memberProfile?: {
+    skillScores?: Record<string, number>;
+    workStyles?: string[];
+    strengths?: string[];
+    leadershipScore?: number;
+  };
+  role?: string;
   joinedAt: Date;
-  userId?: string;
 }
 
-// 프로젝트 정보 (확장됨)
+// 프로젝트 정보 (새로운 구조)
 interface ProjectExtended {
   id: string;
   name: string;
@@ -68,6 +71,7 @@ export default function AnalysisPage() {
   const [loading, setLoading] = useState(true);
   const [project, setProject] = useState<ProjectExtended | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [selectedMember, setSelectedMember] = useState<TeamMemberExtended | null>(null);
   
   // 자동 새로고침을 위한 인터벌
   const [intervalId, setIntervalId] = useState<NodeJS.Timeout | null>(null);
@@ -93,48 +97,43 @@ export default function AnalysisPage() {
         teamSize: data.teamSize,
         blueprint: data.blueprint,
         teamAnalysis: data.teamAnalysis,
-        members: data.members?.map((member: {
-          id: string;
-          user?: {
-            id?: string;
-            name?: string;
-            nickname?: string;
-          };
-          interviewStatus: InterviewStatus;
-          memberProfile?: unknown;
-          role?: string;
-          joinedAt: string;
-        }) => ({
+        members: data.members?.map((member: any) => ({
           id: member.id,
           name: member.user?.nickname || member.user?.name || '알 수 없음',
+          userId: member.user?.id,
           interviewStatus: member.interviewStatus,
           memberProfile: member.memberProfile,
-          roleAssignment: data.teamAnalysis ? {
-            userId: member.user?.id,
-            assignedRole: member.role || '미정',
-            isLeader: member.role?.includes('팀장') || false,
-            reasoning: '',
-            responsibilities: [],
-            matchScore: 0
-          } : undefined,
-          joinedAt: new Date(member.joinedAt),
-          userId: member.user?.id
+          role: member.role,
+          joinedAt: new Date(member.joinedAt)
         })) || [],
         createdAt: new Date(data.createdAt)
       };
       
       setProject(projectData);
       
+      // 기본 선택된 멤버 설정 (팀장 적합도 가장 높은 사람)
+      if (projectData.teamAnalysis && !selectedMember) {
+        const leadershipDistribution = projectData.teamAnalysis.leadershipDistribution;
+        if (leadershipDistribution) {
+          const topLeaderUserId = Object.keys(leadershipDistribution).reduce((a, b) => 
+            leadershipDistribution[a] > leadershipDistribution[b] ? a : b
+          );
+          const topLeaderMember = projectData.members.find(m => m.userId === topLeaderUserId);
+          if (topLeaderMember) {
+            setSelectedMember(topLeaderMember);
+          }
+        }
+      }
+      
       // 분석 중인 경우 계속 폴링
       if (data.status === ProjectStatus.ANALYZING) {
         if (!intervalId) {
           const id = setInterval(() => {
             fetchProject();
-          }, 3000); // 3초마다 확인
+          }, 3000);
           setIntervalId(id);
         }
       } else if (intervalId) {
-        // 분석 완료 시 폴링 중지
         clearInterval(intervalId);
         setIntervalId(null);
       }
@@ -145,7 +144,7 @@ export default function AnalysisPage() {
     } finally {
       setLoading(false);
     }
-  }, [projectId, intervalId]);
+  }, [projectId, intervalId, selectedMember]);
 
   // 초기 데이터 로드
   useEffect(() => {
@@ -153,7 +152,6 @@ export default function AnalysisPage() {
       fetchProject();
     }
     
-    // 클린업
     return () => {
       if (intervalId) {
         clearInterval(intervalId);
@@ -161,7 +159,7 @@ export default function AnalysisPage() {
     };
   }, [projectId, fetchProject, intervalId]);
 
-  // 프로젝트 채팅으로 이동
+  // 팀 채팅으로 이동
   const goToProjectChat = () => {
     router.push(`/projects/${projectId}/chat`);
   };
@@ -285,9 +283,7 @@ export default function AnalysisPage() {
   }
 
   const analysis = project.teamAnalysis;
-  const leaderInfo = project.members.find(m => 
-    m.userId === analysis.leadershipAnalysis?.recommendedLeader
-  );
+  const leadershipDistribution = analysis.leadershipDistribution || {};
 
   return (
     <div className="relative min-h-screen w-full bg-zinc-950 font-inter">
@@ -325,47 +321,23 @@ export default function AnalysisPage() {
             </div>
           </motion.div>
 
-          {/* 종합 점수 카드 */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.1 }}
-            className="mb-8"
-          >
-            <Card className="border-blue-500/20 bg-gradient-to-br from-blue-500/10 to-purple-500/10">
-              <CardContent className="p-8">
-                <div className="text-center">
-                  <div className="inline-flex items-center justify-center w-32 h-32 mb-4 rounded-full bg-gradient-to-br from-blue-500 to-purple-500">
-                    <span className="text-4xl font-bold text-white">
-                      {analysis.overallScore}점
-                    </span>
-                  </div>
-                  <h2 className="text-2xl font-bold text-white mb-2">팀 종합 점수</h2>
-                  <p className="text-zinc-300">
-                    AI가 분석한 팀의 전반적인 조화도와 성공 가능성입니다
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
-          </motion.div>
-
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
             {/* 팀 강점 */}
             <motion.div
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.2 }}
+              transition={{ delay: 0.1 }}
             >
               <Card className="h-full border-green-500/20 bg-green-500/5">
                 <CardHeader>
                   <CardTitle className="text-white flex items-center gap-2">
                     <TrendingUp className="h-5 w-5 text-green-500" />
-                    팀의 강점
+                    팀 강점
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
                   <ul className="space-y-3">
-                    {analysis.strengths.map((strength, index) => (
+                    {(analysis.teamStrengths || analysis.strengths || []).map((strength, index) => (
                       <li key={index} className="flex items-start gap-3">
                         <CheckCircle2 className="h-5 w-5 text-green-500 mt-0.5 flex-shrink-0" />
                         <span className="text-zinc-300">{strength}</span>
@@ -376,7 +348,33 @@ export default function AnalysisPage() {
               </Card>
             </motion.div>
 
-            {/* 개선 필요사항 */}
+            {/* AI 조언 */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2 }}
+            >
+              <Card className="h-full border-purple-500/20 bg-purple-500/5">
+                <CardHeader>
+                  <CardTitle className="text-white flex items-center gap-2">
+                    <Sparkles className="h-5 w-5 text-purple-500" />
+                    AI 조언
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <ul className="space-y-3">
+                    {(analysis.aiAdvice || analysis.recommendations || []).map((advice, index) => (
+                      <li key={index} className="flex items-start gap-3">
+                        <Star className="h-5 w-5 text-purple-500 mt-0.5 flex-shrink-0" />
+                        <span className="text-zinc-300">{advice}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </CardContent>
+              </Card>
+            </motion.div>
+
+            {/* 운영 권장사항 */}
             <motion.div
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
@@ -385,16 +383,16 @@ export default function AnalysisPage() {
               <Card className="h-full border-amber-500/20 bg-amber-500/5">
                 <CardHeader>
                   <CardTitle className="text-white flex items-center gap-2">
-                    <AlertCircle className="h-5 w-5 text-amber-500" />
-                    개선 필요사항
+                    <Users className="h-5 w-5 text-amber-500" />
+                    운영 권장사항
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
                   <ul className="space-y-3">
-                    {analysis.concerns.map((concern, index) => (
+                    {(analysis.operationRecommendations || analysis.concerns || []).map((recommendation, index) => (
                       <li key={index} className="flex items-start gap-3">
                         <AlertCircle className="h-5 w-5 text-amber-500 mt-0.5 flex-shrink-0" />
-                        <span className="text-zinc-300">{concern}</span>
+                        <span className="text-zinc-300">{recommendation}</span>
                       </li>
                     ))}
                   </ul>
@@ -403,90 +401,141 @@ export default function AnalysisPage() {
             </motion.div>
           </div>
 
-          {/* AI 권장사항 */}
+          {/* 팀원 카드 (작은 카드 4개) */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.4 }}
             className="mb-8"
           >
-            <Card className="border-purple-500/20 bg-purple-500/5">
-              <CardHeader>
-                <CardTitle className="text-white flex items-center gap-2">
-                  <Sparkles className="h-5 w-5 text-purple-500" />
-                  AI 권장사항
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <ul className="space-y-3">
-                  {analysis.recommendations.map((recommendation, index) => (
-                    <li key={index} className="flex items-start gap-3">
-                      <Star className="h-5 w-5 text-purple-500 mt-0.5 flex-shrink-0" />
-                      <span className="text-zinc-300">{recommendation}</span>
-                    </li>
-                  ))}
-                </ul>
-              </CardContent>
-            </Card>
-          </motion.div>
-
-          {/* 리더십 분석 */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.5 }}
-            className="mb-8"
-          >
-            <Card className="border-yellow-500/20 bg-gradient-to-br from-yellow-500/10 to-orange-500/10">
-              <CardHeader>
-                <CardTitle className="text-white flex items-center gap-2">
-                  <Crown className="h-6 w-6 text-yellow-500" />
-                  추천 팀장
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                {leaderInfo && (
-                  <div className="space-y-4">
-                    <div className="flex items-center gap-4">
-                      <div className="w-16 h-16 bg-gradient-to-br from-yellow-500 to-orange-500 rounded-full flex items-center justify-center">
-                        <UserCheck className="w-8 h-8 text-white" />
+            <h2 className="text-2xl font-bold text-white mb-6">팀원 역할 배정</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              {project.members.map((member, index) => {
+                const leadershipScore = leadershipDistribution[member.userId] || member.memberProfile?.leadershipScore || 0;
+                const isSelected = selectedMember?.id === member.id;
+                const isTopLeader = leadershipScore === Math.max(...Object.values(leadershipDistribution));
+                
+                return (
+                  <motion.div
+                    key={member.id}
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ delay: 0.1 * index }}
+                    onClick={() => setSelectedMember(member)}
+                    className={`relative p-4 rounded-lg border cursor-pointer transition-all hover:scale-105 ${
+                      isSelected 
+                        ? 'border-blue-500/50 bg-blue-500/10' 
+                        : 'border-zinc-700 bg-zinc-800/30 hover:border-zinc-600'
+                    }`}
+                  >
+                    {isTopLeader && (
+                      <div className="absolute -top-2 -right-2">
+                        <Crown className="w-6 h-6 text-yellow-500" />
                       </div>
-                      <div>
-                        <h3 className="text-xl font-bold text-white">{leaderInfo.name}</h3>
-                        <p className="text-zinc-400">프로젝트 리더로 추천됨</p>
+                    )}
+                    
+                    <div className="text-center">
+                      <div className={`w-12 h-12 rounded-full mx-auto mb-3 flex items-center justify-center ${
+                        isTopLeader 
+                          ? 'bg-gradient-to-br from-yellow-500 to-orange-500' 
+                          : 'bg-zinc-700'
+                      }`}>
+                        <UserCheck className="w-6 h-6 text-white" />
+                      </div>
+                      
+                      <div className="flex items-center justify-center gap-2 mb-1">
+                        <div className="w-5 h-5 rounded-full bg-zinc-600 flex items-center justify-center">
+                          <span className="text-xs text-white">{member.name.charAt(0)}</span>
+                        </div>
+                        <h3 className="font-semibold text-white">{member.name}</h3>
+                      </div>
+                      <p className="text-sm text-zinc-400 mb-3">
+                        {member.role || '미배정'}
+                      </p>
+                      
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between text-xs">
+                          <span className="text-zinc-500">팀장 추천도</span>
+                          <span className="text-zinc-400">{leadershipScore}%</span>
+                        </div>
+                        <Progress 
+                          value={leadershipScore} 
+                          className="h-2"
+                        />
                       </div>
                     </div>
-                    
-                    <Separator className="bg-zinc-800" />
+                  </motion.div>
+                );
+              })}
+            </div>
+          </motion.div>
+
+          {/* 선택된 멤버 상세 정보 (큰 카드) */}
+          {selectedMember && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.5 }}
+              className="mb-8"
+            >
+              <Card className="border-blue-500/20 bg-gradient-to-br from-blue-500/10 to-purple-500/10">
+                <CardHeader>
+                  <CardTitle className="text-white flex items-center gap-3">
+                    <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-500 rounded-full flex items-center justify-center">
+                      <span className="text-lg font-bold text-white">{selectedMember.name.charAt(0)}</span>
+                    </div>
+                    <div>
+                      <h3 className="text-xl">{selectedMember.name}</h3>
+                      <p className="text-zinc-400">{selectedMember.role || '미배정'}</p>
+                    </div>
+                    {leadershipDistribution[selectedMember.userId] === Math.max(...Object.values(leadershipDistribution)) && (
+                      <Crown className="w-6 h-6 text-yellow-500 ml-auto" />
+                    )}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                      <h4 className="text-sm font-semibold text-zinc-400 mb-3">개인 강점</h4>
+                      <ul className="space-y-2">
+                        {(selectedMember.memberProfile?.strengths || ['기술적 역량', '팀 협업 능력']).map((strength, index) => (
+                          <li key={index} className="flex items-start gap-2">
+                            <Star className="h-4 w-4 text-blue-500 mt-0.5 flex-shrink-0" />
+                            <span className="text-zinc-300">{strength}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
                     
                     <div>
-                      <h4 className="text-sm font-semibold text-zinc-400 mb-3">리더십 평가</h4>
+                      <h4 className="text-sm font-semibold text-zinc-400 mb-3">팀장 추천도</h4>
                       <div className="space-y-3">
-                        {analysis.leadershipAnalysis?.leadershipScores.map((score) => {
-                          const member = project.members.find(m => m.userId === score.userId);
-                          return (
-                            <div key={score.userId} className="space-y-2">
-                              <div className="flex items-center justify-between">
-                                <span className="text-zinc-300">
-                                  {member?.name || '알 수 없음'}
-                                  {score.userId === analysis.leadershipAnalysis?.recommendedLeader && (
-                                    <Crown className="inline-block w-4 h-4 ml-2 text-yellow-500" />
-                                  )}
-                                </span>
-                                <span className="text-zinc-400">{score.score}점</span>
-                              </div>
-                              <Progress value={score.score} className="h-2" />
-                              <p className="text-xs text-zinc-500">{score.reasoning}</p>
-                            </div>
-                          );
-                        })}
+                        <div className="flex items-center justify-between">
+                          <span className="text-white text-lg font-semibold">
+                            {leadershipDistribution[selectedMember.userId] || selectedMember.memberProfile?.leadershipScore || 0}%
+                          </span>
+                          <Badge variant={
+                            (leadershipDistribution[selectedMember.userId] || 0) >= 40 ? "default" : 
+                            (leadershipDistribution[selectedMember.userId] || 0) >= 25 ? "secondary" : "outline"
+                          }>
+                            {(leadershipDistribution[selectedMember.userId] || 0) >= 40 ? "높음" : 
+                             (leadershipDistribution[selectedMember.userId] || 0) >= 25 ? "보통" : "낮음"}
+                          </Badge>
+                        </div>
+                        <Progress 
+                          value={leadershipDistribution[selectedMember.userId] || selectedMember.memberProfile?.leadershipScore || 0} 
+                          className="h-3"
+                        />
+                        <p className="text-xs text-zinc-500">
+                          Git/GitHub 기술, 워크스타일, 리더십 성향 종합 평가
+                        </p>
                       </div>
                     </div>
                   </div>
-                )}
-              </CardContent>
-            </Card>
-          </motion.div>
+                </CardContent>
+              </Card>
+            </motion.div>
+          )}
 
           {/* 프로젝트 시작 버튼 */}
           <motion.div

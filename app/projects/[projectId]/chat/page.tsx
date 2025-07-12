@@ -181,10 +181,11 @@ export default function ProjectChatPage() {
     router.push('/projects');
   };
 
-  // 팀장 여부 확인
-  const isLeader = (memberId: string) => {
-    if (!project?.teamAnalysis?.leadershipAnalysis?.recommendedLeader) return false;
-    return project.teamAnalysis.leadershipAnalysis.recommendedLeader === memberId;
+  // 팀장 여부 확인 (새로운 데이터 구조)
+  const isLeader = (_memberId: string) => {
+    if (!project?.teamAnalysis) return false;
+    // TODO: leadershipDistribution 구조 확인 필요
+    return false;
   };
 
   // 로딩 상태

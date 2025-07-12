@@ -1,0 +1,113 @@
+#!/bin/bash
+
+# DevMatch 프로젝트 개발 전 자동 검사 훅
+# CLAUDE.md의 체크리스트를 자동화
+
+echo "🚀 DevMatch 개발 전 자동 검사 시작..."
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+
+# 1. ESLint 검사
+echo "📋 1. ESLint 코드 품질 검사..."
+if ! pnpm lint --fix; then
+    echo "❌ ESLint 검사 실패 - 코드 수정 후 다시 시도하세요."
+    exit 1
+fi
+echo "✅ ESLint 검사 통과"
+
+# 2. TypeScript 타입 검사
+echo "📋 2. TypeScript 타입 검사..."
+if ! pnpm typecheck; then
+    echo "❌ TypeScript 타입 검사 실패 - 타입 오류를 수정하세요."
+    exit 1
+fi
+echo "✅ TypeScript 타입 검사 통과"
+
+# 3. 프로덕션 빌드 테스트
+echo "📋 3. 프로덕션 빌드 테스트..."
+if ! pnpm build; then
+    echo "❌ 빌드 실패 - 빌드 오류를 수정하세요."
+    exit 1
+fi
+echo "✅ 빌드 테스트 통과"
+
+# 4. Prisma 스키마 검증
+echo "📋 4. Prisma 스키마 검증..."
+if ! pnpm prisma validate; then
+    echo "❌ Prisma 스키마 오류 - 스키마를 확인하세요."
+    exit 1
+fi
+echo "✅ Prisma 스키마 검증 통과"
+
+# 5. 주요 파일 구조 검사
+echo "📋 5. 프로젝트 구조 검사..."
+
+# 필수 디렉토리 확인
+required_dirs=("app" "components" "lib" "types" "prisma")
+for dir in "${required_dirs[@]}"; do
+    if [ ! -d "$dir" ]; then
+        echo "❌ 필수 디렉토리 '$dir'가 없습니다."
+        exit 1
+    fi
+done
+
+# 필수 파일 확인
+required_files=("CLAUDE.md" "package.json" "tsconfig.json" "prisma/schema.prisma")
+for file in "${required_files[@]}"; do
+    if [ ! -f "$file" ]; then
+        echo "❌ 필수 파일 '$file'이 없습니다."
+        exit 1
+    fi
+done
+
+echo "✅ 프로젝트 구조 검사 통과"
+
+# 6. 환경 변수 검사
+echo "📋 6. 환경 변수 검사..."
+if [ ! -f ".env" ] && [ ! -f ".env.local" ]; then
+    echo "❌ 환경 변수 파일(.env 또는 .env.local)이 없습니다."
+    exit 1
+fi
+
+# 필수 환경 변수 확인
+required_env_vars=("DATABASE_URL" "NEXTAUTH_SECRET" "NEXTAUTH_URL")
+missing_vars=()
+
+for var in "${required_env_vars[@]}"; do
+    if [ -z "${!var}" ]; then
+        # .env 파일에서 확인
+        if [ -f ".env" ] && ! grep -q "^$var=" .env; then
+            if [ -f ".env.local" ] && ! grep -q "^$var=" .env.local; then
+                missing_vars+=("$var")
+            fi
+        fi
+    fi
+done
+
+if [ ${#missing_vars[@]} -ne 0 ]; then
+    echo "❌ 누락된 환경 변수: ${missing_vars[*]}"
+    echo "   .env 또는 .env.local 파일에 다음 변수들을 설정하세요:"
+    for var in "${missing_vars[@]}"; do
+        echo "   - $var"
+    done
+    exit 1
+fi
+
+echo "✅ 환경 변수 검사 통과"
+
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo "🎉 모든 검사 통과! 개발을 시작할 준비가 되었습니다."
+echo ""
+echo "📝 CLAUDE.md 가이드 준수 사항:"
+echo "   ✅ 모든 코드에 상세한 주석 필수"
+echo "   ✅ 새로운 개념 등장 시 간단 설명 포함"
+echo "   ✅ 타입 안정성 확보 (any 타입 금지)"
+echo "   ✅ Next.js 15 표준 구조 준수"
+echo "   ✅ 컴포넌트 재사용 우선"
+echo ""
+echo "🔧 개발 명령어:"
+echo "   pnpm dev         - 개발 서버 시작"
+echo "   pnpm build       - 프로덕션 빌드"
+echo "   pnpm lint        - ESLint 검사"
+echo "   pnpm typecheck   - 타입 검사"
+echo "   pnpm prisma studio - DB 관리"
+echo ""

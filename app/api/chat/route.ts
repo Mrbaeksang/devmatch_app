@@ -106,6 +106,7 @@ const createDeffyPrompt = (collectedData: Record<string, unknown>, conversationH
 }
 
 **3. 대화 원칙 (Conversation Principles):**
+- **🚨 언어 규칙 (절대 준수)**: 반드시 한국어와 영어만 사용하세요. 한자, 일본어, 중국어, 기타 언어 절대 금지. 자연스러운 한국어 문장으로만 응답하세요.
 - **중요: 절대 사용자에게 JSON 형태로 직접 보여주지 마세요. 항상 자연스러운 대화로 응답하세요.**
 - **목표 지향적 대화:** 당신의 유일한 임무는 최종 목표 JSON의 빈칸을 채우는 것입니다. '현재 수집된 정보'를 보고, 아직 채워지지 않은 정보를 자연스럽게 질문하세요. 정해진 순서는 없습니다.
 - **정보 저장 필수:** 사용자가 제공한 모든 정보를 즉시 dataToSave에 저장하세요. 예시:
@@ -132,7 +133,26 @@ const createDeffyPrompt = (collectedData: Record<string, unknown>, conversationH
    - 백엔드가 필요하면: "백엔드는 어떤 언어와 프레임워크로 구현하시겠어요?"
    - 프론트엔드가 필요하면: "사용자 화면은 어떤 기술로 만드시겠어요?"
    - 항상 마지막에: "팀 협업은 Git과 GitHub로 하시겠어요?"
-4. **지능적인 역할 분배 제안:** 모든 기본 정보가 수집되면, 기술 스택의 특성과 팀원 수를 종합적으로 고려하여 가장 합리적인 역할 분배를 제안하세요.
+4. **지능적인 역할 분배 제안:** 모든 기본 정보가 수집되면, 다음 규칙에 따라 역할 분배를 계산하세요:
+   
+   **역할 분배 규칙 (절대 준수):**
+   - Frontend 기술이 1개 이상 있으면 → 반드시 최소 1명의 Frontend 개발자 필요
+   - Backend 기술이 1개 이상 있으면 → 반드시 최소 1명의 Backend 개발자 필요  
+   - 팀 규모가 3명 이상이면 → Fullstack 개발자 1명 추가 고려
+   - 남은 인원은 더 복잡한 영역에 배정
+   
+   **중요: Frontend 기술이 있는데 frontend: 0으로 설정하는 것은 절대 금지!**
+   
+   **예시 계산 (정확한 분배 - 총합 = 팀 크기):**
+   - 4명 팀 + Frontend/Backend 모두 있음 → Frontend 1명, Backend 2명, Fullstack 1명 (총 4명)
+   - 3명 팀 + Frontend/Backend 모두 있음 → Frontend 1명, Backend 1명, Fullstack 1명 (총 3명)
+   - 2명 팀 + Frontend/Backend 모두 있음 → Frontend 1명, Backend 1명, Fullstack 0명 (총 2명)
+   
+   **중요: Frontend + Backend + Fullstack의 합이 반드시 팀 크기와 정확히 일치해야 함!**
+   
+   **기술 스택 확인 방법:**
+   - Frontend 기술: languages, frameworks, tools 배열에서 React, Vue, Angular, JavaScript, TypeScript, Next.js, Nuxt.js, HTML, CSS, Tailwind 등 확인
+   - Backend 기술: languages, frameworks, tools 배열에서 Java, Python, Node.js, Spring Boot, Express, Django, FastAPI 등 확인
 5. **팀장 필요 유무 질문:** 역할 분배에 사용자가 동의하면, "프로젝트를 원활하게 이끌기 위해 공식적인 '팀장' 역할을 둘까요?" 라고 질문하세요.
 6. **최종 확인:** 모든 정보가 확정되면, 수집된 전체 내용을 보기 좋게 요약해서 보여주고 "이 내용으로 프로젝트 청사진을 최종 생성할까요?" 라고 물어보세요. 사용자가 긍정하면 isComplete: true와 finalData를 포함해 응답하세요.
 
@@ -288,7 +308,7 @@ export async function POST(req: Request) {
 
     // AI 응답 생성
     const result = await generateText({
-      model: openrouter('deepseek/deepseek-chat:free'),
+      model: openrouter('meta-llama/llama-3.3-70b-instruct'),
       messages: [{ role: 'user', content: prompt }],
       temperature: 0.7,
       maxTokens: 1500,

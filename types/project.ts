@@ -18,11 +18,7 @@ export enum ProjectStatus {
 /**
  * 면담 단계 열거형
  */
-export enum InterviewPhase {
-  PENDING = 'PENDING',         // 면담 대기
-  IN_PROGRESS = 'IN_PROGRESS', // 면담 진행 중
-  COMPLETED = 'COMPLETED'      // 면담 완료
-}
+// InterviewPhase enum 제거됨 - InterviewStatus 사용
 
 /**
  * 면담 상태 열거형
@@ -124,32 +120,40 @@ export interface ProjectBlueprint {
 }
 
 /**
- * 팀원 프로필 (개별 면담에서 수집)
+ * 팀원 프로필 (개별 면담에서 수집) - 실제 데이터 구조 반영
  */
 export interface MemberProfile {
   // 기본 정보
   memberId: string;
   memberName: string;
 
-  // 기술 역량
-  skillLevel: 'beginner' | 'intermediate' | 'advanced';
-  strongSkills: string[];      // 자신있는 기술
-  learningGoals: string[];     // 배우고 싶은 것
+  // 실제 면담 데이터 (현재 구현된 구조) - 필수 필드
+  skillScores: Record<string, number>;  // {"React": 3, "Node.js": 2, "Git": 4}
+  workStyles: string[];                 // ["협업소통형", "문제해결형"]
 
-  // 역할 선호도
-  preferredRole: 'frontend' | 'backend' | 'fullstack' | 'leader';
+  // 기술 역량 (기존 구조 유지) - 선택적 필드
+  skillLevel?: 'beginner' | 'intermediate' | 'advanced';
+  strongSkills?: string[];      // 자신있는 기술
+  learningGoals?: string[];     // 배우고 싶은 것
+
+  // 역할 선호도 - 선택적 필드
+  preferredRole?: 'frontend' | 'backend' | 'fullstack' | 'leader';
   
-  // 팀장 관련 (개선된 4단계 시스템)
-  leadershipLevel: 'none' | 'interested' | 'experienced' | 'preferred';
-  leadershipExperience: string[];  // 팀장 경험 설명
-  leadershipMotivation: string;    // 팀장 지원 동기
+  // 팀장 관련 (개선된 4단계 시스템) - 선택적 필드
+  leadershipLevel?: 'none' | 'interested' | 'experienced' | 'preferred';
+  leadershipExperience?: string[];  // 팀장 경험 설명
+  leadershipMotivation?: string;    // 팀장 지원 동기
 
-  // 협업 스타일
-  workStyle: 'individual' | 'collaborative' | 'mixed';
+  // 협업 스타일 (기존 구조 유지) - 선택적 필드
+  workStyle?: 'individual' | 'collaborative' | 'mixed';
 
-  // 프로젝트 관련
-  projectMotivation: string;   // 참여 동기
-  contributions: string[];     // 기여하고 싶은 부분
+  // 프로젝트 관련 - 선택적 필드
+  projectMotivation?: string;   // 참여 동기
+  contributions?: string[];     // 기여하고 싶은 부분
+
+  // AI 분석 결과 (2025.01 추가)
+  strengths?: string[];         // 개인 강점 (AI 분석 결과)
+  leadershipScore?: number;     // 팀장 적합도% (0-100, 팀 전체 합계 100%)
 
   // 호환성을 위한 추가 필드들 (기존 시스템과의 호환성 유지)
   skills?: string[];
@@ -161,6 +165,29 @@ export interface MemberProfile {
   additionalInfo?: string;
   name?: string;
   interviewCompletedAt?: string;
+}
+
+/**
+ * AI 분석 결과 - 개별 멤버 분석 (2025.01 추가)
+ */
+export interface MemberAnalysis {
+  userId: string;               // 사용자 ID
+  role: string;                 // 배정된 역할 (겸직 가능)
+  strengths: string[];          // 개인 강점
+  leadershipScore: number;      // 팀장 적합도% (0-100)
+}
+
+/**
+ * AI 분석 전체 응답 구조 (2025.01 추가)
+ */
+export interface AIAnalysisResponse {
+  teamAnalysis: {
+    teamStrengths: string[];           // 팀 강점 3개
+    aiAdvice: string[];                // AI 조언 2개  
+    operationRecommendations: string[];// 운영 권장 2개
+    leadershipDistribution: Record<string, number>; // 팀장적합도% 분배
+  };
+  memberAnalysis: MemberAnalysis[];    // 개별 멤버 분석 결과
 }
 
 // ConsultationData는 types/chat.ts에서 import하여 사용
@@ -235,14 +262,21 @@ export interface LeaderCandidate {
 }
 
 /**
- * 팀 종합 분석 결과 (실제 API 응답 구조)
+ * 팀 종합 분석 결과 (새로운 간소화된 구조)
  */
 export interface TeamAnalysis {
-  overallScore: number;        // 전체 점수 (0-100)
-  strengths: string[];         // 팀의 강점
-  concerns: string[];          // 우려사항
-  recommendations: string[];   // AI 추천사항
-  leadershipAnalysis: LeadershipAnalysis;
+  // 새로운 구조 (2025.01 업데이트)
+  teamStrengths?: string[];           // 팀 강점 3개
+  aiAdvice?: string[];                // AI 조언 2개  
+  operationRecommendations?: string[];// 운영 권장 2개
+  leadershipDistribution?: Record<string, number>; // 팀장적합도% 분배 (합계 100%)
+  
+  // 기존 구조 (하위 호환성)
+  overallScore?: number;        // 전체 점수 (0-100)
+  strengths?: string[];         // 팀의 강점
+  concerns?: string[];          // 우려사항
+  recommendations?: string[];   // AI 추천사항
+  leadershipAnalysis?: LeadershipAnalysis;
   
   // 추가 필드들 (호환성)
   projectInfo?: ProjectBlueprint;
@@ -296,7 +330,7 @@ export interface TeamMemberExtended extends TeamMember {
 export interface ProjectState {
   id: string;
   status: ProjectStatus;
-  interviewPhase: InterviewPhase;
+  // interviewPhase 제거됨 - 개별 멤버의 interviewStatus로 관리
   blueprint?: ProjectBlueprint;
   teamAnalysis?: TeamAnalysis;
   progress: number;
