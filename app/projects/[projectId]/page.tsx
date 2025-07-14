@@ -85,6 +85,7 @@ export default function ProjectPage() {
   const [resettingUserName, setResettingUserName] = useState<string | null>(null);
   const [agreeingUserName, setAgreeingUserName] = useState<string | null>(null);
   const [triggeringAnalysis, setTriggeringAnalysis] = useState(false);
+  const [resettingAllInterviews, setResettingAllInterviews] = useState(false);
 
   // 자동 새로고침을 위한 인터벌
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
@@ -283,6 +284,35 @@ export default function ProjectPage() {
       toast.error(error instanceof Error ? error.message : '면담 초기화 중 오류가 발생했습니다.');
     } finally {
       setResettingUserName(null);
+    }
+  };
+
+  // 모든 멤버 면담 초기화
+  const resetAllInterviews = async () => {
+    if (!project || !confirm('정말로 모든 팀원의 면담을 초기화하시겠습니까? 이 작업은 되돌릴 수 없습니다.')) return;
+    
+    setResettingAllInterviews(true);
+    try {
+      const response = await fetch(`/api/projects/${projectId}/reset-interviews`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || '면담 초기화 중 오류가 발생했습니다.');
+      }
+      
+      const result = await response.json();
+      toast.success(result.message || '모든 멤버의 면담이 초기화되었습니다!');
+      
+      // 프로젝트 정보 새로고침
+      await fetchProject();
+      
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : '면담 초기화 중 오류가 발생했습니다.');
+    } finally {
+      setResettingAllInterviews(false);
     }
   };
 
@@ -851,6 +881,26 @@ export default function ProjectPage() {
                 {/* 면담 관리 섹션 */}
                 <div>
                   <p className="text-xs text-zinc-400 mb-2">면담 관리:</p>
+                  {/* 전체 면담 초기화 버튼 */}
+                  <Button
+                    onClick={resetAllInterviews}
+                    disabled={resettingAllInterviews}
+                    size="sm"
+                    variant="outline"
+                    className="w-full mb-2 border-red-500/20 text-red-400 hover:bg-red-500/10"
+                  >
+                    {resettingAllInterviews ? (
+                      <>
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        초기화 중...
+                      </>
+                    ) : (
+                      <>
+                        <RefreshCw className="w-4 h-4 mr-2" />
+                        🔄 모든 면담 초기화 (개선된 면담 재시작)
+                      </>
+                    )}
+                  </Button>
                   <div className="space-y-2">
                     {['김프론트', '박백엔드', '이풀스택'].map((name) => {
                       const member = project.members.find(m => m.user.name === name);

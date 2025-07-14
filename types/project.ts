@@ -2,32 +2,17 @@
 // DevMatch 프로젝트 관련 타입 정의 (error.md 설계 기반)
 
 import { ConsultationData, ChatMessage } from '@/types/chat';
+import { 
+  ProjectStatus, 
+  InterviewStatus, 
+  MemberProfile, 
+  TechStackStructure, 
+  RoleSuggestion 
+} from '@/lib/types/common.types';
 
-/**
- * 프로젝트 상태 열거형 (수정됨)
- */
-export enum ProjectStatus {
-  RECRUITING = 'RECRUITING',   // 팀원 모집 중
-  INTERVIEWING = 'INTERVIEWING', // 개별 면담 진행 중
-  ANALYZING = 'ANALYZING',     // AI 분석 중
-  ACTIVE = 'ACTIVE',           // 프로젝트 진행 중
-  COMPLETED = 'COMPLETED',     // 프로젝트 완료
-  PAUSED = 'PAUSED'            // 일시 정지
-}
-
-/**
- * 면담 단계 열거형
- */
-// InterviewPhase enum 제거됨 - InterviewStatus 사용
-
-/**
- * 면담 상태 열거형
- */
-export enum InterviewStatus {
-  PENDING = 'PENDING',         // 면담 대기
-  IN_PROGRESS = 'IN_PROGRESS', // 면담 진행 중
-  COMPLETED = 'COMPLETED'      // 면담 완료
-}
+// Re-export for backward compatibility
+export { ProjectStatus, InterviewStatus };
+export type { MemberProfile, TechStackStructure, RoleSuggestion };
 
 /**
  * 팀원 인터페이스 (Prisma 스키마와 일치)
@@ -59,36 +44,9 @@ export interface AIRole {
   note?: string;
 }
 
-/**
- * 역할 제안 (새로운 설계)
- */
-export interface RoleSuggestion {
-  roleName: string;             // 역할명
-  count: number;                // 필요 인원
-  description: string;          // 역할 설명
-  requirements: string[];       // 필요 스킬
-  isLeader: boolean;           // 팀장 여부
-}
+// RoleSuggestion은 common.types.ts에서 import하여 사용
 
-/**
- * 기술 스택 3-category 구조 타입 정의
- */
-export interface TechStackStructure {
-  frontend?: {
-    languages?: string[];
-    frameworks?: string[];
-    tools?: string[];
-  };
-  backend?: {
-    languages?: string[];
-    frameworks?: string[];
-    tools?: string[];
-  };
-  collaboration?: {
-    git?: string[];
-    tools?: string[];
-  };
-}
+// TechStackStructure는 common.types.ts에서 import하여 사용
 
 /**
  * 프로젝트 청사진 (새로운 설계)
@@ -119,53 +77,7 @@ export interface ProjectBlueprint {
   aiSuggestedRoles: RoleSuggestion[];
 }
 
-/**
- * 팀원 프로필 (개별 면담에서 수집) - 실제 데이터 구조 반영
- */
-export interface MemberProfile {
-  // 기본 정보
-  memberId: string;
-  memberName: string;
-
-  // 실제 면담 데이터 (현재 구현된 구조) - 필수 필드
-  skillScores: Record<string, number>;  // {"React": 3, "Node.js": 2, "Git": 4}
-  workStyles: string[];                 // ["협업소통형", "문제해결형"]
-
-  // 기술 역량 (기존 구조 유지) - 선택적 필드
-  skillLevel?: 'beginner' | 'intermediate' | 'advanced';
-  strongSkills?: string[];      // 자신있는 기술
-  learningGoals?: string[];     // 배우고 싶은 것
-
-  // 역할 선호도 - 선택적 필드
-  preferredRole?: 'frontend' | 'backend' | 'fullstack' | 'leader';
-  
-  // 팀장 관련 (개선된 4단계 시스템) - 선택적 필드
-  leadershipLevel?: 'none' | 'interested' | 'experienced' | 'preferred';
-  leadershipExperience?: string[];  // 팀장 경험 설명
-  leadershipMotivation?: string;    // 팀장 지원 동기
-
-  // 협업 스타일 (기존 구조 유지) - 선택적 필드
-  workStyle?: 'individual' | 'collaborative' | 'mixed';
-
-  // 프로젝트 관련 - 선택적 필드
-  projectMotivation?: string;   // 참여 동기
-  contributions?: string[];     // 기여하고 싶은 부분
-
-  // AI 분석 결과 (2025.01 추가)
-  strengths?: string[];         // 개인 강점 (AI 분석 결과)
-  leadershipScore?: number;     // 팀장 적합도% (0-100, 팀 전체 합계 100%)
-
-  // 호환성을 위한 추가 필드들 (기존 시스템과의 호환성 유지)
-  skills?: string[];
-  experience?: string;
-  communication?: string;
-  motivation?: string;
-  availability?: string;
-  rolePreference?: string;
-  additionalInfo?: string;
-  name?: string;
-  interviewCompletedAt?: string;
-}
+// MemberProfile은 common.types.ts에서 import하여 사용
 
 /**
  * AI 분석 결과 - 개별 멤버 분석 (2025.01 추가)
@@ -247,6 +159,7 @@ export interface LeadershipAnalysis {
   selectedLeader?: string;
   selectionReason?: string;
   alternativeLeaders?: string[];
+  reason?: string;                 // 리더 선정 이유
 }
 
 /**
@@ -281,8 +194,11 @@ export interface TeamAnalysis {
   // 추가 필드들 (호환성)
   projectInfo?: ProjectBlueprint;
   teamMembers?: MemberProfile[];
-  roleAssignments?: RoleAssignment[];
+  roleAssignments?: RoleAssignment[] | Record<string, string>;
   compatibilityScore?: number;
+  skillCoverage?: number;       // 기술 커버리지 
+  teamworkScore?: number;       // 팀워크 점수
+  summary?: string;             // AI 종합 분석
 }
 
 /**

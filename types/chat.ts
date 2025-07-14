@@ -277,18 +277,4 @@ export type ConsultationData = InterviewData;
 /** @deprecated Use InterviewMessage instead */
 export type ConsultationMessage = InterviewMessage;
 
-/**
- * 팀 채팅 메시지 (ACTIVE 프로젝트용)
- */
-export interface ChatMessage {
-  id: string;
-  projectId: string;
-  userId: string;
-  content: string;
-  type: MessageType;
-  createdAt: Date;
-  user?: {
-    nickname?: string;
-    avatar?: string;
-  };
-}
+// ChatMessage는 위에 이미 정의됨 (line 16)

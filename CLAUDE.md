@@ -40,27 +40,58 @@
 - ✅ **불필요한 테이블/컬럼 생성 금지**
 - ❌ **데이터 손실 위험 작업 금지**
 
-## 🏗️ Next.js 15 표준 구조
+## 🏗️ DevMatch 프로젝트 아키텍처 (2025-01-13 모듈화 완료)
 
+### 📁 현재 구조
 ```
 app/
-├── (auth)/                 # 인증 관련 라우트 그룹
-│   ├── login/
-│   └── signup/
-├── (dashboard)/           # 대시보드 라우트 그룹
-│   └── projects/
-├── api/                   # API 라우트
-│   ├── auth/
-│   ├── projects/
-│   └── chat/
-├── components/            # 재사용 컴포넌트
-│   ├── ui/               # 기본 UI 컴포넌트
-│   ├── forms/            # 폼 관련 컴포넌트
-│   └── layout/           # 레이아웃 컴포넌트
-├── lib/                  # 유틸리티
-├── types/                # 타입 정의
-└── hooks/                # 커스텀 훅
+├── api/                   # HTTP 계층 (간소화 완료)
+│   ├── chat/route.ts      # AI 상담 (84줄, 79% 감소)
+│   └── projects/[id]/interview/route.ts  # 면담 (100줄, 67% 감소)
+└── projects/              # 페이지 컴포넌트 (⚠️ 아직 미정리)
+    ├── page.tsx           # 프로젝트 전체 목록
+    ├── my-projects/       # 내 프로젝트 목록
+    ├── create/            # 프로젝트 생성 (AI 상담)
+    └── [projectId]/       # 프로젝트별 페이지들
+        ├── page.tsx       # 팀원 모집 대기실
+        ├── interview/     # 개별 면담
+        ├── analysis/      # AI 팀 분석
+        └── chat/          # 팀 채팅
+
+lib/                       # ✅ 핵심 비즈니스 로직 (모듈화 완료)
+├── services/              # 서비스 레이어
+│   ├── consultation.service.ts  # 데피 AI 상담 시스템
+│   └── interview.service.ts     # 면담 시스템
+├── repositories/          # 데이터 접근 레이어 (Repository 패턴)
+│   ├── base.repository.ts       # 기본 CRUD + 트랜잭션
+│   └── project.repository.ts    # 프로젝트 전용 Repository
+├── ai/                    # AI 관련 모듈
+│   ├── prompts/           # AI 프롬프트 생성기
+│   │   ├── consultation.prompt.ts  # 데피 상담 프롬프트
+│   │   └── interview.prompt.ts     # 면담 프롬프트
+│   └── parsers/           # AI 응답 파서
+│       └── response.parser.ts
+├── errors/                # 중앙 집중식 에러 핸들링
+│   ├── types.ts           # API 에러 코드 + DevMatch 도메인 에러
+│   └── handler.ts         # ErrorHandler 클래스
+├── utils/                 # 공통 유틸리티
+│   ├── validation.ts      # 검증 로직 (프로젝트명, 팀 크기, 점수 등)
+│   └── data-transform.ts  # 데이터 변환 유틸리티
+└── types/
+    └── common.types.ts    # 공통 타입 (중복 제거 완료)
 ```
+
+### 🔄 아키텍처 원칙
+1. **관심사 분리**: API Route → Service → Repository → Database
+2. **재사용성**: 프롬프트, 파서, 유틸리티 모듈화
+3. **타입 안정성**: common.types.ts로 중복 제거 및 일관성 확보
+4. **에러 표준화**: ErrorHandler로 모든 API에서 일관된 에러 응답
+
+### 📊 모듈화 성과
+- **코드 감소**: API 라우트 79% 축소 (400줄 → 84줄)
+- **타입 안정성**: `pnpm typecheck` 통과
+- **재사용성**: 프롬프트/파서를 여러 API에서 공유 가능
+- **유지보수성**: 비즈니스 로직이 서비스 레이어로 분리
 
 ## 🎯 DevMatch 핵심 플로우
 1. **AI 상담** (`/api/chat`) → 프로젝트 아이디어 구체화

@@ -148,7 +148,7 @@ export async function POST(req: Request) {
     }
 
     // 프로젝트의 기술스택에 맞춰 스킬 점수 생성
-    const techStack = project.techStack as TechStackStructure;
+    const techStack = project.techStack as unknown as TechStackStructure;
     const skillScores = generateSkillScores(techStack, userIndex);
     const profile = testProfiles[userIndex];
 

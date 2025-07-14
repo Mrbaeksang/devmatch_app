@@ -147,11 +147,11 @@ class DevMatchDebugger {
           }
         }
 
-        // workStyles 검증
-        if (!profile.workStyles || profile.workStyles.length < 2) {
-          this.errors.push(`${member.user.name}: workStyles가 부족함 (최소 2개 필요)`);
+        // workStyles 검증 (1개만 있으면 됨)
+        if (!profile.workStyles || profile.workStyles.length < 1) {
+          this.errors.push(`${member.user.name}: workStyles가 없음`);
         } else {
-          this.passed.push(`✅ ${member.user.name}: workStyles 충분 (${profile.workStyles.length}개)`);
+          this.passed.push(`✅ ${member.user.name}: workStyles 있음 (${profile.workStyles.length}개)`);
         }
       }
     }

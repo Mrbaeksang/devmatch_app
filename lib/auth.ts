@@ -44,12 +44,6 @@ export const authOptions: NextAuthOptions = {
       return true;
     },
     async redirect({ url, baseUrl }) {
-      console.log("==============================================");
-      console.log("Redirect 콜백 호출됨!");
-      console.log("전달된 URL (url):", url);
-      console.log("기본 URL (baseUrl):", baseUrl);
-      console.log("==============================================");
-
       // 특정 페이지로의 리다이렉트인 경우 그대로 허용
       if (url.startsWith(baseUrl)) {
         return url;
